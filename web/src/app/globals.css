@@ -3,29 +3,47 @@
 @theme inline {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-playfair);
+  --font-script: var(--font-great-vibes);
 
-  /* Warm neutral staff UI. Final brand colours are still an open decision (PRD section 11). */
-  --color-canvas: #faf7f2;
+  /* La Patisserie (owner's mock-up, 2026-10-03): rose, blush and cream. Token names are shared by
+     every screen, so changing them here restyles the whole app. */
+  --color-canvas: #fdf5f6;
   --color-surface: #ffffff;
-  --color-ink: #2b2118;
-  --color-muted: #6f6257;
-  --color-line: #e7ded3;
-  --color-brand: #8a4b1f;
-  --color-brand-strong: #6d3a16;
-  --color-brand-soft: #f6ebe0;
-  --color-danger: #b42318;
+  --color-ink: #3a2a30;
+  --color-muted: #7d6870;
+  --color-line: #f1dde3;
+  /* brand passes 4.5:1 with white text and as text on canvas; rose (lighter) is decoration only. */
+  --color-brand: #c2456a;
+  --color-brand-strong: #a8365a;
+  --color-rose: #e8789a;
+  --color-brand-soft: #fde7ee;
+  --color-danger: #c0392b;
   --color-danger-soft: #fdecea;
-  --color-warn: #9a6700;
+  --color-warn: #9a6200;
   --color-warn-soft: #fff4d6;
-  --color-ok: #1f7a3a;
-  --color-ok-soft: #e7f5ec;
+  --color-ok: #1f7a4a;
+  --color-ok-soft: #e4f5ea;
+  --color-info: #3b5bab;
+  --color-info-soft: #e8eefb;
   --color-veg: #1f7a3a;
   --color-nonveg: #7a3b1f;
+  /* Sticky-note yellow (custom cake details, piece 4) and the script accent. */
+  --color-note: #fff6c4;
+  --color-note-line: #eedf93;
+  --color-script: #c0466b;
 }
 
 body {
   background: var(--color-canvas);
   color: var(--color-ink);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display), Georgia, serif;
+  letter-spacing: -0.01em;
 }
 
 :focus-visible {
