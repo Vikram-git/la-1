@@ -16,13 +16,14 @@ export const statusLabel: Record<OrderStatus, string> = {
   cancelled: "Cancelled",
 };
 
-export const statusTone: Record<OrderStatus, "neutral" | "brand" | "ok" | "warn" | "danger"> = {
+// Colours follow the owner's mock-up: pending pink, confirmed blue, preparing yellow, done green.
+export const statusTone: Record<OrderStatus, "neutral" | "brand" | "info" | "ok" | "warn" | "danger"> = {
   draft: "neutral",
-  pending_confirmation: "warn",
-  confirmed: "brand",
-  preparing: "brand",
+  pending_confirmation: "brand",
+  confirmed: "info",
+  preparing: "warn",
   ready: "ok",
-  completed: "neutral",
+  completed: "ok",
   rejected: "danger",
   cancelled: "danger",
 };

@@ -6,8 +6,8 @@ export function cx(...classes: (string | false | null | undefined)[]) {
 }
 
 const buttonVariants = {
-  primary: "bg-brand text-white hover:bg-brand-strong disabled:opacity-60",
-  secondary: "bg-surface text-ink border border-line hover:bg-brand-soft disabled:opacity-60",
+  primary: "bg-brand text-white shadow-sm shadow-brand/25 hover:bg-brand-strong disabled:opacity-60",
+  secondary: "bg-surface text-ink border border-line hover:border-brand/40 hover:bg-brand-soft disabled:opacity-60",
   danger: "bg-surface text-danger border border-danger/40 hover:bg-danger-soft disabled:opacity-60",
   ghost: "text-brand hover:bg-brand-soft disabled:opacity-60",
 };
@@ -15,7 +15,7 @@ const buttonVariants = {
 type ButtonVariant = keyof typeof buttonVariants;
 
 const buttonBase =
-  "inline-flex items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed";
+  "inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed";
 
 export function Button({
   variant = "primary",
@@ -34,7 +34,7 @@ export function ButtonLink({
 }
 
 const fieldBase =
-  "w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-muted/70 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20 disabled:bg-canvas";
+  "w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-muted/70 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20 disabled:bg-canvas";
 
 export function Input({ className, ...props }: ComponentProps<"input">) {
   return <input className={cx(fieldBase, className)} {...props} />;
@@ -99,7 +99,7 @@ export function Checkbox({
 export function Card({ className, ...props }: ComponentProps<"section">) {
   return (
     <section
-      className={cx("rounded-xl border border-line bg-surface p-5 shadow-sm", className)}
+      className={cx("rounded-2xl border border-line/80 bg-surface p-5 shadow-[0_8px_30px_-16px_rgba(176,58,94,0.28)]", className)}
       {...props}
     />
   );
@@ -117,7 +117,7 @@ export function PageHeader({
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+        <h1 className="text-3xl font-semibold">{title}</h1>
         {description && <p className="mt-1 text-sm text-muted">{description}</p>}
       </div>
       {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
@@ -128,6 +128,7 @@ export function PageHeader({
 const badgeTones = {
   neutral: "bg-canvas text-muted border-line",
   brand: "bg-brand-soft text-brand-strong border-brand/20",
+  info: "bg-info-soft text-info border-info/20",
   ok: "bg-ok-soft text-ok border-ok/20",
   warn: "bg-warn-soft text-warn border-warn/30",
   danger: "bg-danger-soft text-danger border-danger/20",
@@ -145,7 +146,7 @@ export function Badge({
   return (
     <span
       className={cx(
-        "inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-0.5 text-xs font-medium",
+        "inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2.5 py-0.5 text-xs font-medium",
         badgeTones[tone],
         className,
       )}
@@ -188,7 +189,7 @@ export function Alert({
     brand: "border-brand/20 bg-brand-soft text-brand-strong",
   };
   return (
-    <div role={tone === "danger" ? "alert" : "status"} className={cx("rounded-lg border px-4 py-3 text-sm", tones[tone])}>
+    <div role={tone === "danger" ? "alert" : "status"} className={cx("rounded-2xl border px-4 py-3 text-sm", tones[tone])}>
       {title && <p className="font-semibold">{title}</p>}
       {children && <div className={title ? "mt-1" : undefined}>{children}</div>}
     </div>
@@ -197,9 +198,40 @@ export function Alert({
 
 export function EmptyState({ title, children }: { title: string; children?: ReactNode }) {
   return (
-    <div className="rounded-xl border border-dashed border-line bg-surface px-6 py-10 text-center">
-      <p className="font-medium">{title}</p>
+    <div className="rounded-2xl border border-dashed border-brand/30 bg-surface px-6 py-10 text-center">
+      <p className="font-display text-lg">{title}</p>
       {children && <div className="mt-2 text-sm text-muted">{children}</div>}
+    </div>
+  );
+}
+
+// Handwritten accent lines ("Baked with Love, Always"). Decorative: hidden from screen readers.
+export function ScriptText({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <span aria-hidden className={cx("font-script text-script leading-tight", className)}>
+      {children}
+    </span>
+  );
+}
+
+// Chef-hat mark used in the logo.
+export function ChefHat({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden className={className}>
+      <path d="M14 30c-4.4 0-8-3.4-8-7.8 0-4.2 3.3-7.6 7.6-7.8C14.9 9.6 19 6 24 6s9.1 3.6 10.4 8.4c4.3.2 7.6 3.6 7.6 7.8 0 4.4-3.6 7.8-8 7.8" />
+      <path d="M14 26v14h20V26" />
+      <path d="M14 34h20" />
+    </svg>
+  );
+}
+
+// "La Patisserie" wordmark with the chef hat and tagline.
+export function Brand({ compact = false, className }: { compact?: boolean; className?: string }) {
+  return (
+    <div className={cx("flex flex-col items-center text-center", className)}>
+      <ChefHat className={cx("text-brand", compact ? "size-7" : "size-10")} />
+      <span className={cx("font-display font-medium leading-none text-ink", compact ? "mt-1 text-2xl" : "mt-1.5 text-4xl")}>La Patisserie</span>
+      {!compact && <span className="mt-1.5 text-[10px] font-medium uppercase tracking-[0.25em] text-muted">More than cakes, sweeter moments</span>}
     </div>
   );
 }
