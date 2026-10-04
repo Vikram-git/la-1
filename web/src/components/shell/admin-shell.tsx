@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -84,9 +84,9 @@ function SidebarContent({ sections, counts, onNavigate }: { sections: NavSection
                             "min-w-6 rounded-full px-1.5 py-0.5 text-center text-xs font-semibold",
                             active ? "bg-white text-brand-strong" : "bg-brand text-white",
                           )}
-                          aria-label={`${badge} waiting`}
                         >
                           {badge}
+                          <span className="sr-only"> waiting</span>
                         </span>
                       )}
                       {item.soon && !active && <span className="text-[10px] uppercase tracking-wide text-muted">Soon</span>}
@@ -113,7 +113,10 @@ function SidebarContent({ sections, counts, onNavigate }: { sections: NavSection
 function UserMenu({ name, roleLabel }: { name: string; roleLabel: string }) {
   return (
     <details className="group relative">
-      <summary className="flex cursor-pointer list-none items-center gap-2 rounded-full py-1 pl-1 pr-2 hover:bg-brand-soft [&::-webkit-details-marker]:hidden">
+      <summary
+        aria-label={`Account menu, ${name}`}
+        className="flex cursor-pointer list-none items-center gap-2 rounded-full py-1 pl-1 pr-2 hover:bg-brand-soft [&::-webkit-details-marker]:hidden"
+      >
         <span className="flex size-10 items-center justify-center rounded-full bg-brand font-display text-lg text-white">{name.slice(0, 1).toUpperCase()}</span>
         <span className="hidden text-left sm:block">
           <span className="block text-sm font-medium leading-tight">{name}</span>
@@ -145,8 +148,11 @@ export function AdminShell({
   roleLabel: string;
   children: ReactNode;
 }) {
-  // The phone drawer closes when a menu link is tapped (onNavigate).
-  const [open, setOpen] = useState(false);
+  // Phone and tablet menu: a modal <dialog>, so focus moves into it, Escape closes it and the page
+  // behind is inert. It also closes when a menu link is tapped.
+  const menu = useRef<HTMLDialogElement>(null);
+  const openMenu = () => menu.current?.showModal();
+  const closeMenu = () => menu.current?.close();
 
   return (
     <div className="relative min-h-screen">
@@ -155,27 +161,31 @@ export function AdminShell({
         <SidebarContent sections={sections} counts={counts} />
       </aside>
 
-      {/* Phone and tablet drawer */}
-      {open && (
-        <div className="fixed inset-0 z-40 lg:hidden">
-          <button type="button" aria-label="Close menu" className="absolute inset-0 bg-ink/30" onClick={() => setOpen(false)} />
-          <aside className="relative h-full w-72 max-w-[85vw] bg-surface shadow-xl">
-            <button type="button" aria-label="Close menu" onClick={() => setOpen(false)} className="absolute right-3 top-3 rounded-full p-2 hover:bg-brand-soft">
-              <X aria-hidden className="size-5" />
-            </button>
-            <SidebarContent sections={sections} counts={counts} onNavigate={() => setOpen(false)} />
-          </aside>
-        </div>
-      )}
+      {/* Phone and tablet menu */}
+      <dialog
+        ref={menu}
+        aria-label="Menu"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) closeMenu(); // a tap on the dimmed backdrop
+        }}
+        className="m-0 h-dvh max-h-none w-72 max-w-[85vw] bg-surface p-0 shadow-xl backdrop:bg-ink/30 lg:hidden"
+      >
+        <button type="button" aria-label="Close menu" onClick={closeMenu} className="absolute right-3 top-3 z-10 rounded-full p-2 hover:bg-brand-soft">
+          <X aria-hidden className="size-5" />
+        </button>
+        <SidebarContent sections={sections} counts={counts} onNavigate={closeMenu} />
+      </dialog>
 
       <div className="lg:pl-64">
         <header className="sticky top-0 z-10 border-b border-line/70 bg-canvas/90 backdrop-blur">
           <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 md:px-8">
-            <button type="button" aria-label="Open menu" onClick={() => setOpen(true)} className="rounded-xl p-2 hover:bg-brand-soft lg:hidden">
+            <button type="button" aria-label="Open menu" onClick={openMenu} className="rounded-xl p-2 hover:bg-brand-soft lg:hidden">
               <Menu aria-hidden className="size-6" />
             </button>
             <form action="/admin/orders" role="search" className="relative max-w-xl flex-1">
               <Search aria-hidden className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted" />
+              {/* Searches both order lists, every status and date (see searchEverywhere). */}
+              <input type="hidden" name="scope" value="all" />
               <input type="hidden" name="when" value="all" />
               <input
                 name="q"

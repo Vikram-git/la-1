@@ -6,15 +6,17 @@ import { SOON_PAGES } from "@/lib/shell";
 import { Card, PageHeader, ScriptText } from "@/components/ui";
 
 export async function generateMetadata({ params }: PageProps<"/admin/soon/[slug]">): Promise<Metadata> {
-  const page = SOON_PAGES[(await params).slug];
-  return { title: page?.title ?? "Coming soon" };
+  const { slug } = await params;
+  return { title: Object.hasOwn(SOON_PAGES, slug) ? SOON_PAGES[slug].title : "Coming soon" };
 }
 
 // Placeholder for menu items in the owner's mock-up that are not built yet.
 export default async function ComingSoonPage({ params }: PageProps<"/admin/soon/[slug]">) {
   await requireRole(["admin", "counter"]);
-  const page = SOON_PAGES[(await params).slug];
-  if (!page) notFound();
+  const { slug } = await params;
+  // hasOwn: names like "constructor" are not pages.
+  if (!Object.hasOwn(SOON_PAGES, slug)) notFound();
+  const page = SOON_PAGES[slug];
 
   return (
     <>

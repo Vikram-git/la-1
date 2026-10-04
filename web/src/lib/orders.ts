@@ -28,6 +28,12 @@ export const statusTone: Record<OrderStatus, "neutral" | "brand" | "info" | "ok"
   cancelled: "danger",
 };
 
+// The top-bar search (scope=all) looks in both lists and every status; the search box on the
+// orders page stays within the list and filters shown.
+export function searchEverywhere(q: string, scope: string): boolean {
+  return q.length > 0 && scope === "all";
+}
+
 export const sourceLabel: Record<OrderSource, string> = {
   IN_STORE: "In-store",
   ONLINE: "Online",

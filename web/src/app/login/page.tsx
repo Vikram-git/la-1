@@ -31,7 +31,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
     <main className="grid flex-1 lg:grid-cols-[1.1fr_1fr]">
       {/* Brand side: the patisserie photo with the script line (hidden on phones). */}
       <div className="relative hidden overflow-hidden lg:block">
-        <Image src="/brand/hero.jpg" alt="" fill priority sizes="55vw" className="object-cover" />
+        <Image src="/brand/hero.jpg" alt="" fill fetchPriority="high" sizes="55vw" className="object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-ink/70 via-ink/10 to-transparent" />
         <div className="absolute bottom-12 left-12 right-12 text-white">
           <ScriptText className="block text-6xl text-white">Good Cakes, Better Days ♥</ScriptText>

@@ -13,9 +13,10 @@
   --color-ink: #3a2a30;
   --color-muted: #7d6870;
   --color-line: #f1dde3;
-  /* brand passes 4.5:1 with white text and as text on canvas; rose (lighter) is decoration only. */
-  --color-brand: #c2456a;
-  --color-brand-strong: #a8365a;
+  /* brand passes 4.5:1 with white text, as text on canvas and on brand-soft (5.3, 4.95, 4.51);
+     rose (lighter) is decoration only. */
+  --color-brand: #b93f63;
+  --color-brand-strong: #9c3253;
   --color-rose: #e8789a;
   --color-brand-soft: #fde7ee;
   --color-danger: #c0392b;

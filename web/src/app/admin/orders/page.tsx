@@ -4,7 +4,7 @@ import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getBusinessTimezone } from "@/lib/settings";
 import { formatPaise } from "@/lib/money";
-import { OPEN_STATUSES, statusLabel, type OrderStatus } from "@/lib/orders";
+import { OPEN_STATUSES, statusLabel, type OrderStatus, searchEverywhere } from "@/lib/orders";
 import { formatDateTime, zonedDayKey, zonedDayRange } from "@/lib/time";
 import { Alert, ButtonLink, EmptyState, Input, PageHeader, Select, cx } from "@/components/ui";
 import { KitchenFlags, SourceBadge, StatusBadge } from "@/components/order-badges";
@@ -32,6 +32,7 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/ord
   const status: "open" | "all" | OrderStatus =
     statusParam === "all" ? "all" : (Object.keys(statusLabel) as OrderStatus[]).find((s) => s === statusParam) ?? "open";
   const q = str(params.q).trim().replace(/[^\p{L}\p{N}\s+-]/gu, "").slice(0, 60);
+  const everywhere = searchEverywhere(q, str(params.scope));
 
   const tz = await getBusinessTimezone();
   const today = zonedDayKey(new Date(), tz);
@@ -42,16 +43,18 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/ord
   let query = supabase
     .from("order_summaries")
     .select("id, reference, source, status, customer_name, customer_phone, due_at, is_immediate, total_paise, balance_paise, item_count, kitchen_ids")
-    .in("source", LISTS[list].sources)
+    .in("source", everywhere ? ["IN_STORE", "ONLINE", "CALL"] : LISTS[list].sources)
     .limit(200);
 
-  if (status === "open") query = query.in("status", OPEN_STATUSES);
+  if (everywhere) {
+    // Top-bar search: every list and status, any date.
+  } else if (status === "open") query = query.in("status", OPEN_STATUSES);
   else if (status !== "all") query = query.eq("status", status);
 
-  if (when === "today") query = query.gte("due_at", todayStart.toISOString()).lt("due_at", todayEnd.toISOString());
-  if (when === "upcoming") query = query.gte("due_at", todayEnd.toISOString());
-  if (when === "overdue") query = query.lt("due_at", now).in("status", OPEN_STATUSES);
-  if (when === "past") query = query.lt("due_at", todayStart.toISOString());
+  if (!everywhere && when === "today") query = query.gte("due_at", todayStart.toISOString()).lt("due_at", todayEnd.toISOString());
+  if (!everywhere && when === "upcoming") query = query.gte("due_at", todayEnd.toISOString());
+  if (!everywhere && when === "overdue") query = query.lt("due_at", now).in("status", OPEN_STATUSES);
+  if (!everywhere && when === "past") query = query.lt("due_at", todayStart.toISOString());
 
   if (q) {
     const compact = q.replace(/\s/g, "");
@@ -106,6 +109,11 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/ord
           </>
         }
       />
+      {everywhere && (
+        <p className="mb-4 rounded-2xl border border-brand/20 bg-brand-soft px-4 py-2.5 text-sm text-brand-strong">
+          Showing every order matching “{q}”, from both lists, any date and status.
+        </p>
+      )}
 
       <nav aria-label="Order lists" className="mb-4 flex gap-1 border-b border-line">
         {(Object.keys(LISTS) as ListKey[]).map((key) => (

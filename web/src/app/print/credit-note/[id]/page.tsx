@@ -34,7 +34,7 @@ export default async function CreditNotePrintPage({ params, searchParams }: Page
         ? "mx-auto w-[76mm] bg-white p-3 font-mono text-[11px] leading-snug text-black shadow print:w-full print:p-0 print:shadow-none"
         : "mx-auto max-w-3xl bg-white p-10 text-sm text-black shadow print:max-w-none print:p-0 print:shadow-none"}>
         <header className={narrow ? "text-center" : ""}>
-          <h1 className={narrow ? "text-sm font-bold" : "text-2xl font-bold"}>{business.name}</h1>
+          <h1 className={narrow ? "font-sans text-sm font-bold" : "font-sans text-2xl font-bold"}>{business.name}</h1>
           {business.address && <p className="whitespace-pre-line">{business.address}</p>}
           {business.gstin && <p>GSTIN: {business.gstin}</p>}
           <p className={narrow ? "mt-2 border-y border-dashed border-black py-1 font-bold" : "mt-6 text-lg font-bold"}>CREDIT NOTE</p>

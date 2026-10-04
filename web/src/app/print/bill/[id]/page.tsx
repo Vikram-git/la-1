@@ -69,7 +69,7 @@ export default async function BillPrintPage({ params, searchParams }: PageProps<
         : "mx-auto max-w-3xl bg-white p-10 text-sm text-black shadow print:max-w-none print:p-0 print:shadow-none"}>
         <header className={narrow ? "text-center" : "flex justify-between gap-6"}>
           <div>
-            <h1 className={narrow ? "text-sm font-bold" : "text-2xl font-bold"}>{business.name}</h1>
+            <h1 className={narrow ? "font-sans text-sm font-bold" : "font-sans text-2xl font-bold"}>{business.name}</h1>
             {business.address && <p className="whitespace-pre-line">{business.address}</p>}
             {business.phone && <p>Ph: {business.phone}</p>}
             {business.gstin && <p>GSTIN: {business.gstin}</p>}
