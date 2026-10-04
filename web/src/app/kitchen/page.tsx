@@ -10,7 +10,7 @@ import { getBusinessTimezone } from "@/lib/settings";
 import { addDays, zonedDayKey, zonedDayRange } from "@/lib/time";
 import { groupQueue } from "@/lib/kitchen";
 import { ticketStamp, ticketsQuery, toKitchenTickets } from "@/lib/kitchen-data";
-import { Alert, EmptyState, cx } from "@/components/ui";
+import { Alert, ChefHat, EmptyState, ScriptText, cx } from "@/components/ui";
 import { RefreshStatus } from "@/components/kitchen/refresh-status";
 import { StopWorkNotice, TicketCard } from "@/components/kitchen/ticket-card";
 
@@ -83,17 +83,20 @@ export default async function KitchenPage({ searchParams }: PageProps<"/kitchen"
   return (
     <div className="flex min-h-screen flex-col">
       <header className="flex flex-wrap items-center justify-between gap-4 border-b border-line bg-surface px-5 py-4">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-widest text-brand">Auri Bakery · Kitchen</p>
-          <h1 className="text-xl font-semibold">
+        <div className="flex items-center gap-3">
+          <ChefHat className="size-9 text-brand" />
+          <div>
+          <p className="font-display text-lg leading-none">La Patisserie <span className="text-sm text-muted">· Kitchen</span></p>
+          <h1 className="mt-1 text-xl font-semibold">
             {chef.kitchens.length ? chef.kitchens.map((k) => k.name).join(" + ") : "No kitchen assigned"}
           </h1>
+          </div>
         </div>
         <RefreshStatus stamp={stamp} tz={tz} loadedAt={nowIso} />
         <div className="flex items-center gap-4">
           <span className="text-base">{chef.fullName}</span>
           <form action={signOut}>
-            <button type="submit" className="rounded-lg border border-line px-4 py-2.5 text-base font-medium hover:bg-brand-soft">
+            <button type="submit" className="rounded-xl border border-line bg-surface px-4 py-2.5 text-base font-medium hover:bg-brand-soft">
               {pinStatus === "ok" ? "Switch chef" : "Sign out"}
             </button>
           </form>
@@ -164,6 +167,9 @@ export default async function KitchenPage({ searchParams }: PageProps<"/kitchen"
           </>
         )}
       </main>
+      <footer className="px-5 pb-6 text-center">
+        <ScriptText className="text-3xl">Handle with care, it&apos;s someone&apos;s happiness ♥</ScriptText>
+      </footer>
     </div>
   );
 }

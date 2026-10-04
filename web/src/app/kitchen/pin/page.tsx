@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { currentTablet, pinSignInAvailable } from "@/lib/kitchen-device";
-import { Alert } from "@/components/ui";
+import { Alert, Brand, ScriptText } from "@/components/ui";
 import { PinPad } from "./pin-pad";
 
 export const metadata: Metadata = { title: "Chef sign-in" };
@@ -14,11 +14,13 @@ export default async function PinPage() {
   return (
     <main className="flex min-h-screen flex-col items-center px-5 py-10">
       <div className="w-full max-w-3xl">
-        <p className="text-center text-sm font-medium uppercase tracking-widest text-brand">Auri Bakery · Kitchen</p>
+        <Brand />
         {!pinSignInAvailable() ? (
-          <Alert tone="danger" title="PIN sign-in is not set up on this server">
-            An admin needs to add the server&apos;s secret key. Until then, sign in with email and password.
-          </Alert>
+          <div className="mt-8">
+            <Alert tone="danger" title="PIN sign-in is not set up on this server">
+              An admin needs to add the server&apos;s secret key. Until then, sign in with email and password.
+            </Alert>
+          </div>
         ) : !tablet ? (
           <div className="mt-6">
             <Alert title="This is not a registered kitchen tablet">
@@ -33,7 +35,8 @@ export default async function PinPage() {
             <PinPad chefs={tablet.chefs} />
           </>
         )}
-        <p className="mt-10 text-center text-sm">
+        <ScriptText className="mt-12 block text-center text-3xl">Handle with care, it&apos;s someone&apos;s happiness ♥</ScriptText>
+        <p className="mt-6 text-center text-sm">
           <Link href="/login?email=1" className="text-brand hover:underline">
             Sign in with email instead
           </Link>
