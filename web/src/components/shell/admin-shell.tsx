@@ -52,11 +52,11 @@ type Counts = { pending: number; kitchenAlerts: number; attention: number };
 function SidebarContent({ sections, counts, onNavigate }: { sections: NavSection[]; counts: Counts; onNavigate?: () => void }) {
   const pathname = usePathname();
   return (
-    <div className="flex h-full flex-col">
-      <Link href="/admin" onClick={onNavigate} className="px-4 pb-6 pt-7" aria-label="La Patisserie, Dashboard">
+    <div className="flex h-full flex-col overflow-y-auto">
+      <Link href="/admin" onClick={onNavigate} className="px-4 pb-5 pt-6" aria-label="La Patisserie, Dashboard">
         <Brand />
       </Link>
-      <nav aria-label="Admin" className="flex flex-1 flex-col gap-5 overflow-y-auto px-3">
+      <nav aria-label="Admin" className="flex flex-1 flex-col gap-4 px-3">
         {sections.map((section) => (
           <div key={section.title ?? "main"}>
             {section.title && <p className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-widest text-muted">{section.title}</p>}
@@ -72,7 +72,7 @@ function SidebarContent({ sections, counts, onNavigate }: { sections: NavSection
                       onClick={onNavigate}
                       aria-current={active ? "page" : undefined}
                       className={cx(
-                        "flex items-center gap-3 rounded-xl px-3 py-2.5 text-[15px] transition-colors",
+                        "flex items-center gap-3 rounded-xl px-3 py-2 text-[15px] transition-colors",
                         active ? "bg-brand font-medium text-white shadow-sm shadow-brand/30" : item.soon ? "text-muted hover:bg-brand-soft" : "text-ink hover:bg-brand-soft",
                       )}
                     >
@@ -98,8 +98,8 @@ function SidebarContent({ sections, counts, onNavigate }: { sections: NavSection
           </div>
         ))}
       </nav>
-      <div className="relative mt-4 h-52 shrink-0 overflow-hidden">
-        <ScriptText className="absolute left-5 top-2 z-10 block -rotate-6 text-3xl">
+      <div className="relative mt-4 h-40 shrink-0 overflow-hidden">
+        <ScriptText className="absolute left-5 top-1 z-10 block -rotate-6 text-[26px]">
           Baked with Love,
           <br />
           &nbsp;&nbsp;Always ♥
@@ -185,7 +185,8 @@ export function AdminShell({
                 className="w-full rounded-2xl border border-line bg-surface py-2.5 pl-10 pr-4 text-sm placeholder:text-muted/80 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
               />
             </form>
-            <div className="ml-auto flex items-center gap-2">
+            <ScriptText className="ml-auto hidden -rotate-3 whitespace-nowrap text-3xl xl:block">Good Cakes, Better Days ♥</ScriptText>
+            <div className="ml-auto flex items-center gap-2 xl:ml-4">
               <Link
                 href="/admin"
                 aria-label={counts.attention > 0 ? `${counts.attention} things need attention` : "Nothing needs attention"}
@@ -202,12 +203,6 @@ export function AdminShell({
             </div>
           </div>
         </header>
-
-        <ScriptText className="pointer-events-none absolute right-6 top-20 hidden rotate-[-8deg] text-right text-4xl opacity-80 xl:block">
-          Good Cakes,
-          <br />
-          Better Days ♥
-        </ScriptText>
 
         <main className="px-4 py-6 md:px-8 md:py-8">
           <div className="mx-auto max-w-6xl">{children}</div>

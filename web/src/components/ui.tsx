@@ -231,7 +231,7 @@ export function Brand({ compact = false, className }: { compact?: boolean; class
     <div className={cx("flex flex-col items-center text-center", className)}>
       <ChefHat className={cx("text-brand", compact ? "size-7" : "size-10")} />
       <span className={cx("font-display font-medium leading-none text-ink", compact ? "mt-1 text-2xl" : "mt-1.5 text-4xl")}>La Patisserie</span>
-      {!compact && <span className="mt-1.5 text-[10px] font-medium uppercase tracking-[0.25em] text-muted">More than cakes, sweeter moments</span>}
+      {!compact && <span className="mt-1.5 whitespace-nowrap text-[9px] font-medium uppercase tracking-[0.18em] text-muted">More than cakes, sweeter moments</span>}
     </div>
   );
 }
