@@ -1,6 +1,6 @@
-# Bakery Project — To-do List
+# La Patisserie — To-do List
 
-Status (2026-10-03): Phases 3, 4A and 4B are built and tested. Phase 4C is done except notification templates (waiting for the owner's channel decision). Phase 5A (kitchen tickets) is built, reviewed and deployed from `main`. **The 5A review fixes and Phase 5B packing and handover are in `main` (merged 2026-10-03)**; their database migrations are applied to the live project, and Vercel's Git integration (connected 2026-10-03) deploys `main` on every push. **Phase 5C (kitchen revisions) is built, reviewed and deployed (2026-10-03).** No browser click-through yet. **Next: set up test data, click through every screen (including the revision flow), then 5D.** Owner decision 2026-10-02: no stock or inventory tracking. See HANDOVER.md for setup, architecture, and known gaps.
+Status (2026-10-05): Phases 3, 4A, 4B, 5A–5D and the daily sales report are built, reviewed and deployed from `main`; Phase 4C is done except customer notification templates (owner to choose a channel). Home shows kitchen workload and alerts. The owner's pink **La Patisserie** mock-up is being built in six pieces: **piece 1 (look and shell) is done; piece 2 (Orders page) is next** (see "Owner's mock-up" below). The live database holds demo data (remove before real customers). Real flows have not been clicked through yet; the owner wants that walkthrough after the build work. Owner decisions: no stock tracking (2026-10-02); La Patisserie brand, delivery later, admin-set chef PINs with no lock-out, admin-only reports (2026-10-03). See HANDOVER.md for setup, architecture and known gaps.
 Checkboxes represent actual completion, not intentions.
 
 ## Start here — next developer
@@ -9,14 +9,28 @@ Checkboxes represent actual completion, not intentions.
 2. [x] First Git deployment of `main` checked (2026-10-03): it served 404s until the Root Directory was set to `web`; fixed. Check `vercel ls` after each push (HANDOVER section 2).
 3. [x] `SUPABASE_SECRET_KEY` added to `web/.env.local` (2026-10-03). Still needed on Vercel for PIN sign-in. Rotate it before go-live (it was shared in a chat).
 4. [x] Code is on GitHub: `sandymandycandy/bakery-admin` (branch `main`). Clone it; get `web/.env.local` values from the owner.
-5. [ ] Run the app locally and click through every admin screen in a browser (never done yet — only HTTP-level tests so far).
-6. [ ] Create a staging Supabase project so tests can create bills without consuming the live bill sequence. (The SQL checks already run without one: `supabase/local/run-tests.sh`, HANDOVER section 3.)
+5. [ ] Click through every real flow in a browser (owner: after the build work). Done so far: headless-Chrome screenshots of the main screens (2026-10-04) and live smoke tests of PIN sign-in.
+6. [ ] Create a staging Supabase project so end-to-end tests can create bills without touching the live bill sequence. (SQL checks already run on PGlite without one: `cd supabase/local/pglite && node run.mjs`.)
 7. [ ] Enable Leaked Password Protection (Supabase → Auth → Password security).
 8. [x] Merge Phase 5A into `main` and deploy (done 2026-10-03).
-9. [ ] Decide about demo-login autofill on the live site (`DEMO_*` variables; not set yet). Remove them before real data goes in (HANDOVER section 2).
+9. [ ] Demo logins on the live site: the owner allowed them; `DEMO_ADMIN_*` is set on Vercel (2026-10-03). **Delete `DEMO_*` on Vercel and redeploy before real data goes in.**
 10. [x] Create the demo chef login and assign it to kitchens (2026-10-03: chef@auri.test, Kitchen 1 and Kitchen 2; password in web/.admin-password.txt).
 11. [x] While no real orders exist, reset the order sequence (done 2026-10-03: the first real order will be B-1001). Run SQL tests locally from now on so it stays there.
 12. [ ] Before real data: run `supabase/seed/remove_demo_data.sql` on the live project (demo data loaded 2026-10-03: orders B-1001…B-1015, bills 00001–00005). It restarts order and bill numbering.
+13. [ ] Add `SUPABASE_SECRET_KEY` to Vercel production and redeploy (`vercel env add SUPABASE_SECRET_KEY production` from `web/`): chef PIN sign-in and staff-login management need it on the live site. Rotate the key before go-live.
+14. [ ] Owner to confirm: the 5B packing/handover defaults (HANDOVER section 6) and the mock-up status colours (Ready and Completed both green; Completed grey instead?).
+
+## Owner's mock-up — La Patisserie admin (agreed order, 2026-10-03)
+
+The owner sent a pink "La Patisserie" orders-screen mock-up (WhatsApp image, 22 Sep 2026) and asked for everything in it. Agreed pieces, built in this order, each with its own spec, plan, tests and review:
+
+- [x] 1. Look and shell: brand, pink theme, fonts, icon sidebar with count badges, top bar (search, bell, account menu), decoration everywhere, "coming soon" pages (2026-10-04; HANDOVER section 18; spec `docs/superpowers/specs/2026-10-03-la-patisserie-look-design.md`).
+- [ ] 2. Orders page like the mock-up: status tabs with counts, search, date and order-type filters, rows with item photos, order detail beside the list with notes and the main action.
+- [ ] 3. Product photos: upload (Supabase Storage), shown in lists, the order panel and the catalogue.
+- [ ] 4. Custom cake details: flavour, size and weight, tiers, design or theme, cream, filling, toppings, message, eggless, reference photo, special instructions; sticky-note card; printed for the kitchen.
+- [ ] 5. Notifications: the bell's list (orders waiting, kitchen issues, unacknowledged changes, late pickups).
+- [ ] 6. Delivery: delivery orders, address and charge, "Out for delivery", delivered handover (ask the owner for the rules first).
+- [ ] Offers & Banners and Reviews: shown as "coming soon"; built with the public website (Phase 6).
 
 ## Phase 0 — Planning and business decisions
 
@@ -26,7 +40,7 @@ Checkboxes represent actual completion, not intentions.
 - [x] Document statuses, revisions, operational exceptions, and acceptance scenarios.
 - [x] Create [PROJECT_RULES.md](PROJECT_RULES.md).
 - [x] Expand the plan with seven operational workflows, related rules, and AC-21 through AC-27.
-- [ ] Confirm business name and reuse of the existing prototype.
+- [x] Confirm business name: **La Patisserie** (owner, 2026-10-03, from the owner's mock-up; the prototype said "La Patisserie Madras"). The prototype's photos are reused in the admin decoration.
 - [ ] Supply kitchen names and a product/variant-to-kitchen mapping table.
 - [x] Confirm website ordering and call orders for the first release.
 - [x] Retain Kitchen 1 and Kitchen 2 as planning placeholders; actual mapping remains open.

@@ -1,27 +1,28 @@
-# Handover — Auri Bakery order management
+# Handover — La Patisserie order and kitchen management
 
-Date: 2026-10-03 (first written 2026-09-27). Read this first, then [TODO.md](TODO.md) ("Start here"), [PRD.md](PRD.md), and [PROJECT_RULES.md](PROJECT_RULES.md). Designs and plans for recent work are in `docs/superpowers/specs/` and `docs/superpowers/plans/`.
+Date: 2026-10-05 (first written 2026-09-27). Read this first, then [TODO.md](TODO.md) ("Start here"), [PRD.md](PRD.md), and [PROJECT_RULES.md](PROJECT_RULES.md). Designs and plans for recent work are in `docs/superpowers/specs/` and `docs/superpowers/plans/`. The project folder and repository still carry the old working name "Auri Bakery"; the owner chose **La Patisserie** on 2026-10-03.
 
-**Latest work** (the 5A review fixes, Phase 5B packing and handover, and a local SQL test runner) was built on branch `claude/exciting-goldberg-09thku` and **merged into `main` on 2026-10-03**. Its database migrations are applied to the live project. Vercel's Git integration was connected the same day, so pushes to `main` now deploy to production (section 2). Confirm the 5B defaults (section 6).
+**State on 2026-10-05:** everything is in `main` (`6398b49` and later), deployed to production by the Vercel Git integration, and every database migration is applied to the live project (the live function bodies were compared with the files). The working tree is clean. The owner is rebuilding the admin screens to a pink "La Patisserie" mock-up in six pieces; **piece 1 (look and shell) is done; piece 2 (Orders page like the mock-up) is next** (section 18, section 8).
 
 ## 1. Where things stand
 
 | Phase | State | What exists |
 |---|---|---|
-| 0–2 Planning | Mostly done | PRD v0.3, rules, TODO. Many business decisions still open (PRD section 14). |
-| 3 Foundation | **Done** | Staff login, roles, kitchens, products/variants/categories, settings, audit log. Chef PIN sign-in **not built** (now Phase 5D). |
+| 0–2 Planning | Mostly done | PRD v0.3, rules, TODO. Many business decisions still open (PRD section 14, TODO Phase 0). |
+| 3 Foundation | **Done** | Staff login, roles, kitchens, products/variants/categories, settings, audit log. |
 | 4A Orders | **Done** | In-store and call orders, two order lists, order detail, confirm/reject/cancel/reschedule, payments and refunds, calendar, opening hours and closures, customers. |
 | 4B Billing | **Done** | Counter quick sale, discounts, GST bills (gap-free per financial year), credit notes, 80mm and A4 print. |
-| 4C | **Done except notifications** | Pickup windows, category caps, festival overrides, shared override prompt, calendar week/day views, demo-login autofill, customer blocking and no-shows (section 9), editing items on pending and confirmed orders (section 10). Left: notification templates (waiting for the owner to choose a channel). |
-| 5A Kitchen tickets | **Done and deployed** (2026-10-03) | Tickets per kitchen on confirmation, chef screen, ready counts, issues, stop-work, printed ticket, admin KOT page, kitchen badges (section 11). The minor items from its review were fixed on 2026-10-03 (section 12): database part applied to the live project, web part in `main`. |
-| 5B Packing and handover | **Built and tested** (2026-10-03), in `main` | One packing confirmation → Ready; one handover → Completed, with the balance check and a GST bill; admin reopen and credit handover (section 13). Database part applied to the live project; web part in `main`, deployed by the Git integration (section 2). **Defaults need the owner's confirmation** (section 6). |
-| 5C Kitchen revisions | **Built, reviewed and deployed** (2026-10-03), in `main` | Admins change items and the pickup time after the kitchen acknowledged or started: tickets revised in place (ready counts kept), a Changed banner the kitchen acknowledges, packing waits for it (section 14). Database part (migrations `20261003000300` and the review fixes `20261003000400`) applied to the live project. |
-| 5D Chef PIN sign-in | **Built, reviewed and deployed** (2026-10-03) | Registered kitchen tablets; chefs tap their name and type an admin-set PIN; revoking a tablet or changing a PIN ends its logins (section 16). **Needs `SUPABASE_SECRET_KEY` on Vercel** to work on the live site. |
-| 6 Public website | Not started | Deferred by the owner ("leave the public page for now"). |
-| 7 Reports | **Daily sales report built and deployed** (2026-10-03) | `/admin/reports`: sales by bill date, credit notes, money by method, by product/category/source, CSV (section 15). |
+| 4C | **Done except notifications** | Pickup windows, category caps, festival overrides, shared override prompt, calendar views, demo-login buttons, customer blocking and no-shows (section 9), item edits (section 10). Left: notification templates (owner to choose a channel). |
+| 5A Kitchen tickets | **Done, deployed** | Tickets per kitchen on confirmation, chef screen, ready counts, issues, stop-work, printed ticket, KOT page, kitchen badges (sections 11–12). |
+| 5B Packing and handover | **Done, deployed** | Packing → Ready; handover → Completed with the balance check and a GST bill; admin reopen and credit handover (section 13). **Defaults need the owner's confirmation** (section 6). |
+| 5C Kitchen revisions | **Done, reviewed, deployed** | Changes after the kitchen acknowledged: tickets revised in place, Changed banner to acknowledge, packing waits (section 14). |
+| 5D Chef PIN sign-in | **Done, reviewed, deployed — needs one setting** | Registered kitchen tablets, admin-set PINs, logins ended on revoke or PIN change (section 16). **On the live site it stays off until `SUPABASE_SECRET_KEY` is added to Vercel** (section 2). |
+| 6 Public website | Not started | Deferred by the owner. Offers & Banners and Reviews belong to it. |
+| 7 Reports and Home | **Done, deployed** | Daily sales report with CSV and GST split (section 15); Home with kitchen workload and alerts (section 17). |
+| Owner's mock-up | **Piece 1 of 6 done, deployed** | La Patisserie look and shell (section 18). Next: 2 Orders page like the mock-up → 3 product photos → 4 custom cake details → 5 notifications → 6 delivery. |
 | 8–9 | Not started | Rehearsal, launch, Release 1.1 exceptions. |
 
-**Nothing has been clicked through in a browser yet.** Every check so far is SQL-, typecheck-, lint-, unit-test- and build-level. This is the biggest risk; see section 8.
+**Browser checks so far:** automated headless-Chrome screenshots of login, Dashboard, Orders, KOT, Reports, a coming-soon page, the phone menu and the kitchen tablet (2026-10-04), plus HTTP-level checks of the PIN pages and live smoke tests of PIN sign-in. **No one has yet clicked through the real flows** (taking, confirming, changing, packing and handing over an order; the chef screen on a tablet; prints on an 80mm printer). The owner wants that walkthrough last, after the build work; it is the biggest remaining risk (section 8).
 
 **The live database holds demo data** (owner's request, 2026-10-03): 16 demo products in 5 categories, 15 orders B-1001…B-1015 in every state (completed with bills AB/2026-27/00001–00005 and one credit note, preparing, a change awaiting the kitchen, packed awaiting pickup, cancelled with stop-work, rejected, pending, an open kitchen issue), 12 demo customers. Staff: Demo Admin and Demo Chef (both kitchens). Load with `supabase/seed/demo_data.sql`; **before real data goes in, run `supabase/seed/remove_demo_data.sql`** (SQL editor or MCP): it deletes every demo order, bill, payment, customer and product and restarts numbering at B-1001 and bill 00001. Run SQL tests locally (section 5), not on the live project.
 
@@ -30,6 +31,10 @@ Date: 2026-10-03 (first written 2026-09-27). Read this first, then [TODO.md](TOD
 - **No stock or inventory tracking** (owner, 2026-10-02). Ready-stock items are sold without counts or allocation records. Do not design stock counts into any phase, including 5B packing.
 - **Kitchen tickets go to the kitchen as soon as an order is confirmed** (no scheduled release).
 - **Recording a no-show never changes the order's status.**
+- **Brand: La Patisserie** (owner, 2026-10-03), chef-hat logo, tagline "More than cakes, sweeter moments"; decoration everywhere including the kitchen tablet; unbuilt screens shown as "Coming soon".
+- **Delivery is wanted after all** (owner, 2026-10-03, reversing pickup-only): build it as piece 6; ask the owner for the rules (charge, area, who delivers) then.
+- **Chef PINs** (owner, 2026-10-03): set by an admin; tablets never lock by themselves; no lock-out after wrong PINs.
+- **Sales report: admins only** (owner, 2026-10-03).
 - **Changes after the kitchen acknowledged** (owner, 2026-10-03): the ticket keeps its status and ready counts and shows the exact changes, which the kitchen acknowledges; packing waits for that. Lowering a quantity below what is already made caps the ready count; nothing records the extra (no waste or counter-sale record).
 
 ## 2. Accounts and access
@@ -39,11 +44,11 @@ Date: 2026-10-03 (first written 2026-09-27). Read this first, then [TODO.md](TOD
 | Supabase project | `auri-bakery`, ref `hljkydruionasnouyrpu`, region ap-south-1 (Mumbai), in the owner's Supabase organisation. Ask the owner to invite you. |
 | Demo admin login | `demo@auri.test`. The password is in `web/.admin-password.txt` on the owner's machine; it is git-ignored. Get it from the owner privately. `@auri.test` cannot receive emails, so create a real admin before go-live and disable this one. |
 | Demo chef login | `chef@auri.test`, created 2026-10-03, assigned to Kitchen 1 and Kitchen 2. The password and the kitchen-tablet PIN are in `web/.admin-password.txt` (git-ignored); `web/.env.local` has `DEMO_CHEF_*` (so local `/login` shows a Demo chef button). Not yet on Vercel. |
-| Demo-login autofill | `/login` pre-fills the demo logins while `DEMO_ADMIN_EMAIL`/`DEMO_ADMIN_PASSWORD` (and `DEMO_CHEF_*`) are set. **The owner chose to allow this in production.** Anyone who opens the site is then pre-filled as admin on the live database. **Not set anywhere yet.** Delete the variables and redeploy to turn it off; do so before real data goes in. |
-| Secret key | **Configured in `web/.env.local`** (2026-10-03). It was shared in a chat session, so **rotate it before go-live** (Supabase → API Keys) and update `.env.local`. Earlier note: Copy it from Supabase → Project Settings → API Keys into `web/.env.local` as `SUPABASE_SECRET_KEY`. Without it, Staff & Kitchens is read-only (no creating logins or resetting passwords). Never commit it. |
+| Demo-login buttons | `/login` shows "Demo admin" / "Demo chef" buttons that fill the form while `DEMO_ADMIN_*` / `DEMO_CHEF_*` are set (owner's choice, including production). **Production has `DEMO_ADMIN_*` only** (set 2026-10-03), so anyone who opens the live site can sign in as the demo admin. Local `web/.env.local` has both. **Delete them on Vercel and redeploy before real data goes in.** |
+| Secret key | In `web/.env.local` as `SUPABASE_SECRET_KEY` (2026-10-03). **Not on Vercel yet**: production needs it for chef PIN sign-in and for creating staff logins and resetting passwords there (`vercel env add SUPABASE_SECRET_KEY production` from `web/`, then redeploy). It was pasted in a chat session, so **rotate it before go-live** (Supabase → API Keys) and update both places. Never commit it. |
 | Publishable key and URL | Already in `web/.env.local` (safe for browsers). `web/.env.example` documents all variables. |
-| Hosting | Vercel project `bakery-admin` (team "sandymandycandy's projects"), root `web/`, production at **https://bakery-admin-ten.vercel.app**. **Git integration connected 2026-10-03:** pushes to `main` deploy to production; other branches get preview deployments. The first Git deployment (2026-10-03) built nothing and served 404s until the project's **Root Directory was set to `web`** (done 2026-10-03, with framework Next.js). **The 5C merge push (`9ab84fc`) did not start a deployment**; it was deployed by hand through the API (`POST /v13/deployments` with `gitSource` for `main`). After a push, check `vercel ls` (from `web/`) shows a new Production deployment; if not, check the GitHub app connection in the Vercel dashboard. Production env vars: the Supabase URL and publishable key, plus `DEMO_ADMIN_EMAIL`/`DEMO_ADMIN_PASSWORD` (set 2026-10-03; they show a "Demo admin" fill button on `/login`; delete them before real data). Before that, deploys were manual (`vercel deploy --prod` from `web/`; the last one was `be85d89`); once Root Directory is `web`, run manual CLI deploys from the repository root. `web/vercel.json` pins the Next.js preset (without it the site served only 404s). |
-| Version control | GitHub: `sandymandycandy/bakery-admin`. `main` holds all work, including Phase 5B (branches `phase-5a-kitchen-tickets`, `phase-5a-review-fixes` and `claude/exciting-goldberg-09thku` are merged). Secrets (`web/.env.local`, `web/.admin-password.txt`) are git-ignored and must be shared separately. |
+| Hosting | Vercel project `bakery-admin` (team "sandymandycandy's projects"), root `web/`, production at **https://bakery-admin-ten.vercel.app**. **Git integration connected 2026-10-03:** pushes to `main` deploy to production; other branches get preview deployments. The first Git deployment (2026-10-03) built nothing and served 404s until the project's **Root Directory was set to `web`** (done 2026-10-03, with framework Next.js). **The 5C merge push (`9ab84fc`) did not start a deployment**; it was deployed by hand through the API (`POST /v13/deployments` with `gitSource` for `main`). After a push, check `vercel ls` (from `web/`) shows a new Production deployment; if not, check the GitHub app connection in the Vercel dashboard. Production env vars today: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `DEMO_ADMIN_EMAIL`, `DEMO_ADMIN_PASSWORD`. Manual deploys, if ever needed, run from the repository root (Root Directory is `web`). `web/vercel.json` pins the Next.js preset (without it the site served only 404s). |
+| Version control | GitHub: `sandymandycandy/bakery-admin`. `main` holds all work; every feature branch is merged (old local branches `phase-4c-*`, `phase-5a-*` and remote `claude/exciting-goldberg-09thku` can be deleted). Secrets (`web/.env.local`, `web/.admin-password.txt`) are git-ignored and must be shared separately. |
 
 
 ## 3. Running it
@@ -138,7 +143,7 @@ Files in `supabase/migrations/` were applied to the live project in order throug
 
 | Test | How to run | Last result |
 |---|---|---|
-| `supabase/tests/rls_foundation.sql` | `supabase/local/run-tests.sh` | 11/11 (2026-10-03; the file has 11 checks, which the earlier "13/13" did not match) |
+| `supabase/tests/rls_foundation.sql` | `supabase/local/pglite` (`node run.mjs`) or `supabase/local/run-tests.sh` | 11/11 (2026-10-03; the file has 11 checks, which the earlier "13/13" did not match) |
 | `supabase/tests/orders_logic.sql` | same | 22/22 (2026-10-03): 6 machine-checked, 16 read and identical to the run before the 2026-10-03 migrations except the time-of-day message noted below |
 | `supabase/tests/billing_logic.sql` | same | 21/21 (2026-10-03): 9 machine-checked, 12 read and identical |
 | `supabase/tests/capacity_logic.sql` | same | 29/29 (2026-10-03): 28 machine-checked, 1 read |
@@ -148,13 +153,13 @@ Files in `supabase/migrations/` were applied to the live project in order throug
 | `supabase/tests/packing_logic.sql` | same | 22/22 (2026-10-03, Phase 5B): packing refusals, ready-stock-only packing, retries, balance check and credit handover, bill at handover, reopen. Orders from 990301. |
 | `supabase/tests/pin_logic.sql` | `supabase/local/pglite` | 19/19 + 4 read (2026-10-03, Phase 5D): who sets PINs and registers tablets, PIN format, chefs only, PIN changes audited without the hash, nobody can read hashes or call the tablet functions, right/wrong PIN (counted), other kitchen, inactive chef, unknown or revoked tablet, chef list, PIN logins recorded and checked against their own tablet, PIN reset and revoke end those logins in `auth.sessions` but not the chef's email login. |
 | `supabase/tests/report_logic.sql` | `supabase/local/pglite` | 12/12 (2026-10-03, Phase 7): summary incl. CGST/SGST/taxable, money by method (deposit on an unbilled order), products, categories, sources, AC-35 totals against the bills and credit notes, India-time day boundaries, empty day, range checks, counter refused. Orders from 990501. |
-| `supabase/tests/revisions_logic.sql` | same, or `supabase/local/pglite` | 26/26 (2026-10-03, Phase 5C): who may change preparing orders, in-place revisions with kept/capped ready counts, merged change lists, acknowledgement (who, repeats), removed lines kept as cancelled, stop-work when a kitchen loses everything, New tickets still rebuilt, packing blocked until acknowledged, packed orders reopened first, reschedules, bills without removed lines. Orders from 990401. |
+| `supabase/tests/revisions_logic.sql` | same | 35/35 (2026-10-04, Phase 5C and its review fixes): who may change preparing orders, in-place revisions with kept/capped ready counts, merged change lists, acknowledgement (who, repeats), removed lines kept as cancelled, stop-work when a kitchen loses everything, New tickets still rebuilt, packing blocked until acknowledged, packed orders reopened first, reschedules, bills without removed lines. Orders from 990401. |
 | `supabase/local/concurrency-kitchen.sh` | run it | PASS (2026-10-03, before 5C). Needs `psql`; not rerun since 5C replaced `kitchen_guard` with `private.revise_tickets` (which takes the same order-then-tickets locks). |
-| `web/src/lib/capacity.test.ts`, `web/src/lib/kitchen.test.ts` | `npm test` | 20/20: pickup-window matching, the chef queue's grouping and ordering (changed tickets first), change-list wording and parsing, action follow-up, the stamp poller and sign-out detection |
+| `web/src/lib/*.test.ts` (capacity, kitchen, report, pin-cookie, home, shell, orders) | `npm test` | 37/37 (2026-10-04): pickup windows; chef queue order and change wording; report CSV (quoting, formula guard), date ranges; device tokens; kitchen workload and collected-today; menu per role and bell count; top-bar search scope; action follow-up, stamp poller, sign-out detection |
 | `web/scripts/e2e/orders-4a.mjs` | Build, `npm start -- -p 3100`, create QA users (`supabase/tests/qa_users.sql`), then `QA_PW=... npm run e2e:orders` | 29/29 (Phase 4A) |
 | `web/scripts/e2e/billing-4b.mjs` | Same setup, `npm run e2e:billing` | 17/19; the 2 failures are test-script issues (assertions depend on leftover data). Fix before relying on it. |
 
-**Prefer the local runner (section 3).** The 2026-10-03 results above come from it; the live project was compared with the migration files separately (section 4). **If you run SQL tests on the live project** through the Supabase MCP tool or any client that returns only the last result: replace the file's last two lines (`select … from r …; rollback;`) with
+**Prefer the PGlite runner** (`cd supabase/local/pglite && npm install && node run.mjs`, section 3): it needs no PostgreSQL and touches nothing live. The results above come from it; the live project was compared with the migration files separately (section 4). **If you run SQL tests on the live project** through the Supabase MCP tool or any client that returns only the last result: replace the file's last two lines (`select … from r …; rollback;`) with
 `do $$ begin raise exception E'RESULTS\n%', (select string_agg(check_name || ' => ' || coalesce(outcome,'NULL'), E'\n' order by n) from r); end $$;`
 The error message then lists every check, and the exception rolls everything back. `supabase/local/mcp-bundle.sh <test> [migration…]` builds such a batch, with not-yet-applied migrations in front. The Supabase MCP server asks for confirmation on every batch that contains `DELETE`/`UPDATE` without `WHERE` or `DROP` (the test setup does), so prefer the PGlite runner. In the SQL editor, run the file as is. Compare each outcome with the `-- expect:` comment above it.
 
@@ -167,44 +172,47 @@ Caveats:
 
 | Default | Where to change |
 |---|---|
-| Business name "Auri Bakery" (prototype says "La Patisserie Madras") | Settings |
+| Business name **La Patisserie** (owner, 2026-10-03; set in Settings 2026-10-04). Bill prefix still `AB` | Settings |
 | Kitchen 1 / Kitchen 2 (codes `K1`, `K2`; ticket references look like `B-1001-K1`) | Staff & Kitchens |
 | Prices include GST; intra-state CGST/SGST split | Code (migrations 0200/0300) |
 | Opening hours 9 AM–9 PM every day | Settings → Opening hours |
-| Bill prefix `AB`; counter staff discount limit 10% | Settings |
+| Counter staff discount limit 10% | Settings |
 | Counter staff can confirm in-store orders; only admins confirm call orders, reject, cancel, reschedule, refund, issue credit notes, or resolve kitchen issues | Migrations (role checks in functions) |
 | Counter staff can see and print kitchen tickets but not act on them | `private.ticket_actor` |
-| Pickup only; manual payment recording; no stock counts (confirmed by the owner 2026-10-02) | PRD section 2 |
+| Manual payment recording; no stock counts (owner, 2026-10-02). Pickup only **for now**: the owner wants delivery later (piece 6) | PRD section 2 |
 | 5B: counter staff can pack and hand over orders (PRD: "Admin or permitted Counter Staff") | `mark_packed`, `record_handover` (migration `20261003000200`) |
 | 5B: handing over with a balance due needs an admin and a credit reason (AC-10); a refund due does not block handover | `record_handover` |
 | 5B: handover issues the GST bill when the order has none (PRD 5F: every completed sale gets a bill) | `record_handover` |
 | 5B: an open kitchen issue blocks packing; packing has no override (an admin acts on the ticket instead) | `mark_packed` |
 | 5B: only an admin can reopen a packed order, with a reason; it returns to Preparing (Confirmed when there are no kitchen tickets) | `reopen_packing` |
 
-Business decisions still needed are listed in PRD section 14 and TODO Phase 0. The most urgent are: GSTIN/FSSAI/tax rates (check with the accountant), the real product list with kitchen mapping, opening hours, and the notification channel.
+Also unconfirmed: the mock-up status colours (Pending pink, Confirmed blue, Preparing yellow, Ready and Completed both green); the owner was asked whether Completed should be grey. Business decisions still needed are listed in PRD section 14 and TODO Phase 0. The most urgent are: GSTIN/FSSAI/tax rates (check with the accountant), the real product list with kitchen mapping, opening hours, and the notification channel.
 
 ## 7. Known gaps and risks
 
-- **No browser click-through yet.** Print layouts have not been checked on a real 80mm printer.
-- **No staging environment.** The production deployment uses the only (live) Supabase project. SQL logic can now be tested locally (section 3); the app itself still only runs against the live project.
-- If the demo-login variables are ever set on Vercel, the public site pre-fills an admin login for the live database (owner's choice). Remove them before real orders exist.
-- Packing is one confirmation per order. The itemized checklist (cake wording, accessories, packaging) and recipient checks are Release 1.1 (PRD 5D).
-- Handover issues a GST bill when the order has none, which uses a bill number for good. Do not hand over test orders on the live project.
-- The chef screen refreshes every 10 seconds by polling `GET /kitchen/stamp` (8 s timeout, one request at a time), which calls `public.ticket_stamp()`; not Supabase Realtime. A tap that fails on the network shows "Not saved" and switches the header to Offline without reloading the page. A lost or deactivated session sends the chef to `/login`.
-- Not built yet: chef PIN sign-in on tablets (AC-34, now 5D).
-- `next start` warns about `outputFileTracingRoot` (multiple lockfiles on the machine). Harmless locally.
-- The Supabase free plan allows two active projects, and the owner already has one other active project. A staging project may require pausing a project or upgrading.
+- **Real flows not clicked through yet** (section 1). Print layouts have not been checked on a real 80mm printer.
+- **The live site offers a demo admin login to anyone** (`DEMO_ADMIN_*` on Vercel) and holds demo data. Fine for showing the owner; remove both before real customers (TODO Start here).
+- **Chef PIN sign-in is off on the live site** until `SUPABASE_SECRET_KEY` is set on Vercel; the secret key must be rotated before go-live (section 2).
+- **No staging environment.** Production uses the only Supabase project. SQL logic is tested on PGlite; the app itself only runs against the live project. The free plan allows two active projects and the owner already uses one elsewhere.
+- **Vercel missed one Git push** (2026-10-03, the 5C merge); later pushes deployed. After pushing, confirm a new Production deployment for the commit (section 2).
+- Handover issues a GST bill when the order has none, which uses a bill number for good. Do not hand over test orders on the live project except as demo data that `remove_demo_data.sql` will remove.
+- Packing is one confirmation per order; the itemized checklist and recipient checks are Release 1.1.
+- The chef screen polls every 10 seconds (not Supabase Realtime); a tap that fails on the network shows "Not saved" and Offline.
+- Look (section 18) leftovers: sidebar and bell counts refresh only on a full page load or refresh; the account menu does not close on Escape or outside clicks; the "coming soon" placeholders for Offers and Reviews open for counter staff by URL; 9 px tagline.
+- `supabase/local/concurrency-kitchen.sh` (needs `psql`) has not been rerun since 5C.
 - Leaked-password protection is off (Supabase → Auth → Password security).
-- **Minor items from the 5A review: fixed on 2026-10-03** (section 12), except one accepted limit: "Not saved" can be wrong if the connection dropped after the server committed; the next refresh corrects the screen.
+- `next start` warns about `outputFileTracingRoot` (multiple lockfiles on the machine). Harmless.
 
 ## 8. Suggested order of work
 
-1. **Check the first Git deployment** of `main` in the Vercel dashboard (section 2); fix the Root Directory if it failed. Confirm the 5B defaults (section 6). The live database already has the migrations.
-2. Add the secret key, create the demo chef, assign kitchens, and add a few test products with kitchen mappings. (The order sequence is already reset to 1001.)
-3. **Walk through every screen in a browser** (admin, counter, chef on a tablet-sized window, prints, and now packing and handover), ideally against a staging project, and fix what you find. Consider Playwright.
-4. Walk the revision flow in a browser (5C is deployed): edit a started order, see the Changed banner on `/kitchen` and the order page, acknowledge, pack (section 14).
-5. Phase 5D: chef PIN sign-in on registered tablets (needs the secret key on the server).
-6. Notification templates once the owner picks the channel (PRD 5F proposes WhatsApp click-to-chat links); Reports (Phase 7, AC-35); public website (Phase 6) when the owner is ready.
+1. **Piece 2 of the owner's mock-up: the Orders page** — status tabs with counts, search, date and order-type filters, rows with item photos (placeholder until piece 3), and the order detail opening beside the list with notes and the main next-step button. Brainstorm it from the mock-up (section 18), write a spec and plan as for piece 1.
+2. **Piece 3: product photos** (upload to Supabase Storage; `products.image_url` already exists) and **piece 4: custom cake details** (flavour, size, tiers, theme, cream, filling, toppings, message, eggless, reference photo, special instructions; sticky-note card; printed for the kitchen).
+3. **Piece 5: notifications** (the bell; today it opens the Dashboard) and, once the owner picks a channel, customer notification templates (PRD 5F proposes WhatsApp click-to-chat).
+4. **Piece 6: delivery** — ask the owner for the rules first (charge, area, who delivers, "Out for delivery" handover).
+5. **Owner steps:** add `SUPABASE_SECRET_KEY` on Vercel; confirm the 5B defaults and the status colours (section 6); supply business details (GSTIN, FSSAI, tax rates, products with kitchens, hours).
+6. **Browser walkthrough of every flow** (owner wants it after the build work): admin and counter, chef on a tablet with PIN sign-in, the revision flow, packing and handover, prints. Consider Playwright (a headless-Chrome screenshot script was used for piece 1; it lives only in a session scratchpad, so rewrite it under `web/scripts/` if kept).
+7. **Before go-live:** run `supabase/seed/remove_demo_data.sql`; delete `DEMO_*` on Vercel; rotate the secret key; create real admin and staff logins and disable the demo ones; enable leaked-password protection; staging and backups (Phases 7–8).
+8. Public website (Phase 6, with Offers & Banners and Reviews) when the owner is ready.
 
 ## 9. Customer blocking and no-shows (built 2026-09-30)
 
