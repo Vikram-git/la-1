@@ -1,9 +1,12 @@
 # La Patisserie — To-do List
 
-Status (2026-10-05): Phases 3, 4A, 4B, 5A–5D and the daily sales report are built, reviewed and deployed from `main`; Phase 4C is done except customer notification templates (owner to choose a channel). Home shows kitchen workload and alerts. The owner's pink **La Patisserie** mock-up is being built in six pieces: **piece 1 (look and shell) is done; piece 2 (Orders page) is next** (see "Owner's mock-up" below). The live database holds demo data (remove before real customers). Real flows have not been clicked through yet; the owner wants that walkthrough after the build work. Owner decisions: no stock tracking (2026-10-02); La Patisserie brand, delivery later, admin-set chef PINs with no lock-out, admin-only reports (2026-10-03). See HANDOVER.md for setup, architecture and known gaps.
+Status (2026-10-09): **KOT removed and new order features built on branch `no-kot-custom-cakes`, not yet live** (no KOT or chef screens; Customers for counter staff; Customer orders; custom cake orders with photo, price and advance; product photos; collect from store or set up at the customer's place, green/red). Shipping needs the owner: apply migrations `20261009000100`–`0300`, merge, click through (HANDOVER section 19). Before that, on 2026-10-05: Phases 3, 4A, 4B, 5A–5D and the daily sales report are built, reviewed and deployed from `main`; Phase 4C is done except customer notification templates (owner to choose a channel). Home shows kitchen workload and alerts. The owner's pink **La Patisserie** mock-up is being built in six pieces: **piece 1 (look and shell) is done; piece 2 (Orders page) is next** (see "Owner's mock-up" below). The live database holds demo data (remove before real customers). Real flows have not been clicked through yet; the owner wants that walkthrough after the build work. Owner decisions: no stock tracking (2026-10-02); La Patisserie brand, delivery later, admin-set chef PINs with no lock-out, admin-only reports (2026-10-03). See HANDOVER.md for setup, architecture and known gaps.
 Checkboxes represent actual completion, not intentions.
 
 ## Start here — next developer
+
+- [ ] Ship the 2026-10-09 branch `no-kot-custom-cakes`: owner approves; apply migrations `20261009000100`, `0200`, `0300` to the live project (0100 on its own first); merge into `main`; confirm the Vercel deployment; click through the new screens (HANDOVER section 19).
+- [ ] Owner to confirm: custom cake GST 5% (Settings), no charge for set-up, counter staff may take custom cakes but only an admin re-prices a confirmed one.
 
 1. [ ] Read [HANDOVER.md](HANDOVER.md), then PRD sections 5F, 7, 10A, and 14A.
 2. [x] First Git deployment of `main` checked (2026-10-03): it served 404s until the Root Directory was set to `web`; fixed. Check `vercel ls` after each push (HANDOVER section 2).
@@ -26,9 +29,9 @@ The owner sent a pink "La Patisserie" orders-screen mock-up (WhatsApp image, 22 
 
 - [x] 1. Look and shell: brand, pink theme, fonts, icon sidebar with count badges, top bar (search, bell, account menu), decoration everywhere, "coming soon" pages (2026-10-04; HANDOVER section 18; spec `docs/superpowers/specs/2026-10-03-la-patisserie-look-design.md`).
 - [ ] 2. Orders page like the mock-up: status tabs with counts, search, date and order-type filters, rows with item photos, order detail beside the list with notes and the main action.
-- [ ] 3. Product photos: upload (Supabase Storage), shown in lists, the order panel and the catalogue.
-- [ ] 4. Custom cake details: flavour, size and weight, tiers, design or theme, cream, filling, toppings, message, eggless, reference photo, special instructions; sticky-note card; printed for the kitchen.
-- [ ] 5. Notifications: the bell's list (orders waiting, kitchen issues, unacknowledged changes, late pickups).
+- [x] 3. Product photos: upload (Supabase Storage), shown in lists, the order panel and the catalogue (2026-10-09, on the branch; HANDOVER section 19).
+- [x] 4. Custom cake details: flavour, size and weight, tiers, design or theme, cream, filling, toppings, message, eggless, reference photo, special instructions; sticky-note card; printed cake sheet. Built as custom cake orders (in-store / call / customer) with staff price and advance, and an Orders tab (2026-10-09, on the branch).
+- [ ] 5. Notifications: the bell's list (orders waiting, late pickups; kitchen alerts went with KOT).
 - [ ] 6. Delivery: delivery orders, address and charge, "Out for delivery", delivered handover (ask the owner for the rules first).
 - [ ] Offers & Banners and Reviews: shown as "coming soon"; built with the public website (Phase 6).
 
@@ -163,6 +166,8 @@ Exit: a staff-entered order remains consistent across lists, detail, calendar, a
 
 ## Phase 5 — KOT and chef workflow
 
+**Removed at the owner's request on 2026-10-09** (branch `no-kot-custom-cakes`): no kitchen tickets, chef screen, chef PINs or KOT print; orders are packed when ready. Kept below as history; packing and handover (5B) stay.
+
 Depends on: confirmed orders from Phase 4. Split into 5A (kitchen tickets, built), 5B (packing and handover), 5C (revisions after acknowledgement), 5D (chef PIN sign-in). See HANDOVER section 11.
 
 - [x] Generate separate kitchen tickets from the relevant order items (5A; `supabase/tests/kitchen_logic.sql` 44/44).
@@ -178,7 +183,7 @@ Depends on: confirmed orders from Phase 4. Split into 5A (kitchen tickets, built
 - [x] Implement KOT browser print/reprint (80mm) preserving ticket identity and revision; reprints say COPY (5A).
 - [x] Show eggless/veg marks prominently on KOT lines (AC-33) (5A).
 - [x] Chef PIN sign-in on registered tablets (AC-34) (5D, 2026-10-03; HANDOVER section 16; `pin_logic.sql` 19/19). Needs `SUPABASE_SECRET_KEY` on Vercel for the live site.
-- [ ] Browser click-through of the chef screen, KOT page, kitchen card, print on a tablet-sized window, and the packing and handover card.
+- [ ] ~~Browser click-through of the chef screen, KOT page~~ (removed); click through the packing and handover card.
 - [ ] Verify AC-02 through AC-05, AC-08, AC-09, AC-12 through AC-14, AC-16, and AC-33.
 
 Exit: two kitchen users can complete a mixed order without duplicated work or premature readiness.

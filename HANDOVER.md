@@ -1,8 +1,8 @@
-# Handover — La Patisserie order and kitchen management
+# Handover — La Patisserie order management
 
 Date: 2026-10-05 (first written 2026-09-27). Read this first, then [TODO.md](TODO.md) ("Start here"), [PRD.md](PRD.md), and [PROJECT_RULES.md](PROJECT_RULES.md). Designs and plans for recent work are in `docs/superpowers/specs/` and `docs/superpowers/plans/`. The project folder and repository still carry the old working name "Auri Bakery"; the owner chose **La Patisserie** on 2026-10-03.
 
-**State on 2026-10-05:** everything is in `main` (`6398b49` and later), deployed to production by the Vercel Git integration, and every database migration is applied to the live project (the live function bodies were compared with the files). The working tree is clean. The owner is rebuilding the admin screens to a pink "La Patisserie" mock-up in six pieces; **piece 1 (look and shell) is done; piece 2 (Orders page like the mock-up) is next** (section 18, section 8).
+**State on 2026-10-09:** the owner asked for KOT to be removed, Customers in its place, customer orders, custom cake orders, product photos, and collect-or-set-up with green/red highlights. That work is **built and tested on branch `no-kot-custom-cakes`, not yet merged, deployed or applied to the live database** (section 19 lists the owner steps). `main` (`b4e9eae`) is what is live: everything up to 2026-10-05, with every migration up to `20261003000900` applied. Mock-up pieces 3 (product photos) and 4 (custom cake details) are done on the branch; piece 2 (Orders page like the mock-up) is still to do.
 
 ## 1. Where things stand
 
@@ -13,13 +13,14 @@ Date: 2026-10-05 (first written 2026-09-27). Read this first, then [TODO.md](TOD
 | 4A Orders | **Done** | In-store and call orders, two order lists, order detail, confirm/reject/cancel/reschedule, payments and refunds, calendar, opening hours and closures, customers. |
 | 4B Billing | **Done** | Counter quick sale, discounts, GST bills (gap-free per financial year), credit notes, 80mm and A4 print. |
 | 4C | **Done except notifications** | Pickup windows, category caps, festival overrides, shared override prompt, calendar views, demo-login buttons, customer blocking and no-shows (section 9), item edits (section 10). Left: notification templates (owner to choose a channel). |
-| 5A Kitchen tickets | **Done, deployed** | Tickets per kitchen on confirmation, chef screen, ready counts, issues, stop-work, printed ticket, KOT page, kitchen badges (sections 11–12). |
+| 5A Kitchen tickets | **Removed (owner, 2026-10-09; on the branch)** | Was: tickets per kitchen, chef screen, KOT page (sections 11–12, 14, 16 are now history). Confirming makes no ticket; staff pack when ready (section 19). |
 | 5B Packing and handover | **Done, deployed** | Packing → Ready; handover → Completed with the balance check and a GST bill; admin reopen and credit handover (section 13). **Defaults need the owner's confirmation** (section 6). |
 | 5C Kitchen revisions | **Done, reviewed, deployed** | Changes after the kitchen acknowledged: tickets revised in place, Changed banner to acknowledge, packing waits (section 14). |
-| 5D Chef PIN sign-in | **Done, reviewed, deployed — needs one setting** | Registered kitchen tablets, admin-set PINs, logins ended on revoke or PIN change (section 16). **On the live site it stays off until `SUPABASE_SECRET_KEY` is added to Vercel** (section 2). |
+| 5D Chef PIN sign-in | **Removed with KOT (on the branch)** | Chef logins and kitchen tablets no longer have access (section 19). |
 | 6 Public website | Not started | Deferred by the owner. Offers & Banners and Reviews belong to it. |
 | 7 Reports and Home | **Done, deployed** | Daily sales report with CSV and GST split (section 15); Home with kitchen workload and alerts (section 17). |
-| Owner's mock-up | **Piece 1 of 6 done, deployed** | La Patisserie look and shell (section 18). Next: 2 Orders page like the mock-up → 3 product photos → 4 custom cake details → 5 notifications → 6 delivery. |
+| Owner's mock-up | **Pieces 1, 3, 4 done** (3 and 4 on the branch) | Look and shell (section 18); product photos and custom cake orders (section 19). Left: 2 Orders page like the mock-up → 5 notifications → 6 delivery (set-up at the customer's place now covers part of it). |
+| 2026-10-09 changes | **Built, tested, not deployed** | No KOT; Customers for counter staff; Customer order source; custom cake orders (photo, price, advance, sticky note, cake sheet); product photos; collect / set up with green and red highlights (section 19). |
 | 8–9 | Not started | Rehearsal, launch, Release 1.1 exceptions. |
 
 **Browser checks so far:** automated headless-Chrome screenshots of login, Dashboard, Orders, KOT, Reports, a coming-soon page, the phone menu and the kitchen tablet (2026-10-04), plus HTTP-level checks of the PIN pages and live smoke tests of PIN sign-in. **No one has yet clicked through the real flows** (taking, confirming, changing, packing and handing over an order; the chef screen on a tablet; prints on an 80mm printer). The owner wants that walkthrough last, after the build work; it is the biggest remaining risk (section 8).
@@ -29,7 +30,8 @@ Date: 2026-10-05 (first written 2026-09-27). Read this first, then [TODO.md](TOD
 ### Owner decisions to keep in mind
 
 - **No stock or inventory tracking** (owner, 2026-10-02). Ready-stock items are sold without counts or allocation records. Do not design stock counts into any phase, including 5B packing.
-- **Kitchen tickets go to the kitchen as soon as an order is confirmed** (no scheduled release).
+- **No KOT** (owner, 2026-10-09): no kitchen tickets, chef screen or chef logins. Orders go Confirmed → Packed → Handed over.
+- **Collect or set up** (owner, 2026-10-09): every order is collected from the store (green) or set up at the customer's place (red, needs the address), shown everywhere orders appear.
 - **Recording a no-show never changes the order's status.**
 - **Brand: La Patisserie** (owner, 2026-10-03), chef-hat logo, tagline "More than cakes, sweeter moments"; decoration everywhere including the kitchen tablet; unbuilt screens shown as "Coming soon".
 - **Delivery is wanted after all** (owner, 2026-10-03, reversing pickup-only): build it as piece 6; ask the owner for the rules (charge, area, who delivers) then.
@@ -155,7 +157,12 @@ Files in `supabase/migrations/` were applied to the live project in order throug
 | `supabase/tests/report_logic.sql` | `supabase/local/pglite` | 12/12 (2026-10-03, Phase 7): summary incl. CGST/SGST/taxable, money by method (deposit on an unbilled order), products, categories, sources, AC-35 totals against the bills and credit notes, India-time day boundaries, empty day, range checks, counter refused. Orders from 990501. |
 | `supabase/tests/revisions_logic.sql` | same | 35/35 (2026-10-04, Phase 5C and its review fixes): who may change preparing orders, in-place revisions with kept/capped ready counts, merged change lists, acknowledgement (who, repeats), removed lines kept as cancelled, stop-work when a kitchen loses everything, New tickets still rebuilt, packing blocked until acknowledged, packed orders reopened first, reschedules, bills without removed lines. Orders from 990401. |
 | `supabase/local/concurrency-kitchen.sh` | run it | PASS (2026-10-03, before 5C). Needs `psql`; not rerun since 5C replaced `kitchen_guard` with `private.revise_tickets` (which takes the same order-then-tickets locks). |
-| `web/src/lib/*.test.ts` (capacity, kitchen, report, pin-cookie, home, shell, orders) | `npm test` | 37/37 (2026-10-04): pickup windows; chef queue order and change wording; report CSV (quoting, formula guard), date ranges; device tokens; kitchen workload and collected-today; menu per role and bell count; top-bar search scope; action follow-up, stamp poller, sign-out detection |
+| `supabase/tests/no_kot_logic.sql` | `supabase/local/pglite` | 5/5 (2026-10-09): unmapped made-to-order item confirms with no ticket, packs; chef PINs closed; live tickets and issues retired; retired order packs. Orders from 990901. |
+| `supabase/tests/fulfilment_logic.sql` | same | 11/11 (2026-10-09): set-up needs an address and a time; collect stores none; Customer source needs name and phone, admin-only confirm; `set_fulfilment` validates, logs, refuses closed orders; counter sale is collect. |
+| `supabase/tests/custom_cakes_logic.sql` | same | 14/14 (2026-10-09): staff price and settings GST, details kept, advance as a payment, idempotent, validation, re-pricing, no quantity increase, locked once packed, counter can read. |
+| `supabase/tests/photos_logic.sql` | same | 8/8 (2026-10-09): buckets, admin-only product photos from the bucket, cake photo under its order, removal. |
+| `kitchen_logic`, `revisions_logic`, `pin_logic` | — | **Deleted 2026-10-09** with KOT. `packing_logic` (now 20/20) and `orders_logic` (AC-06 now expects confirmation) were updated. |
+| `web/src/lib/*.test.ts` (capacity, report, home, shell, orders, custom-cake, product-photo) | `npm test` | 26/26 (2026-10-09): pickup windows; report CSV and date ranges; collected-today; menu per role (no KOT, Customers for counter) and bell count; search scope, Customer list, green/red classes; cake details, size name, photo checks; product photo path. |
 | `web/scripts/e2e/orders-4a.mjs` | Build, `npm start -- -p 3100`, create QA users (`supabase/tests/qa_users.sql`), then `QA_PW=... npm run e2e:orders` | 29/29 (Phase 4A) |
 | `web/scripts/e2e/billing-4b.mjs` | Same setup, `npm run e2e:billing` | 17/19; the 2 failures are test-script issues (assertions depend on leftover data). Fix before relying on it. |
 
@@ -173,17 +180,17 @@ Caveats:
 | Default | Where to change |
 |---|---|
 | Business name **La Patisserie** (owner, 2026-10-03; set in Settings 2026-10-04). Bill prefix still `AB` | Settings |
-| Kitchen 1 / Kitchen 2 (codes `K1`, `K2`; ticket references look like `B-1001-K1`) | Staff & Kitchens |
+| Custom cake GST 5% included in the staff price; HSN empty | Settings |
+| Counter staff can take custom cake orders and edit the cake until packed; only an admin changes the price of a confirmed custom cake | `update_custom_cake` |
+| Set-up has no extra charge (add a line if needed); the set-up time is the order's due time | Owner to confirm |
 | Prices include GST; intra-state CGST/SGST split | Code (migrations 0200/0300) |
 | Opening hours 9 AM–9 PM every day | Settings → Opening hours |
 | Counter staff discount limit 10% | Settings |
 | Counter staff can confirm in-store orders; only admins confirm call orders, reject, cancel, reschedule, refund, issue credit notes, or resolve kitchen issues | Migrations (role checks in functions) |
-| Counter staff can see and print kitchen tickets but not act on them | `private.ticket_actor` |
 | Manual payment recording; no stock counts (owner, 2026-10-02). Pickup only **for now**: the owner wants delivery later (piece 6) | PRD section 2 |
 | 5B: counter staff can pack and hand over orders (PRD: "Admin or permitted Counter Staff") | `mark_packed`, `record_handover` (migration `20261003000200`) |
 | 5B: handing over with a balance due needs an admin and a credit reason (AC-10); a refund due does not block handover | `record_handover` |
 | 5B: handover issues the GST bill when the order has none (PRD 5F: every completed sale gets a bill) | `record_handover` |
-| 5B: an open kitchen issue blocks packing; packing has no override (an admin acts on the ticket instead) | `mark_packed` |
 | 5B: only an admin can reopen a packed order, with a reason; it returns to Preparing (Confirmed when there are no kitchen tickets) | `reopen_packing` |
 
 Also unconfirmed: the mock-up status colours (Pending pink, Confirmed blue, Preparing yellow, Ready and Completed both green); the owner was asked whether Completed should be grey. Business decisions still needed are listed in PRD section 14 and TODO Phase 0. The most urgent are: GSTIN/FSSAI/tax rates (check with the accountant), the real product list with kitchen mapping, opening hours, and the notification channel.
@@ -205,8 +212,8 @@ Also unconfirmed: the mock-up status colours (Pending pink, Confirmed blue, Prep
 
 ## 8. Suggested order of work
 
+0. **Ship the 2026-10-09 branch** (section 19): owner approves; apply migrations `20261009000100`–`0300` to the live project; merge `no-kot-custom-cakes` into `main` (Vercel deploys); click through the new screens.
 1. **Piece 2 of the owner's mock-up: the Orders page** — status tabs with counts, search, date and order-type filters, rows with item photos (placeholder until piece 3), and the order detail opening beside the list with notes and the main next-step button. Brainstorm it from the mock-up (section 18), write a spec and plan as for piece 1.
-2. **Piece 3: product photos** (upload to Supabase Storage; `products.image_url` already exists) and **piece 4: custom cake details** (flavour, size, tiers, theme, cream, filling, toppings, message, eggless, reference photo, special instructions; sticky-note card; printed for the kitchen).
 3. **Piece 5: notifications** (the bell; today it opens the Dashboard) and, once the owner picks a channel, customer notification templates (PRD 5F proposes WhatsApp click-to-chat).
 4. **Piece 6: delivery** — ask the owner for the rules first (charge, area, who delivers, "Out for delivery" handover).
 5. **Owner steps:** add `SUPABASE_SECRET_KEY` on Vercel; confirm the 5B defaults and the status colours (section 6); supply business details (GSTIN, FSSAI, tax rates, products with kitchens, hours).
@@ -326,3 +333,28 @@ Spec `docs/superpowers/specs/2026-10-03-la-patisserie-look-design.md`; plan `doc
 - **Other screens:** login split layout with the patisserie photo; kitchen tablet and PIN picker branded with a script footer (tickets keep their sizes and contrast); status colours follow the mock-up (pending pink, confirmed blue, preparing yellow, ready/completed green, cancelled red).
 - Photos from the original prototype are in `web/public/brand/` (resized).
 - **Review fixes (2026-10-04):** top-bar search sends `scope=all` and finds orders in both lists, any status and date (`searchEverywhere`); phone menu is a modal `<dialog>` (focus, Escape, inert background); brand deepened to `#b93f63` (5.3:1 on white, 4.95 on the page, 4.51 on pale pink); account menu and badges have screen-reader names; coming-soon pages ignore names like `constructor`; printed bill and credit-note headings stay in the plain font. **Deferred:** badges refresh only on a full page load or refresh; counter staff can open the admin-only "coming soon" pages by URL (placeholders only); the user menu does not close on Escape or outside clicks; login script colour relies on CSS order; 9 px tagline; status colours now show Ready and Completed both green and Pending in brand pink (as in the mock-up), confirm with the owner.
+
+## 19. No KOT, Customers, customer orders, custom cakes, photos, collect / set up (owner, 2026-10-09)
+
+Spec `docs/superpowers/specs/2026-10-09-no-kot-custom-cakes-design.md`; plan `docs/superpowers/plans/2026-10-09-no-kot-custom-cakes.md`. Branch `no-kot-custom-cakes`.
+
+**Owner steps to ship (in this order):**
+1. Apply `supabase/migrations/20261009000100_customer_source_fulfilment_type.sql`, then `…0200_no_kot_custom_cakes.sql`, then `…0300_photos.sql` to the live project (SQL editor, or MCP `apply_migration`; 0200 contains `drop function`/`drop view`/`drop column`, which the MCP connector asks to confirm). Apply 0100 on its own first: a new enum value cannot be used in the transaction that adds it.
+2. Merge the branch into `main` and push; check that Vercel makes a Production deployment for the commit.
+3. Click through: new customer order, new custom cake order with photo and advance, the Custom cakes tab, a set-up order (red everywhere), the cake sheet print, a product photo, Customers as counter staff.
+4. Former chef accounts: give them a counter role or untick Active on Staff (the page lists them).
+
+**What changed**
+- **KOT removed.** `private.build_tickets` and `private.apply_ticket_changes` do nothing; confirming and adding items no longer need a kitchen. The migration cancels live tickets without stop-work and resolves open issues (`private.retire_kitchen_tickets`, logs "Kitchen tickets retired"). Chef PIN and tablet functions are revoked. Web: `/admin/kot`, `/kitchen/**`, `/print/kot` and the kitchen libraries are deleted; kitchen fields left Products, Categories and Staff ("Staff" now: admin and counter logins); chef accounts are refused at sign-in and treated as signed out. Ticket tables and history stay in the database, unused.
+- **Customers** is in KOT's place in the sidebar for admin and counter staff; only admins block or unblock.
+- **Customer source** (`order_source` `CUSTOMER`, 💬): orders a customer sends in (WhatsApp, message). Call-order rules (name, phone, pickup time; admin confirms). In the **Online / Call / Customer** list.
+- **Collect / set up:** `orders.fulfilment` (`collect` | `setup`) with `setup_address` (required for set-up) and `setup_note`; replaces the unused `fulfillment_type` placeholder. On every order form (`components/fulfilment-fields.tsx`); `set_fulfilment` changes it until the order is closed. Green rows/badges for collect and red for set-up on Orders, every Calendar view (with a filter), Dashboard; the order page has a big banner with Change; the handover button reads "Set up done"; bills and cake sheets print COLLECT / SET UP at the address.
+- **Custom cake orders:** `/admin/orders/new-cake` (button on Orders and the Dashboard). Source in-store / call / customer; flavour, weight, tiers, theme, cream, filling, toppings, message, eggless, instructions; reference photo; staff price (GST from Settings, default 5%); optional advance recorded as a payment. One order line "Custom cake — 1.5 kg · 2 tiers" (no product), details in `custom_cakes`. Orders → **Custom cakes** tab. Order page: yellow sticky-note card (edit details and price until packed, add/replace/remove photo) and **Print cake sheet** (`/print/cake/[order id]`, 80mm or A4).
+- **Product photos:** product page → Photo (admins). Thumbnails (or a pink cake placeholder) in Products, the order entry, Counter Sale and order lines.
+- **Photos and Storage:** buckets `product-photos` (public) and `custom-cake-photos` (private, signed URLs), JPEG/PNG/WebP up to 5 MB. The browser uploads straight to Storage with the staff member's session (storage policies check the role), then a server action attaches the file (`set_product_image`, `set_custom_cake_photo`) and deletes the replaced one. This keeps photos out of server actions (Next caps them at 1 MB, Vercel at about 4.5 MB).
+
+**Not done / to watch**
+- Browser click-through of the new screens: not possible before the migrations are on the live project (the app has no staging database).
+- `supabase/seed/demo_data.sql` and `supabase/local/concurrency-kitchen.sh` still use kitchen tickets; re-running the demo seed fails at its ticket steps (the live demo data is already loaded).
+- A photo uploaded but not attached (network drop between the two steps) stays in the bucket as an orphan.
+- Thumbnails load the full photo (no image optimisation); upload reasonably sized photos.
