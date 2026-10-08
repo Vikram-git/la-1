@@ -1,4 +1,4 @@
--- Packing and handover (Phase 5B). Runs in a transaction and rolls back.
+-- Packing and handover (Phase 5B; kitchen tickets switched off 2026-10-09). Runs in a transaction and rolls back.
 -- Orders are inserted directly with order numbers from 990301, so order_number_seq is not consumed.
 -- Expected outcomes are in the comment above each check.
 begin;
@@ -89,12 +89,6 @@ select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000
 do $$
 declare h text; o public.orders; m uuid := (select v::uuid from ctx where k = 'M'); s uuid := (select v::uuid from ctx where k = 'S');
 begin
-  begin perform public.mark_packed(m, 2);
-    insert into r(check_name,outcome) values ('P1 cannot pack while a kitchen is not ready', 'ALLOWED');
-  -- expect: kitchen: Not every kitchen has finished: T Pack Kitchen (new).
-  exception when others then get stacked diagnostics h = pg_exception_hint;
-    insert into r(check_name,outcome) values ('P1 cannot pack while a kitchen is not ready', h || ': ' || sqlerrm); end;
-
   o := public.mark_packed(s, 2, '  Two puffs in one box  ');
   -- expect: ready v3 / Pk Counter / Two puffs in one box
   insert into r(check_name,outcome) values ('P2 a ready-stock-only order packs straight from confirmed',
@@ -115,17 +109,13 @@ begin
   -- expect: forbidden: Only admin and counter staff can pack orders.
   exception when others then get stacked diagnostics h = pg_exception_hint;
     insert into r(check_name,outcome) values ('P4 chefs cannot pack', h || ': ' || sqlerrm); end;
-  -- The chef finishes both cakes and reports a problem on order I's ticket.
-  perform public.set_line_ready(l.id, 1)
-  from public.kitchen_ticket_lines l join public.kitchen_tickets t on t.id = l.ticket_id where t.order_id in (m, i);
-  perform public.report_issue((select id from public.kitchen_tickets where order_id = i), 'quality', 'Icing cracked');
 end $$;
 
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000008c1","role":"authenticated"}', true);
 do $$
 declare h text; o public.orders; m uuid := (select v::uuid from ctx where k = 'M'); i uuid := (select v::uuid from ctx where k = 'I');
 begin
-  begin perform public.mark_packed(m, 2);
+  begin perform public.mark_packed(m, 1);
     insert into r(check_name,outcome) values ('P5 stale version refused', 'ALLOWED');
   -- expect: conflict: This order was changed by someone else. Reload to see the latest version.
   exception when others then get stacked diagnostics h = pg_exception_hint;
@@ -133,13 +123,8 @@ begin
 
   o := public.mark_packed(m, (select version from public.orders where id = m));
   -- expect: ready / true
-  insert into r(check_name,outcome) values ('P6 packed once every kitchen is ready', o.status || ' / ' || (o.packed_at is not null)::text);
+  insert into r(check_name,outcome) values ('P6 a confirmed order with a made-to-order item packs', o.status || ' / ' || (o.packed_at is not null)::text);
 
-  begin perform public.mark_packed(i, (select version from public.orders where id = i));
-    insert into r(check_name,outcome) values ('P7 an open kitchen issue blocks packing', 'ALLOWED');
-  -- expect: kitchen: Resolve the open kitchen issue before packing.
-  exception when others then get stacked diagnostics h = pg_exception_hint;
-    insert into r(check_name,outcome) values ('P7 an open kitchen issue blocks packing', h || ': ' || sqlerrm); end;
 end $$;
 
 -- ===== Handover =====
@@ -203,12 +188,6 @@ end $$;
 
 -- ===== Reopening and closed orders =====
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000008a1","role":"authenticated"}', true);
-do $$
-begin
-  perform public.resolve_issue((select id from public.kitchen_issues where ticket_id = (select id from public.kitchen_tickets
-    where order_id = (select v::uuid from ctx where k = 'I'))), 'Re-iced it');
-end $$;
-
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000008c1","role":"authenticated"}', true);
 do $$
 declare h text; i uuid := (select v::uuid from ctx where k = 'I');
@@ -232,7 +211,7 @@ begin
   exception when others then insert into r(check_name,outcome) values ('R2 reopening needs a real reason', sqlerrm); end;
 
   o := public.reopen_packing(i, (select version from public.orders where id = i), 'Wrong box used');
-  -- expect: preparing / true / Wrong box used
+  -- expect: confirmed / true / Wrong box used
   insert into r(check_name,outcome) values ('R3 admin reopens a packed order',
     o.status || ' / ' || (o.packed_at is null)::text || ' / '
     || (select reason from public.order_events where order_id = i and event_type = 'packing_reopened'));

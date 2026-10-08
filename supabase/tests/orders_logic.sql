@@ -108,8 +108,9 @@ begin
   o := public.create_order(gen_random_uuid(), 'CALL', jsonb_build_array(jsonb_build_object('variant_id', (select v from ctx where k='eggless'), 'quantity', 1)),
         p_customer_name => 'Ben', p_customer_phone => '+919840099999', p_due_at => (select v::timestamptz from ctx where k='tomorrow11'));
   begin perform public.confirm_order(o.id, o.version);
-    insert into r(check_name,outcome) values ('unmapped item blocks confirmation (AC-06)', 'ALLOWED');
-  exception when others then insert into r(check_name,outcome) values ('unmapped item blocks confirmation (AC-06)', sqlerrm); end;
+    -- expect: ALLOWED
+    insert into r(check_name,outcome) values ('an item with no kitchen confirms (KOT retired 2026-10-09)', 'ALLOWED');
+  exception when others then insert into r(check_name,outcome) values ('an item with no kitchen confirms (KOT retired 2026-10-09)', sqlerrm); end;
 
   o := public.create_order(gen_random_uuid(), 'CALL', jsonb_build_array(jsonb_build_object('variant_id', (select v from ctx where k='puff'), 'quantity', 1)),
         p_customer_name => 'Cy', p_customer_phone => '9840011111', p_due_at => (select v::timestamptz from ctx where k='tomorrow23'), p_override_reason => 'Staying late for this customer', p_confirm => true);
