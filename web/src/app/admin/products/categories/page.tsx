@@ -11,9 +11,8 @@ export const metadata: Metadata = { title: "Categories" };
 export default async function CategoriesPage() {
   await requireRole(["admin"]);
   const supabase = await createClient();
-  const [{ data: categories }, { data: kitchens }] = await Promise.all([
+  const [{ data: categories }] = await Promise.all([
     supabase.from("categories").select("*").order("sort_order").order("name"),
-    supabase.from("kitchens").select("id, name").eq("is_active", true).order("sort_order"),
   ]);
 
   return (
@@ -22,19 +21,19 @@ export default async function CategoriesPage() {
         title="Categories"
         description={
           <>
-            <Link href="/admin/products" className="text-brand hover:underline">Products</Link> / Categories. The default kitchen pre-fills new variants; each variant still stores its own kitchen.
+            <Link href="/admin/products" className="text-brand hover:underline">Products</Link> / Categories.
           </>
         }
       />
       <div className="flex flex-col gap-6">
         <Card>
           <h2 className="mb-4 text-lg font-semibold">Add category</h2>
-          <NewCategoryForm kitchens={kitchens ?? []} action={createCategory} />
+          <NewCategoryForm action={createCategory} />
         </Card>
         {categories && categories.length > 0 ? (
           <ul className="flex flex-col gap-3">
             {categories.map((c) => (
-              <CategoryRow key={c.id} category={c} kitchens={kitchens ?? []} action={updateCategory.bind(null, c.id)} />
+              <CategoryRow key={c.id} category={c} action={updateCategory.bind(null, c.id)} />
             ))}
           </ul>
         ) : (

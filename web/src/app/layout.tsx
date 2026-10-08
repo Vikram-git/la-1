@@ -26,7 +26,7 @@ const greatVibes = Great_Vibes({
 
 export const metadata: Metadata = {
   title: { default: "La Patisserie — Staff", template: "%s · La Patisserie" },
-  description: "Bakery order and kitchen management",
+  description: "Bakery order management",
   robots: { index: false, follow: false },
 };
 

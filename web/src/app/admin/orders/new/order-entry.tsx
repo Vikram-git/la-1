@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Alert, Button, Card, Checkbox, Field, Input, Textarea, cx } from "@/components/ui";
+import { Button, Card, Checkbox, Field, Input, Textarea, cx } from "@/components/ui";
 import { SourceBadge } from "@/components/order-badges";
 import { formatLeadTime, formatPaise } from "@/lib/money";
 import { OverridePrompt } from "@/components/override-prompt";
@@ -53,10 +53,6 @@ export function OrderEntry({
     const entry = variantIndex.get(l.variantId);
     return entry && entry.product.prepType === "made_to_order" ? Math.max(max, entry.variant.leadTimeMinutes) : max;
   }, 0);
-  const unmapped = lines.filter((l) => {
-    const e = variantIndex.get(l.variantId);
-    return e && e.product.prepType === "made_to_order" && !e.variant.hasKitchen;
-  });
   const categoryIds = [...new Set(lines.map((l) => variantIndex.get(l.variantId)?.product.categoryId).filter((id): id is string => Boolean(id)))];
   const needsCustomer = source === "CALL" || !pickupNow;
 
@@ -205,12 +201,6 @@ export function OrderEntry({
             <p className="text-sm text-muted">An admin will confirm this order.</p>
           )}
         </Card>
-
-        {unmapped.length > 0 && confirm && (
-          <Alert tone="danger" title="Kitchen missing">
-            {unmapped.length === 1 ? "One item has" : `${unmapped.length} items have`} no preparing kitchen, so the order cannot be confirmed yet. Untick “Confirm now” or fix the product first.
-          </Alert>
-        )}
 
         {error && (
           <OverridePrompt

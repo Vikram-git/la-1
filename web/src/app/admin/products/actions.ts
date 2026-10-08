@@ -10,7 +10,6 @@ import { parseRupeesToPaise } from "@/lib/money";
 import type { ActionState } from "@/components/form-status";
 
 const uuid = z.uuid("Choose a valid option.");
-const optionalUuid = z.union([z.literal("").transform(() => null), uuid]);
 
 // ---------------------------------------------------------------------------
 // Categories
@@ -18,7 +17,6 @@ const optionalUuid = z.union([z.literal("").transform(() => null), uuid]);
 
 const categorySchema = z.object({
   name: z.string().min(1, "Enter a category name.").max(60, "Keep the name under 60 characters."),
-  default_kitchen_id: optionalUuid,
   sort_order: z.coerce.number().int().min(0).max(9999),
   is_active: z.boolean(),
 });
@@ -26,7 +24,6 @@ const categorySchema = z.object({
 function readCategory(formData: FormData) {
   return categorySchema.safeParse({
     name: text(formData, "name"),
-    default_kitchen_id: text(formData, "default_kitchen_id"),
     sort_order: text(formData, "sort_order") || "0",
     is_active: checkbox(formData, "is_active"),
   });
@@ -147,7 +144,6 @@ export async function setProductArchived(id: string, archived: boolean) {
 const variantSchema = z.object({
   name: z.string().min(1, "Enter a variant name, e.g. 500 g or Regular.").max(60),
   price_paise: z.number({ error: "Enter a price in rupees, e.g. 450 or 450.50." }).int().min(0),
-  kitchen_id: optionalUuid,
   lead_time_minutes: z
     .number({ error: "Enter the lead time in hours and minutes." })
     .int()
@@ -168,7 +164,6 @@ function readVariant(formData: FormData) {
   return variantSchema.safeParse({
     name: text(formData, "name"),
     price_paise: parseRupeesToPaise(text(formData, "price")) ?? NaN,
-    kitchen_id: text(formData, "kitchen_id"),
     lead_time_minutes: lead,
     is_eggless: checkbox(formData, "is_eggless"),
     is_available: checkbox(formData, "is_available"),

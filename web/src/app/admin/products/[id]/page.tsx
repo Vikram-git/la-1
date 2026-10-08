@@ -26,10 +26,9 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
   if (!z.uuid().safeParse(id).success) notFound();
 
   const supabase = await createClient();
-  const [{ data: product }, { data: categories }, { data: kitchens }, { data: variants }] = await Promise.all([
-    supabase.from("products").select("*, categories(default_kitchen_id)").eq("id", id).maybeSingle(),
+  const [{ data: product }, { data: categories }, { data: variants }] = await Promise.all([
+    supabase.from("products").select("*").eq("id", id).maybeSingle(),
     supabase.from("categories").select("id, name, is_active").order("sort_order").order("name"),
-    supabase.from("kitchens").select("id, name, is_active").order("sort_order"),
     supabase
       .from("product_variants")
       .select("*")
@@ -40,9 +39,6 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
   ]);
   if (!product) notFound();
 
-  const requiresKitchen = product.prep_type === "made_to_order";
-  const activeVariants = (variants ?? []).filter((v) => !v.archived_at);
-  const unmappedCount = requiresKitchen ? activeVariants.filter((v) => !v.kitchen_id).length : 0;
 
   return (
     <>
@@ -60,12 +56,7 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
       <div className="flex flex-col gap-6">
         {created === "1" && (
           <Alert tone="ok" title="Product created">
-            Now add at least one variant with a price{requiresKitchen ? " and preparing kitchen" : ""}.
-          </Alert>
-        )}
-        {unmappedCount > 0 && (
-          <Alert tone="danger" title="Kitchen assignment needed">
-            {unmappedCount} active variant{unmappedCount === 1 ? " has" : "s have"} no preparing kitchen. Orders with {unmappedCount === 1 ? "it" : "them"} cannot be confirmed.
+            Now add at least one variant with a price.
           </Alert>
         )}
 
@@ -77,8 +68,6 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
                 <VariantRow
                   key={v.id}
                   variant={v}
-                  kitchens={kitchens ?? []}
-                  requiresKitchen={requiresKitchen}
                   canEdit={isAdmin && !product.archived_at}
                   saveAction={updateVariant.bind(null, v.id)}
                   archiveAction={setVariantArchived.bind(null, v.id)}
@@ -87,19 +76,14 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
             </ul>
           ) : (
             <EmptyState title="No variants yet">
-              Add sizes or options such as “500 g”, “1 kg”, or “Regular”. Each variant has its own price, kitchen, and lead time.
+              Add sizes or options such as “500 g”, “1 kg”, or “Regular”. Each variant has its own price and lead time.
             </EmptyState>
           )}
 
           {isAdmin && !product.archived_at && (
             <div className="mt-6 border-t border-line pt-6">
               <h3 className="mb-4 font-medium">Add a variant</h3>
-              <NewVariantForm
-                action={createVariant.bind(null, product.id)}
-                kitchens={(kitchens ?? []).filter((k) => k.is_active)}
-                defaultKitchenId={requiresKitchen ? (product.categories?.default_kitchen_id ?? null) : null}
-                requiresKitchen={requiresKitchen}
-              />
+              <NewVariantForm action={createVariant.bind(null, product.id)} />
             </div>
           )}
         </Card>

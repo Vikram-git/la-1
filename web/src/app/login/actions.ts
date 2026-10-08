@@ -3,8 +3,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { homePathFor } from "@/lib/auth";
-import { currentTablet } from "@/lib/kitchen-device";
+import { HOME_PATH } from "@/lib/auth";
 import type { ActionState } from "@/components/form-status";
 
 const schema = z.object({
@@ -15,7 +14,7 @@ const schema = z.object({
 
 // Only allow redirects back into the staff area.
 function safeNext(next: string | undefined) {
-  return next && /^\/(admin|kitchen)(\/|$)/.test(next) ? next : null;
+  return next && /^\/(admin|print)(\/|$)/.test(next) ? next : null;
 }
 
 export async function signIn(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -43,17 +42,18 @@ export async function signIn(_prev: ActionState, formData: FormData): Promise<Ac
     await supabase.auth.signOut();
     return { message: "This account does not have active staff access. Ask an admin." };
   }
+  // The kitchen screen is gone (2026-10-09), so chef logins have nowhere to go.
+  if (profile.role === "chef") {
+    await supabase.auth.signOut();
+    return { message: "Chef logins no longer have access. Ask an admin for a counter staff login." };
+  }
 
-  const home = homePathFor(profile.role);
-  const next = safeNext(parsed.data.next);
-  // Chefs never land in the admin area, whatever the link said.
-  redirect(next && next.startsWith(home) ? next : home);
+  redirect(safeNext(parsed.data.next) ?? HOME_PATH);
 }
 
 export async function signOut() {
   const supabase = await createClient();
-  // This device only: "Switch chef" on a tablet must not sign the chef out of their other devices.
+  // This device only.
   await supabase.auth.signOut({ scope: "local" });
-  // On a registered kitchen tablet, signing out (or "Switch chef") returns to the chef picker.
-  redirect((await currentTablet()) ? "/kitchen/pin" : "/login");
+  redirect("/login");
 }

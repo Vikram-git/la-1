@@ -1,27 +1,20 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState, useTransition } from "react";
-import { Badge, Button, Checkbox, Field, Input, Select } from "@/components/ui";
+import { Badge, Button, Checkbox, Field, Input } from "@/components/ui";
 import { FormMessage, SubmitButton, type ActionState } from "@/components/form-status";
 import type { Tables } from "@/lib/database.types";
 import { formatLeadTime, formatPaise, paiseToRupeesInput } from "@/lib/money";
 
 type Variant = Tables<"product_variants">;
-type Kitchen = Pick<Tables<"kitchens">, "id" | "name" | "is_active">;
 type SaveAction = (prev: ActionState, formData: FormData) => Promise<ActionState>;
 
 function VariantFields({
   variant,
-  kitchens,
-  defaultKitchenId,
-  requiresKitchen,
   errors,
   idPrefix,
 }: {
   variant?: Variant;
-  kitchens: Kitchen[];
-  defaultKitchenId: string | null;
-  requiresKitchen: boolean;
   errors: Record<string, string>;
   idPrefix: string;
 }) {
@@ -42,22 +35,6 @@ function VariantFields({
           placeholder="450.00"
           required
         />
-      </Field>
-      <Field
-        label="Preparing kitchen"
-        htmlFor={id("kitchen_id")}
-        error={errors.kitchen_id}
-        hint={requiresKitchen ? "Required before orders with this item can be confirmed." : "Not needed for ready stock."}
-      >
-        <Select id={id("kitchen_id")} name="kitchen_id" defaultValue={variant ? (variant.kitchen_id ?? "") : (defaultKitchenId ?? "")}>
-          <option value="">No kitchen</option>
-          {kitchens.map((k) => (
-            <option key={k.id} value={k.id}>
-              {k.name}
-              {k.is_active ? "" : " (inactive)"}
-            </option>
-          ))}
-        </Select>
       </Field>
       <div className="flex flex-col gap-1.5">
         <span className="text-sm font-medium">Lead time</span>
@@ -80,12 +57,7 @@ function VariantFields({
   );
 }
 
-export function NewVariantForm(props: {
-  action: SaveAction;
-  kitchens: Kitchen[];
-  defaultKitchenId: string | null;
-  requiresKitchen: boolean;
-}) {
+export function NewVariantForm(props: { action: SaveAction }) {
   const [state, formAction] = useActionState(props.action, {});
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -95,7 +67,7 @@ export function NewVariantForm(props: {
 
   return (
     <form ref={formRef} action={formAction} className="flex flex-col gap-4">
-      <VariantFields {...props} errors={state.fieldErrors ?? {}} idPrefix="new-variant" />
+      <VariantFields errors={state.fieldErrors ?? {}} idPrefix="new-variant" />
       <div className="flex items-center gap-4">
         <SubmitButton pendingText="Adding…">Add variant</SubmitButton>
         <FormMessage state={state} />
@@ -106,15 +78,11 @@ export function NewVariantForm(props: {
 
 export function VariantRow({
   variant,
-  kitchens,
-  requiresKitchen,
   canEdit,
   saveAction,
   archiveAction,
 }: {
   variant: Variant;
-  kitchens: Kitchen[];
-  requiresKitchen: boolean;
   canEdit: boolean;
   saveAction: SaveAction;
   archiveAction: (archived: boolean) => Promise<void>;
@@ -128,7 +96,6 @@ export function VariantRow({
   const [archiving, startArchive] = useTransition();
   const [archiveError, setArchiveError] = useState<string | null>(null);
 
-  const kitchen = kitchens.find((k) => k.id === variant.kitchen_id);
   const archived = Boolean(variant.archived_at);
 
   if (editing) {
@@ -137,9 +104,6 @@ export function VariantRow({
         <form action={formAction} className="flex flex-col gap-4">
           <VariantFields
             variant={variant}
-            kitchens={kitchens}
-            defaultKitchenId={null}
-            requiresKitchen={requiresKitchen}
             errors={state.fieldErrors ?? {}}
             idPrefix={`variant-${variant.id}`}
           />
@@ -166,8 +130,7 @@ export function VariantRow({
           {archived && <Badge>Archived</Badge>}
         </div>
         <p className="mt-1 text-sm text-muted">
-          {kitchen ? kitchen.name : requiresKitchen ? <span className="font-medium text-danger">No kitchen assigned</span> : "No kitchen (ready stock)"}
-          {" · "}Lead time {formatLeadTime(variant.lead_time_minutes)}
+          Lead time {formatLeadTime(variant.lead_time_minutes)}
         </p>
         {archiveError && <p className="mt-1 text-sm text-danger">{archiveError}</p>}
       </div>

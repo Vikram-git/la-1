@@ -22,7 +22,7 @@ export default async function ProductsPage({ searchParams }: PageProps<"/admin/p
   let query = supabase
     .from("products")
     .select(
-      "id, name, prep_type, is_veg, contains_egg, is_available, archived_at, categories(name), product_variants(id, price_paise, kitchen_id, is_eggless, archived_at, kitchens(name))",
+      "id, name, prep_type, is_veg, contains_egg, is_available, archived_at, categories(name), product_variants(id, price_paise, is_eggless, archived_at)",
     )
     .order("name");
   if (q) query = query.ilike("name", `%${q.replace(/[%_]/g, "\\$&")}%`);
@@ -30,19 +30,16 @@ export default async function ProductsPage({ searchParams }: PageProps<"/admin/p
   if (status === "active") query = query.is("archived_at", null);
   if (status === "archived") query = query.not("archived_at", "is", null);
 
-  const [{ data: products, error }, { data: categories }, { data: unmapped }] = await Promise.all([
+  const [{ data: products, error }, { data: categories }] = await Promise.all([
     query,
     supabase.from("categories").select("id, name").order("sort_order").order("name"),
-    supabase.from("unmapped_variants").select("product_id, product_name, variant_name"),
   ]);
-
-  const unmappedByProduct = new Set((unmapped ?? []).map((u) => u.product_id));
 
   return (
     <>
       <PageHeader
         title="Products"
-        description="Catalogue, variants, prices, and which kitchen prepares each item."
+        description="Catalogue, variants and prices."
         actions={
           isAdmin && (
             <>
@@ -54,22 +51,6 @@ export default async function ProductsPage({ searchParams }: PageProps<"/admin/p
           )
         }
       />
-
-      {unmapped && unmapped.length > 0 && (
-        <div className="mb-6">
-          <Alert tone="danger" title={`${unmapped.length} made-to-order variant${unmapped.length === 1 ? "" : "s"} without a kitchen`}>
-            Orders containing these cannot be confirmed until a kitchen is assigned:{" "}
-            {unmapped.map((u, i) => (
-              <span key={`${u.product_id}-${u.variant_name}`}>
-                {i > 0 && ", "}
-                <Link href={`/admin/products/${u.product_id}`} className="font-medium underline">
-                  {u.product_name} — {u.variant_name}
-                </Link>
-              </span>
-            ))}
-          </Alert>
-        </div>
-      )}
 
       <form className="mb-4 flex flex-wrap items-end gap-3" role="search">
         <div className="min-w-48 flex-1">
@@ -128,7 +109,6 @@ export default async function ProductsPage({ searchParams }: PageProps<"/admin/p
                 <th scope="col" className="px-4 py-3 font-medium">Category</th>
                 <th scope="col" className="px-4 py-3 font-medium">Type</th>
                 <th scope="col" className="px-4 py-3 font-medium">Price</th>
-                <th scope="col" className="px-4 py-3 font-medium">Kitchen</th>
                 <th scope="col" className="px-4 py-3 font-medium">Status</th>
               </tr>
             </thead>
@@ -136,7 +116,6 @@ export default async function ProductsPage({ searchParams }: PageProps<"/admin/p
               {products.map((p) => {
                 const variants = p.product_variants.filter((v) => !v.archived_at);
                 const prices = variants.map((v) => v.price_paise);
-                const kitchenNames = [...new Set(variants.flatMap((v) => (v.kitchens ? [v.kitchens.name] : [])))];
                 const hasEggless = variants.some((v) => v.is_eggless);
                 return (
                   <tr key={p.id} className="hover:bg-canvas/60">
@@ -158,15 +137,6 @@ export default async function ProductsPage({ searchParams }: PageProps<"/admin/p
                         : Math.min(...prices) === Math.max(...prices)
                           ? formatPaise(prices[0])
                           : `${formatPaise(Math.min(...prices))} – ${formatPaise(Math.max(...prices))}`}
-                    </td>
-                    <td className="px-4 py-3">
-                      {unmappedByProduct.has(p.id) ? (
-                        <Badge tone="danger">Needs kitchen</Badge>
-                      ) : kitchenNames.length ? (
-                        kitchenNames.join(", ")
-                      ) : (
-                        <span className="text-muted">—</span>
-                      )}
                     </td>
                     <td className="px-4 py-3">
                       {p.archived_at ? (

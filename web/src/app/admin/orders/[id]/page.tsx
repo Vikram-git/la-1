@@ -9,15 +9,12 @@ import { formatPaise } from "@/lib/money";
 import { paymentMethodLabel, sourceLabel } from "@/lib/orders";
 import { dateToZonedLocal, formatDateTime } from "@/lib/time";
 import { Alert, Badge, Card, PageHeader, VegMark, cx } from "@/components/ui";
-import { KitchenFlags, SourceBadge, StatusBadge } from "@/components/order-badges";
+import { SourceBadge, StatusBadge } from "@/components/order-badges";
 import { NoShowPanel, OrderActions, PaymentForm } from "./order-actions";
 import { FulfilmentPanel } from "./fulfilment-panel";
 import { BillPanel, DiscountForm } from "./billing-panel";
 import { EditItems } from "./edit-items";
 import { loadCatalogue } from "@/lib/catalogue";
-import { ticketsQuery, toKitchenTickets } from "@/lib/kitchen-data";
-import { describeChange, parseTicketChanges, ticketStatusLabel } from "@/lib/kitchen";
-import { StopWorkNotice, TicketCard } from "@/components/kitchen/ticket-card";
 
 export const metadata: Metadata = { title: "Order" };
 
@@ -50,6 +47,11 @@ const eventLabel: Record<string, string> = {
   packed: "Packed",
   packing_reopened: "Packing reopened",
   handed_over: "Handed over",
+  kitchen_tickets_retired: "Kitchen tickets retired",
+  fulfilment_changed: "Collect / set-up changed",
+  custom_cake_created: "Custom cake ordered",
+  custom_cake_changed: "Custom cake changed",
+  custom_cake_photo: "Cake photo changed",
 };
 
 // PRD 5F: only orders the customer should have collected can count as a no-show.
@@ -64,13 +66,12 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
   const tz = await getBusinessTimezone();
 
   const supabase = await createClient();
-  const [{ data: order }, { data: items }, { data: payments }, { data: events }, { data: kitchens }, { data: staffRows }, { data: bill }, { data: settings }, { data: noShow }] =
+  const [{ data: order }, { data: items }, { data: payments }, { data: events }, { data: staffRows }, { data: bill }, { data: settings }, { data: noShow }] =
     await Promise.all([
       supabase.from("order_summaries").select("*").eq("id", id).maybeSingle(),
       supabase.from("order_items").select("*").eq("order_id", id).order("line_no"),
       supabase.from("payments").select("*").eq("order_id", id).order("recorded_at"),
       supabase.from("order_events").select("*").eq("order_id", id).order("occurred_at"),
-      supabase.from("kitchens").select("id, name"),
       supabase.from("staff_profiles").select("user_id, full_name"),
       supabase.from("bills").select("id, bill_number, total_paise, issued_at, credit_notes(id, credit_note_number, total_paise, reason, issued_at)").eq("order_id", id).maybeSingle(),
       supabase.from("business_settings").select("counter_discount_limit_bps").single(),
@@ -83,7 +84,6 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
     ]);
   if (!order || !order.id || !order.status || !order.source) notFound();
 
-  const kitchenName = new Map((kitchens ?? []).map((k) => [k.id, k.name]));
   const staffName = new Map((staffRows ?? []).map((s) => [s.user_id, s.full_name]));
   const who = (userId: string | null) => (userId ? staffName.get(userId) ?? "Staff" : "System");
   const balance = order.balance_paise ?? 0;
@@ -93,27 +93,16 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
   const canRecordNoShow =
     Boolean(customer) && !noShow?.no_show_at && NO_SHOW_STATUSES.includes(order.status) &&
     order.due_at !== null && new Date(order.due_at) <= new Date();
-  const unmapped = (items ?? []).filter((i) => i.prep_type === "made_to_order" && !i.kitchen_id);
-  // Items can change until kitchen work starts; confirmed orders only by an admin (update_order_items).
-  const tickets = toKitchenTickets((await ticketsQuery(supabase).eq("order_id", id).order("reference")).data);
-  const kitchenAllReady = tickets.some((t) => t.status !== "cancelled") && tickets.every((t) => t.status === "ready" || t.status === "cancelled");
-  const kitchenIssues = tickets.some((t) => t.issues.some((i) => !i.resolved_at));
-  const waitingKitchens = tickets
-    .filter((t) => t.status !== "ready" && t.status !== "cancelled")
-    .map((t) => `${kitchenName.get(t.kitchen_id) ?? "Kitchen"} (${ticketStatusLabel[t.status].toLowerCase()})`);
   // Items can change on draft and pending orders, and (admin, with a reason) on confirmed and
-  // preparing ones: kitchens get a revision to acknowledge (5C). Packed orders are reopened first.
+  // preparing ones. Packed orders are reopened first.
   const canEditItems =
     !bill && (["draft", "pending_confirmation"].includes(order.status) || (["confirmed", "preparing"].includes(order.status) && isAdmin));
-  const unacknowledged = tickets
-    .filter((t) => t.status !== "cancelled" && t.pending_changes.length > 0)
-    .map((t) => kitchenName.get(t.kitchen_id) ?? "Kitchen");
   const catalogue = canEditItems ? await loadCatalogue(supabase) : [];
 
   const itemList = (
     <ul className="divide-y divide-line">
       {(items ?? []).map((i) => {
-        // 5C: an item removed after the kitchen acknowledged stays on the order, fully cancelled.
+        // An item removed after the kitchen acknowledged it (before 2026-10-09) stays, fully cancelled.
         const removed = i.quantity === i.cancelled_quantity;
         return (
           <li key={i.id} className={cx("flex flex-wrap items-start justify-between gap-3 py-3", removed && "opacity-60")}>
@@ -125,11 +114,7 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
               <div className="mt-1 flex flex-wrap items-center gap-2 text-sm">
                 <VegMark isVeg={i.is_veg} />
                 {i.is_eggless ? <Badge tone="ok">Eggless</Badge> : i.contains_egg && <Badge>Contains egg</Badge>}
-                {i.prep_type === "ready_stock" ? (
-                  <Badge>Ready stock</Badge>
-                ) : (
-                  <Badge tone={i.kitchen_id ? "brand" : "danger"}>{i.kitchen_id ? kitchenName.get(i.kitchen_id) : "No kitchen"}</Badge>
-                )}
+                {i.prep_type === "ready_stock" ? <Badge>Ready stock</Badge> : <Badge tone="brand">Made to order</Badge>}
                 {i.allergens.length > 0 && <span className="text-xs text-muted">Allergens: {i.allergens.join(", ")}</span>}
               </div>
               {i.notes && <p className="mt-1 text-sm">“{i.notes}”</p>}
@@ -156,7 +141,6 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
             <span>/</span>
             <SourceBadge source={order.source} />
             <StatusBadge status={order.status} />
-            <KitchenFlags progress={{ all_ready: kitchenAllReady, open_issues: kitchenIssues ? 1 : 0, changes_pending: unacknowledged.length }} />
           </span>
         }
       />
@@ -165,20 +149,13 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
         {created === "1" && (
           <Alert tone="ok" title={order.status === "confirmed" ? "Order created and confirmed" : "Order created"}>
             {order.status === "pending_confirmation"
-              ? "It is waiting for confirmation before any kitchen work is released."
-              : tickets.length > 0
-                ? "Kitchen tickets have gone to the kitchens."
-                : "No kitchen work is needed: pack the items when the customer is ready."}
+              ? "It is waiting for confirmation."
+              : "Pack the items when they are ready."}
           </Alert>
         )}
         {order.closed_reason && (
           <Alert tone="danger" title={order.status === "rejected" ? "Rejected" : "Cancelled"}>
             {order.closed_reason} — {who(order.closed_by)}, {order.closed_at && formatDateTime(order.closed_at, tz)}
-          </Alert>
-        )}
-        {!closed && unmapped.length > 0 && (
-          <Alert tone="danger" title="Kitchen assignment needed">
-            {unmapped.map((i) => `${i.product_name} — ${i.variant_name}`).join(", ")}. Fix the product mapping, then confirm.
           </Alert>
         )}
         {balance < 0 && (
@@ -261,7 +238,7 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
               <div>
                 <dt className="text-muted">Customer</dt>
                 <dd className="flex flex-wrap items-center gap-2 font-medium">
-                  {customer && isAdmin ? (
+                  {customer ? (
                     <Link href={`/admin/customers/${customer.id}`} className="hover:text-brand hover:underline">{order.customer_name ?? "Customer"}</Link>
                   ) : (
                     order.customer_name ?? "Walk-in"
@@ -322,9 +299,6 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
                 status={order.status}
                 isAdmin={isAdmin}
                 balancePaise={balance}
-                waitingKitchens={waitingKitchens}
-                openIssues={kitchenIssues}
-                unacknowledged={unacknowledged}
                 packed={noShow?.packed_at ? { label: `${formatDateTime(noShow.packed_at, tz)} · ${who(noShow.packed_by)}`, note: noShow.packing_note } : null}
                 handedOver={
                   noShow?.handed_over_by && order.completed_at
@@ -386,20 +360,6 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
             />
           </Card>
 
-          {tickets.length > 0 && (
-            <Card className="lg:col-span-2">
-              <h2 className="mb-3 text-lg font-semibold">Kitchen</h2>
-              <div className="grid gap-4 xl:grid-cols-2">
-                {tickets.map((t) =>
-                  t.status === "cancelled" && !t.stop_work_acknowledged_at ? (
-                    <StopWorkNotice key={t.id} ticket={t} tz={tz} mode={isAdmin ? "admin" : "view"} />
-                  ) : (
-                    <TicketCard key={t.id} ticket={t} tz={tz} mode={isAdmin ? "admin" : "view"} nowIso={new Date().toISOString()} />
-                  ),
-                )}
-              </div>
-            </Card>
-          )}
           <Card className="lg:col-span-2">
             <h2 className="mb-3 text-lg font-semibold">Timeline</h2>
             <ol className="flex flex-col gap-3 border-l-2 border-line pl-4 text-sm">
@@ -424,22 +384,6 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
                           <li>Total {formatPaise(data.total_from)} → {formatPaise(data.total_to)}</li>
                         )}
                       </ul>
-                    )}
-                    {e.event_type === "tickets_revised" && Array.isArray(data.tickets) && (
-                      <ul className="text-xs">
-                        {(data.tickets as { ticket?: string; kitchen?: string; changes?: unknown }[]).map((t, n) => (
-                          <li key={n}>
-                            <span className="font-mono">{t.ticket}</span>
-                            {t.kitchen && ` · ${t.kitchen}`}:{" "}
-                            {parseTicketChanges(t.changes).map((c) => describeChange(c, (iso) => formatDateTime(iso, tz))).join("; ")}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                    {e.event_type === "ticket_changes_acknowledged" && (
-                      <p className="text-xs">
-                        {parseTicketChanges(data.changes).map((c) => describeChange(c, (iso) => formatDateTime(iso, tz))).join("; ")}
-                      </p>
                     )}
                     {typeof data.no_show_count === "number" && (
                       <p className="text-xs">Customer now has {data.no_show_count} no-show{data.no_show_count === 1 ? "" : "s"}</p>

@@ -6,10 +6,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Bell,
-  CakeSlice,
   CalendarDays,
   ChartLine,
-  ChefHat,
   ChevronDown,
   LayoutDashboard,
   LogOut,
@@ -35,19 +33,17 @@ const ICONS: Record<NavIcon, LucideIcon> = {
   orders: ShoppingCart,
   counter: Store,
   calendar: CalendarDays,
-  kot: ChefHat,
   products: Package,
   customers: Users,
   analytics: ChartLine,
   staff: UserCog,
   settings: Settings,
-  cake: CakeSlice,
   bell: Bell,
   offers: Megaphone,
   reviews: Star,
 };
 
-type Counts = { pending: number; kitchenAlerts: number; attention: number };
+type Counts = { pending: number; attention: number };
 
 function SidebarContent({ sections, counts, onNavigate }: { sections: NavSection[]; counts: Counts; onNavigate?: () => void }) {
   const pathname = usePathname();
@@ -64,7 +60,7 @@ function SidebarContent({ sections, counts, onNavigate }: { sections: NavSection
               {section.items.map((item) => {
                 const Icon = ICONS[item.icon];
                 const active = isActivePath(pathname, item.href);
-                const badge = item.badge === "pending" ? counts.pending : item.badge === "kitchen" ? counts.kitchenAlerts : 0;
+                const badge = item.badge === "pending" ? counts.pending : 0;
                 return (
                   <li key={item.href}>
                     <Link

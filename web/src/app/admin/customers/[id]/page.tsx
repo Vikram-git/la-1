@@ -14,7 +14,8 @@ import { BlockForm } from "./block-form";
 export const metadata: Metadata = { title: "Customer" };
 
 export default async function CustomerPage({ params }: PageProps<"/admin/customers/[id]">) {
-  await requireRole(["admin"]);
+  const staff = await requireRole(["admin", "counter"]);
+  const isAdmin = staff.role === "admin";
   const { id } = await params;
   if (!z.uuid().safeParse(id).success) notFound();
   const tz = await getBusinessTimezone();
@@ -97,7 +98,11 @@ export default async function CustomerPage({ params }: PageProps<"/admin/custome
               {customer.is_blocked ? "This customer is blocked." : "This customer can place orders."} No-shows are recorded on each order;
               blocking is always a separate decision.
             </p>
-            <BlockForm key={String(customer.is_blocked)} customerId={customer.id} isBlocked={customer.is_blocked} />
+            {isAdmin ? (
+              <BlockForm key={String(customer.is_blocked)} customerId={customer.id} isBlocked={customer.is_blocked} />
+            ) : (
+              <p className="text-sm text-muted">Only an admin can block or unblock a customer.</p>
+            )}
             {events && events.length > 0 && (
               <ol className="mt-5 flex flex-col gap-3 border-l-2 border-line pl-4 text-sm">
                 {events.map((e) => (

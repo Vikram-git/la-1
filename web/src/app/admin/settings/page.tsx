@@ -30,7 +30,7 @@ export default async function SettingsPage() {
 
   return (
     <>
-      <PageHeader title="Settings" description="Business details used on bills, tickets, and the calendar." />
+      <PageHeader title="Settings" description="Business details used on bills and the calendar." />
       {error || !settings ? (
         <Alert tone="danger" title="Could not load settings">{error?.message}</Alert>
       ) : (

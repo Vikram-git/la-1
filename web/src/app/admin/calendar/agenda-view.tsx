@@ -2,14 +2,13 @@ import { addDays, formatDayHeading } from "@/lib/time";
 import { EmptyState } from "@/components/ui";
 import { OrderList, plural, type OrdersByDay } from "./order-row";
 
-export function AgendaView({ from, days, today, byDay, closureByDay, tz, kitchenName }: {
+export function AgendaView({ from, days, today, byDay, closureByDay, tz }: {
   from: string;
   days: number;
   today: string;
   byDay: OrdersByDay;
   closureByDay: Map<string, string>;
   tz: string;
-  kitchenName: Map<string, string>;
 }) {
   return (
     <div className="flex flex-col gap-5">
@@ -28,7 +27,7 @@ export function AgendaView({ from, days, today, byDay, closureByDay, tz, kitchen
             {dayOrders.length === 0 ? (
               <p className="rounded-lg border border-dashed border-line bg-surface px-4 py-3 text-sm text-muted">Nothing due.</p>
             ) : (
-              <OrderList orders={dayOrders} tz={tz} kitchenName={kitchenName} />
+              <OrderList orders={dayOrders} tz={tz} />
             )}
           </section>
         );

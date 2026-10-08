@@ -61,7 +61,7 @@ export function OrderActions({
 
   const awaiting = status === "draft" || status === "pending_confirmation";
   const open = !["completed", "rejected", "cancelled"].includes(status);
-  // Preparing orders too: kitchens get a revision to acknowledge (5C). Packed orders are reopened first.
+  // Preparing orders too. Packed orders are reopened first.
   const reschedulable = awaiting || status === "confirmed" || status === "preparing";
 
   // Runs an action; on refusal keeps it so an admin can retry it with an override reason.

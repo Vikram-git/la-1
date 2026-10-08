@@ -8,11 +8,10 @@ export type StaffRole = Enums<"staff_role">;
 
 export type Staff = {
   userId: string;
-  sessionId: string | null; // Supabase login session (used to recognise kitchen-tablet PIN logins)
+  sessionId: string | null; // Supabase login session
   email: string | null;
   fullName: string;
   role: StaffRole;
-  kitchens: { id: string; code: string; name: string }[];
 };
 
 // The signed-in, active staff member for this request, or null.
@@ -24,10 +23,11 @@ export const getStaff = cache(async (): Promise<Staff | null> => {
 
   const { data: profile } = await supabase
     .from("staff_profiles")
-    .select("full_name, role, is_active, staff_kitchens(kitchens(id, code, name))")
+    .select("full_name, role, is_active")
     .eq("user_id", claims.sub)
     .maybeSingle();
-  if (!profile || !profile.is_active) return null;
+  // Chef logins have no screens since the kitchen screen was removed (2026-10-09).
+  if (!profile || !profile.is_active || profile.role === "chef") return null;
 
   return {
     userId: claims.sub,
@@ -35,19 +35,16 @@ export const getStaff = cache(async (): Promise<Staff | null> => {
     email: typeof claims.email === "string" ? claims.email : null,
     fullName: profile.full_name,
     role: profile.role,
-    kitchens: profile.staff_kitchens.flatMap((sk) => (sk.kitchens ? [sk.kitchens] : [])),
   };
 });
 
-export function homePathFor(role: StaffRole) {
-  return role === "chef" ? "/kitchen" : "/admin";
-}
+export const HOME_PATH = "/admin";
 
 // For pages and layouts: redirects when the visitor lacks one of the allowed roles.
 export async function requireRole(allowed: StaffRole[]): Promise<Staff> {
   const staff = await getStaff();
   if (!staff) redirect("/login");
-  if (!allowed.includes(staff.role)) redirect(homePathFor(staff.role));
+  if (!allowed.includes(staff.role)) redirect(HOME_PATH);
   return staff;
 }
 

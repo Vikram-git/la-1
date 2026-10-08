@@ -7,7 +7,7 @@ import { formatPaise } from "@/lib/money";
 import { OPEN_STATUSES, statusLabel, type OrderStatus, searchEverywhere } from "@/lib/orders";
 import { formatDateTime, zonedDayKey, zonedDayRange } from "@/lib/time";
 import { Alert, ButtonLink, EmptyState, Input, PageHeader, Select, cx } from "@/components/ui";
-import { KitchenFlags, SourceBadge, StatusBadge } from "@/components/order-badges";
+import { SourceBadge, StatusBadge } from "@/components/order-badges";
 
 export const metadata: Metadata = { title: "Orders" };
 
@@ -42,7 +42,7 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/ord
   const supabase = await createClient();
   let query = supabase
     .from("order_summaries")
-    .select("id, reference, source, status, customer_name, customer_phone, due_at, is_immediate, total_paise, balance_paise, item_count, kitchen_ids")
+    .select("id, reference, source, status, customer_name, customer_phone, due_at, is_immediate, total_paise, balance_paise, item_count")
     .in("source", everywhere ? ["IN_STORE", "ONLINE", "CALL"] : LISTS[list].sources)
     .limit(200);
 
@@ -68,9 +68,8 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/ord
 
   query = when === "past" ? query.order("due_at", { ascending: false }) : query.order("due_at", { ascending: true });
 
-  const [{ data: orders, error }, { data: kitchens }, counts] = await Promise.all([
+  const [{ data: orders, error }, counts] = await Promise.all([
     query,
-    supabase.from("kitchens").select("id, name"),
     Promise.all(
       (Object.keys(LISTS) as ListKey[]).map(async (key) => {
         const { count } = await supabase
@@ -84,13 +83,7 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/ord
       }),
     ),
   ]);
-  const kitchenName = new Map((kitchens ?? []).map((k) => [k.id, k.name]));
   const dueToday = Object.fromEntries(counts) as Record<ListKey, number>;
-  const orderIds = (orders ?? []).map((o) => o.id).filter((v): v is string => Boolean(v));
-  const { data: progress } = orderIds.length
-    ? await supabase.from("order_kitchen_progress").select("order_id, all_ready, open_issues, changes_pending").in("order_id", orderIds)
-    : { data: [] };
-  const progressById = new Map((progress ?? []).map((p) => [p.order_id, p]));
 
   const link = (overrides: Record<string, string>) => {
     const next = new URLSearchParams({ list, when, status, ...(q ? { q } : {}), ...overrides });
@@ -180,7 +173,6 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/ord
                 <th scope="col" className="px-4 py-3 font-medium">Customer</th>
                 <th scope="col" className="px-4 py-3 font-medium">Due</th>
                 <th scope="col" className="px-4 py-3 font-medium">Items</th>
-                <th scope="col" className="px-4 py-3 font-medium">Kitchens</th>
                 <th scope="col" className="px-4 py-3 text-right font-medium">Total</th>
                 <th scope="col" className="px-4 py-3 text-right font-medium">Balance</th>
                 <th scope="col" className="px-4 py-3 font-medium">Status</th>
@@ -207,9 +199,6 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/ord
                       {overdue && <div className="text-xs">Overdue</div>}
                     </td>
                     <td className="px-4 py-3">{o.item_count}</td>
-                    <td className="px-4 py-3 text-muted">
-                      {(o.kitchen_ids ?? []).map((id) => kitchenName.get(id)).filter(Boolean).join(", ") || "—"}
-                    </td>
                     <td className="px-4 py-3 text-right whitespace-nowrap">{formatPaise(o.total_paise ?? 0)}</td>
                     <td className={cx("px-4 py-3 text-right whitespace-nowrap", (o.balance_paise ?? 0) > 0 && "font-medium text-warn", (o.balance_paise ?? 0) < 0 && "font-medium text-danger")}>
                       {(o.balance_paise ?? 0) === 0 ? <span className="text-ok">Paid</span> : (o.balance_paise ?? 0) < 0 ? `Refund ${formatPaise(-(o.balance_paise ?? 0))}` : formatPaise(o.balance_paise ?? 0)}
@@ -217,7 +206,6 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/ord
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1">
                         {o.status && <StatusBadge status={o.status} />}
-                        <KitchenFlags progress={o.id ? progressById.get(o.id) : undefined} />
                       </div>
                     </td>
                   </tr>

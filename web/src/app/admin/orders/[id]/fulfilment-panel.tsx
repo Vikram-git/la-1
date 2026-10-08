@@ -19,9 +19,6 @@ export function FulfilmentPanel({
   status,
   isAdmin,
   balancePaise,
-  waitingKitchens,
-  openIssues,
-  unacknowledged,
   packed,
   handedOver,
 }: {
@@ -30,9 +27,6 @@ export function FulfilmentPanel({
   status: OrderStatus;
   isAdmin: boolean;
   balancePaise: number;
-  waitingKitchens: string[];
-  openIssues: boolean;
-  unacknowledged: string[];
   packed: { label: string; note: string | null } | null;
   handedOver: { label: string; collectedBy: string | null; creditReason: string | null } | null;
 }) {
@@ -63,8 +57,7 @@ export function FulfilmentPanel({
     });
   }
 
-  const packable =
-    (status === "confirmed" || status === "preparing") && waitingKitchens.length === 0 && !openIssues && unacknowledged.length === 0;
+  const packable = status === "confirmed" || status === "preparing";
   const handover = (creditReason?: string) =>
     recordHandoverAction({ orderId, version, collectedBy, creditReason });
 
@@ -108,19 +101,8 @@ export function FulfilmentPanel({
   if (status === "confirmed" || status === "preparing") {
     return (
       <div className="flex flex-col gap-3">
-        {waitingKitchens.length > 0 && (
-          <p className="text-sm">
-            <span className="font-medium">Waiting for the kitchen:</span> {waitingKitchens.join(", ")}.
-          </p>
-        )}
-        {openIssues && <p className="text-sm font-medium text-danger">Resolve the open kitchen issue before packing.</p>}
-        {unacknowledged.length > 0 && (
-          <p className="text-sm font-medium text-danger">
-            Not acknowledged by the kitchen yet: {unacknowledged.join(", ")}. The kitchen acknowledges the latest change on its screen.
-          </p>
-        )}
         {packable && (
-          <p className="text-sm text-muted">Everything is ready. Check each item, quantity and any cake wording, then confirm the packing.</p>
+          <p className="text-sm text-muted">When everything is ready, check each item, quantity and any cake wording, then confirm the packing.</p>
         )}
         <Field label="Packing note (optional)" htmlFor="packing-note">
           <Input id="packing-note" value={note} onChange={(e) => { setFailed(null); setNote(e.target.value); }} maxLength={300}

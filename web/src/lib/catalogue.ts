@@ -8,14 +8,14 @@ export type CatalogueProduct = {
   isVeg: boolean;
   containsEgg: boolean;
   prepType: "made_to_order" | "ready_stock";
-  variants: { id: string; name: string; pricePaise: number; isEggless: boolean; leadTimeMinutes: number; hasKitchen: boolean }[];
+  variants: { id: string; name: string; pricePaise: number; isEggless: boolean; leadTimeMinutes: number }[];
 };
 
 // Products with at least one orderable variant, in category order, for the order screens.
 export async function loadCatalogue(supabase: Awaited<ReturnType<typeof createClient>>): Promise<CatalogueProduct[]> {
   const { data: products } = await supabase
     .from("products")
-    .select("id, name, category_id, is_veg, contains_egg, prep_type, categories(name, sort_order), product_variants(id, name, price_paise, is_eggless, lead_time_minutes, kitchen_id, is_available, archived_at, sort_order)")
+    .select("id, name, category_id, is_veg, contains_egg, prep_type, categories(name, sort_order), product_variants(id, name, price_paise, is_eggless, lead_time_minutes, is_available, archived_at, sort_order)")
     .is("archived_at", null)
     .eq("is_available", true)
     .order("name");
@@ -44,7 +44,6 @@ export async function loadCatalogue(supabase: Awaited<ReturnType<typeof createCl
           pricePaise: v.price_paise,
           isEggless: v.is_eggless,
           leadTimeMinutes: v.lead_time_minutes,
-          hasKitchen: Boolean(v.kitchen_id),
         })),
     }))
     .filter((p) => p.variants.length > 0);

@@ -42,7 +42,6 @@ export default async function CalendarPage({ searchParams }: PageProps<"/admin/c
   const view: View = (VIEWS as readonly string[]).includes(str(params.view)) ? (str(params.view) as View) : "agenda";
   const from = isDayKey(str(params.from)) ? str(params.from) : today;
   const source = ["IN_STORE", "CALL", "ONLINE"].includes(str(params.source)) ? (str(params.source) as "IN_STORE" | "CALL" | "ONLINE") : "";
-  const kitchen = str(params.kitchen);
   const showClosed = str(params.closed) === "1";
 
   // Month view covers whole weeks (Mon–Sun) around the chosen month; week view is Mon–Sun.
@@ -60,40 +59,31 @@ export default async function CalendarPage({ searchParams }: PageProps<"/admin/c
   const supabase = await createClient();
   let query = supabase
     .from("order_summaries")
-    .select("id, reference, source, status, customer_name, due_at, item_count, kitchen_ids")
+    .select("id, reference, source, status, customer_name, due_at, item_count")
     .gte("due_at", start.toISOString())
     .lt("due_at", end.toISOString())
     .order("due_at");
   if (!showClosed) query = query.in("status", [...OPEN_STATUSES, "completed"] as OrderStatus[]);
   if (source) query = query.eq("source", source);
-  if (kitchen) query = query.contains("kitchen_ids", [kitchen]);
 
-  const [{ data: orders }, { data: kitchens }, { data: closures }, availability] = await Promise.all([
+  const [{ data: orders }, { data: closures }, availability] = await Promise.all([
     query,
-    supabase.from("kitchens").select("id, name").order("sort_order"),
     supabase.from("closures").select("closed_on, reason").gte("closed_on", rangeStart).lt("closed_on", addDays(rangeStart, rangeDays)),
     view === "day"
       ? supabase.rpc("pickup_availability", { p_date: from }).then(({ data, error }) => (error ? null : (data as unknown as PickupAvailability)))
       : null,
   ]);
-  const kitchenName = new Map((kitchens ?? []).map((k) => [k.id, k.name]));
   const closureByDay = new Map((closures ?? []).map((c) => [c.closed_on, c.reason]));
-
-  const orderIds = (orders ?? []).map((o) => o.id).filter((v): v is string => Boolean(v));
-  const { data: progress } = orderIds.length
-    ? await supabase.from("order_kitchen_progress").select("order_id, all_ready, open_issues, changes_pending").in("order_id", orderIds)
-    : { data: [] };
-  const progressById = new Map((progress ?? []).map((p) => [p.order_id, p]));
 
   const byDay: OrdersByDay = new Map();
   for (const o of orders ?? []) {
     if (!o.due_at) continue;
     const key = zonedDayKey(o.due_at, tz);
-    byDay.set(key, [...(byDay.get(key) ?? []), { ...o, kitchen: o.id ? progressById.get(o.id) : undefined }]);
+    byDay.set(key, [...(byDay.get(key) ?? []), o]);
   }
 
   const link = (overrides: Record<string, string>) => {
-    const next = new URLSearchParams({ view, from, ...(source ? { source } : {}), ...(kitchen ? { kitchen } : {}), ...(showClosed ? { closed: "1" } : {}), ...overrides });
+    const next = new URLSearchParams({ view, from, ...(source ? { source } : {}), ...(showClosed ? { closed: "1" } : {}), ...overrides });
     return `/admin/calendar?${next.toString()}`;
   };
   const dayHref = (day: string) => link({ view: "day", from: day });
@@ -144,13 +134,6 @@ export default async function CalendarPage({ searchParams }: PageProps<"/admin/c
             <option value="ONLINE">Online</option>
           </Select>
         </div>
-        <div>
-          <label htmlFor="kitchen" className="sr-only">Kitchen</label>
-          <Select id="kitchen" name="kitchen" defaultValue={kitchen}>
-            <option value="">All kitchens</option>
-            {(kitchens ?? []).map((k) => <option key={k.id} value={k.id}>{k.name}</option>)}
-          </Select>
-        </div>
         <label className="flex items-center gap-2 pb-2 text-sm">
           <input type="checkbox" name="closed" value="1" defaultChecked={showClosed} className="accent-brand" />
           Show cancelled and rejected
@@ -166,10 +149,10 @@ export default async function CalendarPage({ searchParams }: PageProps<"/admin/c
       )}
       {view === "day" && (
         <DayView day={from} today={today} orders={byDay.get(from) ?? []} closure={closureByDay.get(from)} availability={availability}
-          filtered={Boolean(source || kitchen || showClosed)} tz={tz} kitchenName={kitchenName} />
+          filtered={Boolean(source || showClosed)} tz={tz} />
       )}
       {view === "agenda" && (
-        <AgendaView from={from} days={AGENDA_DAYS} today={today} byDay={byDay} closureByDay={closureByDay} tz={tz} kitchenName={kitchenName} />
+        <AgendaView from={from} days={AGENDA_DAYS} today={today} byDay={byDay} closureByDay={closureByDay} tz={tz} />
       )}
     </>
   );

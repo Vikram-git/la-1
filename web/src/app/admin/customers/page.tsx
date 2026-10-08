@@ -9,7 +9,7 @@ import { Badge, EmptyState, Input, PageHeader } from "@/components/ui";
 export const metadata: Metadata = { title: "Customers" };
 
 export default async function CustomersPage({ searchParams }: PageProps<"/admin/customers">) {
-  await requireRole(["admin"]);
+  await requireRole(["admin", "counter"]);
   const { q: qParam } = await searchParams;
   const q = (typeof qParam === "string" ? qParam : "").trim().replace(/[^\p{L}\p{N}\s+]/gu, "").slice(0, 60);
   const tz = await getBusinessTimezone();

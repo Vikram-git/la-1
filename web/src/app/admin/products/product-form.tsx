@@ -49,11 +49,11 @@ export function ProductForm({
           label="Preparation"
           htmlFor="prep_type"
           error={err.prep_type}
-          hint="Made-to-order items go to a kitchen. Ready-stock items are taken from the shelf."
+          hint="Made-to-order items are baked for the order. Ready-stock items are taken from the shelf."
         >
           <Select id="prep_type" name="prep_type" defaultValue={product?.prep_type ?? "made_to_order"}>
-            <option value="made_to_order">Made to order (kitchen ticket)</option>
-            <option value="ready_stock">Ready stock (no kitchen ticket)</option>
+            <option value="made_to_order">Made to order</option>
+            <option value="ready_stock">Ready stock</option>
           </Select>
         </Field>
 

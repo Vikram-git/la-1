@@ -57,7 +57,6 @@ export function CataloguePicker({
                   {p.prepType === "made_to_order" && v.leadTimeMinutes > 0 && (
                     <span className="ml-1 text-xs text-muted">({formatLeadTime(v.leadTimeMinutes)})</span>
                   )}
-                  {p.prepType === "made_to_order" && !v.hasKitchen && <span className="ml-1 text-xs text-danger">No kitchen</span>}
                 </button>
               ))}
             </div>

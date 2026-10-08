@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { getStaff, homePathFor } from "@/lib/auth";
-import { currentTablet } from "@/lib/kitchen-device";
+import { getStaff, HOME_PATH } from "@/lib/auth";
 import Image from "next/image";
 import { Brand, ScriptText } from "@/components/ui";
 import { LoginForm, type DemoLogin } from "./login-form";
@@ -13,19 +12,15 @@ export const metadata: Metadata = { title: "Staff sign in" };
 function demoLogins(): DemoLogin[] {
   const accounts = [
     { label: "Demo admin", email: process.env.DEMO_ADMIN_EMAIL, password: process.env.DEMO_ADMIN_PASSWORD },
-    { label: "Demo chef", email: process.env.DEMO_CHEF_EMAIL, password: process.env.DEMO_CHEF_PASSWORD },
   ];
   return accounts.filter((a): a is DemoLogin => Boolean(a.email && a.password));
 }
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const staff = await getStaff();
-  if (staff) redirect(homePathFor(staff.role));
+  if (staff) redirect(HOME_PATH);
 
-  const { next, email } = await searchParams;
-  // A registered kitchen tablet goes to the chef picker; ?email=1 still offers email and password
-  // (for an admin managing the tablet).
-  if (email !== "1" && (await currentTablet())) redirect("/kitchen/pin");
+  const { next } = await searchParams;
 
   return (
     <main className="grid flex-1 lg:grid-cols-[1.1fr_1fr]">
@@ -44,7 +39,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
           <div className="mb-8 flex flex-col items-center text-center">
             <Brand />
             <h1 className="mt-8 text-2xl font-semibold">Staff sign in</h1>
-            <p className="mt-1 text-sm text-muted">Admins, counter staff, and chefs.</p>
+            <p className="mt-1 text-sm text-muted">Admins and counter staff.</p>
           </div>
           <div className="rounded-2xl border border-line bg-surface p-6 shadow-[0_8px_30px_-16px_rgba(176,58,94,0.28)]">
             <LoginForm next={typeof next === "string" ? next : undefined} demoLogins={demoLogins()} />
