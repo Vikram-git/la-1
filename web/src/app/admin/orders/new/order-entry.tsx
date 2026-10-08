@@ -10,6 +10,7 @@ import { PickupWindows } from "@/components/pickup-windows";
 import { CataloguePicker, QuantityStepper } from "@/components/catalogue-picker";
 import type { CatalogueProduct } from "@/lib/catalogue";
 import { CustomerWarning } from "@/components/customer-warning";
+import { FulfilmentFields, type FulfilmentValue } from "@/components/fulfilment-fields";
 import { createOrderAction } from "../actions";
 
 type Line = { key: string; productId: string; variantId: string; quantity: number; notes: string };
@@ -22,7 +23,7 @@ export function OrderEntry({
   defaultDueLocal,
   minDueLocal,
 }: {
-  source: "IN_STORE" | "CALL";
+  source: "IN_STORE" | "CALL" | "CUSTOMER";
   catalogue: CatalogueProduct[];
   canConfirm: boolean;
   isAdmin: boolean;
@@ -39,6 +40,7 @@ export function OrderEntry({
   const [customerNotes, setCustomerNotes] = useState("");
   const [internalNotes, setInternalNotes] = useState("");
   const [confirm, setConfirm] = useState(canConfirm && source === "IN_STORE");
+  const [fulfil, setFulfil] = useState<FulfilmentValue>({ fulfilment: "collect", address: "", note: "" });
   const [error, setError] = useState<{ message: string; kind?: string } | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -54,7 +56,8 @@ export function OrderEntry({
     return entry && entry.product.prepType === "made_to_order" ? Math.max(max, entry.variant.leadTimeMinutes) : max;
   }, 0);
   const categoryIds = [...new Set(lines.map((l) => variantIndex.get(l.variantId)?.product.categoryId).filter((id): id is string => Boolean(id)))];
-  const needsCustomer = source === "CALL" || !pickupNow;
+  const needsCustomer = source !== "IN_STORE" || !pickupNow;
+  const isSetup = fulfil.fulfilment === "setup";
 
   function addVariant(productId: string, variantId: string) {
     setError(null);
@@ -84,6 +87,9 @@ export function OrderEntry({
         internalNotes,
         confirm,
         overrideReason,
+        fulfilment: fulfil.fulfilment,
+        setupAddress: fulfil.address,
+        setupNote: fulfil.note,
       });
       if (result.ok) {
         router.push(`/admin/orders/${result.orderId}?created=1`);
@@ -149,8 +155,17 @@ export function OrderEntry({
         </Card>
 
         <Card className="flex flex-col gap-4">
-          <h2 className="text-lg font-semibold">Pickup</h2>
-          {source === "IN_STORE" && (
+          <h2 className="text-lg font-semibold">{isSetup ? "Set-up" : "Pickup"}</h2>
+          <FulfilmentFields
+            value={fulfil}
+            onChange={(v) => {
+              setError(null);
+              setFulfil(v);
+              // Set-up is always at an agreed time, never "now".
+              if (v.fulfilment === "setup") setPickupNow(false);
+            }}
+          />
+          {source === "IN_STORE" && !isSetup && (
             <div className="flex gap-4" role="radiogroup" aria-label="Pickup time">
               <label className="flex items-center gap-2 text-sm">
                 <input type="radio" name="pickup" className="accent-brand" checked={pickupNow} onChange={() => { setError(null); setPickupNow(true); }} />
@@ -164,7 +179,7 @@ export function OrderEntry({
           )}
           {!pickupNow && (
             <>
-              <Field label="Pickup date and time" htmlFor="due" hint={maxLead > 0 ? `These items need ${formatLeadTime(maxLead)} of preparation.` : "Bakery timezone."}>
+              <Field label={isSetup ? "Set-up date and time" : "Pickup date and time"} htmlFor="due" hint={maxLead > 0 ? `These items need ${formatLeadTime(maxLead)} of preparation.` : "Bakery timezone."}>
                 <Input id="due" type="datetime-local" value={dueLocal} min={minDueLocal} onChange={(e) => { setError(null); setDueLocal(e.target.value); }} required />
               </Field>
               <PickupWindows
@@ -193,7 +208,7 @@ export function OrderEntry({
           {canConfirm ? (
             <Checkbox
               label="Confirm now"
-              hint={source === "CALL" ? "Confirms the pickup promise. Leave unticked to review later." : "Walk-in and counter orders are usually confirmed straight away."}
+              hint={source === "IN_STORE" ? "Walk-in and counter orders are usually confirmed straight away." : "Confirms the promised time. Leave unticked to review later."}
               checked={confirm}
               onChange={(e) => setConfirm(e.target.checked)}
             />
@@ -216,7 +231,7 @@ export function OrderEntry({
         <Button
           type="button"
           className={cx("py-3 text-base")}
-          disabled={pending || lines.length === 0}
+          disabled={pending || lines.length === 0 || (isSetup && !fulfil.address.trim())}
           onClick={() => submit()}
         >
           {pending ? "Saving…" : confirm ? `Create and confirm · ${formatPaise(total)}` : `Create order · ${formatPaise(total)}`}

@@ -10,10 +10,13 @@ import { OrderEntry } from "./order-entry";
 
 export const metadata: Metadata = { title: "New order" };
 
+const TITLES = { IN_STORE: "New in-store order", CALL: "New call order", CUSTOMER: "New customer order" } as const;
+const SWITCH_LABEL = { IN_STORE: "in-store", CALL: "call", CUSTOMER: "customer" } as const;
+
 export default async function NewOrderPage({ searchParams }: PageProps<"/admin/orders/new">) {
   const staff = await requireRole(["admin", "counter"]);
   const { source: sourceParam } = await searchParams;
-  const source = sourceParam === "CALL" ? "CALL" : "IN_STORE";
+  const source = sourceParam === "CALL" || sourceParam === "CUSTOMER" ? sourceParam : "IN_STORE";
   const tz = await getBusinessTimezone();
 
   const supabase = await createClient();
@@ -24,13 +27,18 @@ export default async function NewOrderPage({ searchParams }: PageProps<"/admin/o
   return (
     <>
       <PageHeader
-        title={source === "CALL" ? "New call order" : "New in-store order"}
+        title={TITLES[source]}
         description={
           <>
-            <Link href="/admin/orders" className="text-brand hover:underline">Orders</Link> / New ·{" "}
-            <Link href={`/admin/orders/new?source=${source === "CALL" ? "IN_STORE" : "CALL"}`} className="text-brand hover:underline">
-              Switch to {source === "CALL" ? "in-store" : "call"} order
-            </Link>
+            <Link href="/admin/orders" className="text-brand hover:underline">Orders</Link> / New · Switch to{" "}
+            {(["IN_STORE", "CALL", "CUSTOMER"] as const)
+              .filter((s) => s !== source)
+              .map((s, i) => (
+                <span key={s}>
+                  {i > 0 && " or "}
+                  <Link href={`/admin/orders/new?source=${s}`} className="text-brand hover:underline">{SWITCH_LABEL[s]}</Link>
+                </span>
+              ))}
           </>
         }
       />

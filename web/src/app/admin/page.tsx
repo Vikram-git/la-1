@@ -4,10 +4,10 @@ import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getBusinessTimezone } from "@/lib/settings";
 import { formatPaise } from "@/lib/money";
-import { OPEN_STATUSES } from "@/lib/orders";
+import { OPEN_STATUSES, fulfilmentRowClass } from "@/lib/orders";
 import { addDays, formatDateTime, zonedDayKey, zonedDayRange } from "@/lib/time";
-import { Badge, ButtonLink, Card, PageHeader } from "@/components/ui";
-import { SourceBadge, StatusBadge } from "@/components/order-badges";
+import { Badge, ButtonLink, Card, PageHeader, cx } from "@/components/ui";
+import { FulfilmentBadge, SourceBadge, StatusBadge } from "@/components/order-badges";
 import { netCollected } from "@/lib/home";
 
 export const metadata: Metadata = { title: "Home" };
@@ -36,11 +36,11 @@ export default async function AdminHome() {
       .gte("due_at", start.toISOString()).lt("due_at", end.toISOString()),
     supabase.from("orders").select("id", { count: "exact", head: true }).eq("status", "pending_confirmation"),
     supabase.from("orders").select("id", { count: "exact", head: true }).in("status", OPEN_STATUSES).lt("due_at", nowIso),
-    supabase.from("order_summaries").select("id, reference, source, status, customer_name, due_at").in("status", OPEN_STATUSES)
+    supabase.from("order_summaries").select("id, reference, source, status, customer_name, due_at, fulfilment").in("status", OPEN_STATUSES)
       .gte("due_at", end.toISOString()).lt("due_at", weekEnd.toISOString()).order("due_at").limit(10),
     supabase.from("business_settings").select("gstin, fssai_licence").single(),
     supabase.from("products").select("id", { count: "exact", head: true }).is("archived_at", null),
-    supabase.from("order_summaries").select("id, reference, source, customer_name, due_at, balance_paise")
+    supabase.from("order_summaries").select("id, reference, source, customer_name, due_at, balance_paise, fulfilment")
       .eq("status", "ready").order("due_at").limit(20),
     // Money received today (payment dates, like the sales report); admins only.
     isAdmin
@@ -73,6 +73,7 @@ export default async function AdminHome() {
         actions={
           <>
             <ButtonLink href="/admin/calendar" variant="secondary">Open calendar</ButtonLink>
+            <ButtonLink href="/admin/orders/new-cake" variant="secondary">New custom cake order</ButtonLink>
             <ButtonLink href="/admin/orders/new?source=CALL" variant="secondary">New call order</ButtonLink>
             <ButtonLink href="/admin/orders/new?source=IN_STORE">New in-store order</ButtonLink>
           </>
@@ -87,7 +88,7 @@ export default async function AdminHome() {
           <Stat label="Balance due today" value={formatPaise(balanceDue)} href="/admin/orders?when=today" />
         </div>
         <p className="-mt-3 text-sm text-muted">
-          Due today: {inStore} in-store · {todays.length - inStore} online / call · {preparingToday} preparing · {readyToday} ready.
+          Due today: {inStore} in-store · {todays.length - inStore} online / call / customer · {preparingToday} preparing · {readyToday} ready.
           {paidToday.data && <> Collected today (payments minus refunds): {formatPaise(netCollected(paidToday.data))}.</>}
         </p>
 
@@ -104,10 +105,11 @@ export default async function AdminHome() {
                 const overdue = isLate(o.due_at);
                 return (
                   <li key={o.id}>
-                    <Link href={`/admin/orders/${o.id}`} className="flex flex-wrap items-center gap-3 py-2.5 hover:text-brand">
+                    <Link href={`/admin/orders/${o.id}`} className={cx("flex flex-wrap items-center gap-3 px-2 py-2.5 hover:text-brand", fulfilmentRowClass(o.fulfilment))}>
                       <span className={`w-40 text-sm ${overdue ? "font-semibold text-danger" : ""}`}>{o.due_at && formatDateTime(o.due_at, tz)}</span>
                       <span className="font-mono text-sm">{o.reference}</span>
                       <span className="flex-1 text-sm">{o.customer_name ?? "Walk-in"}</span>
+                      {o.fulfilment && <FulfilmentBadge fulfilment={o.fulfilment} />}
                       {o.source && <SourceBadge source={o.source} />}
                       {(o.balance_paise ?? 0) > 0 && <Badge tone="warn">Due {formatPaise(o.balance_paise ?? 0)}</Badge>}
                       {overdue && <Badge tone="danger">Late</Badge>}
@@ -130,10 +132,11 @@ export default async function AdminHome() {
             <ul className="divide-y divide-line">
               {(upcoming.data ?? []).map((o) => (
                 <li key={o.id}>
-                  <Link href={`/admin/orders/${o.id}`} className="flex flex-wrap items-center gap-3 py-2.5 hover:text-brand">
+                  <Link href={`/admin/orders/${o.id}`} className={cx("flex flex-wrap items-center gap-3 px-2 py-2.5 hover:text-brand", fulfilmentRowClass(o.fulfilment))}>
                     <span className="w-40 text-sm">{o.due_at && formatDateTime(o.due_at, tz)}</span>
                     <span className="font-mono text-sm">{o.reference}</span>
                     <span className="flex-1 text-sm">{o.customer_name ?? "Walk-in"}</span>
+                    {o.fulfilment && <FulfilmentBadge fulfilment={o.fulfilment} />}
                     {o.source && <SourceBadge source={o.source} />}
                     {o.status && <StatusBadge status={o.status} />}
                   </Link>

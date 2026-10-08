@@ -19,6 +19,7 @@ export function FulfilmentPanel({
   status,
   isAdmin,
   balancePaise,
+  isSetup = false,
   packed,
   handedOver,
 }: {
@@ -27,6 +28,7 @@ export function FulfilmentPanel({
   status: OrderStatus;
   isAdmin: boolean;
   balancePaise: number;
+  isSetup?: boolean;
   packed: { label: string; note: string | null } | null;
   handedOver: { label: string; collectedBy: string | null; creditReason: string | null } | null;
 }) {
@@ -85,7 +87,7 @@ export function FulfilmentPanel({
         {packed && <div><dt className="text-muted">Packed</dt><dd>{packed.label}{packed.note && ` · ${packed.note}`}</dd></div>}
         {handedOver ? (
           <>
-            <div><dt className="text-muted">Handed over</dt><dd className="font-medium">{handedOver.label}</dd></div>
+            <div><dt className="text-muted">{isSetup ? "Set up" : "Handed over"}</dt><dd className="font-medium">{handedOver.label}</dd></div>
             {handedOver.collectedBy && <div><dt className="text-muted">Collected by</dt><dd>{handedOver.collectedBy}</dd></div>}
             {handedOver.creditReason && (
               <div><dt className="text-muted">Handed over on credit</dt><dd>{handedOver.creditReason}</dd></div>
@@ -135,12 +137,16 @@ export function FulfilmentPanel({
             ? `Refund due ${formatPaise(-balancePaise)}`
             : "Fully paid"}
       </p>
-      <Field label="Collected by (optional)" htmlFor="collected-by" hint="Only if someone other than the customer collects.">
+      <Field
+        label={isSetup ? "Received by (optional)" : "Collected by (optional)"}
+        htmlFor="collected-by"
+        hint={isSetup ? "Who took the cake at the venue, if not the customer." : "Only if someone other than the customer collects."}
+      >
         <Input id="collected-by" value={collectedBy} onChange={(e) => { setFailed(null); setCollectedBy(e.target.value); }} maxLength={80} />
       </Field>
       <div className="flex flex-wrap gap-2">
         <Button disabled={pending} onClick={() => run(() => handover(), (r) => handover(r))}>
-          {pending ? "Saving…" : "Hand over"}
+          {pending ? "Saving…" : isSetup ? "Set up done" : "Hand over"}
         </Button>
         {isAdmin && !reopening && (
           <Button variant="secondary" onClick={() => { setReopening(true); setFailed(null); }}>Reopen packing</Button>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { addDays, formatTime } from "@/lib/time";
 import { cx } from "@/components/ui";
+import { fulfilmentLabel, fulfilmentRowClass } from "@/lib/orders";
 import { plural, type OrdersByDay } from "./order-row";
 import { WEEKDAYS } from "./month-view";
 
@@ -38,10 +39,16 @@ export function WeekView({ weekStart, today, byDay, closureByDay, tz, dayHref }:
                       <Link href={`/admin/orders/${o.id}`}
                         className={cx("block rounded-md border px-1.5 py-1 text-xs leading-tight hover:border-brand",
                           pending ? "border-warn/40 bg-warn-soft/60" : "border-line bg-canvas/40",
+                          fulfilmentRowClass(o.fulfilment),
                           dropped && "text-muted line-through")}>
                         <span className="font-semibold tabular-nums">{o.due_at && formatTime(o.due_at, tz)}</span>{" "}
                         <span className="font-mono">{o.reference}</span>
                         <span className="block truncate">{o.customer_name ?? "Walk-in"}</span>
+                        {o.fulfilment && (
+                          <span className={cx("block font-semibold", o.fulfilment === "setup" ? "text-danger" : "text-ok")}>
+                            {o.fulfilment === "setup" ? "🚚 " : "🏪 "}{fulfilmentLabel[o.fulfilment]}
+                          </span>
+                        )}
                         {pending && <span className="font-medium text-warn">Pending</span>}
                       </Link>
                     </li>

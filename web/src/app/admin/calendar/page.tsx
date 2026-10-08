@@ -41,8 +41,11 @@ export default async function CalendarPage({ searchParams }: PageProps<"/admin/c
 
   const view: View = (VIEWS as readonly string[]).includes(str(params.view)) ? (str(params.view) as View) : "agenda";
   const from = isDayKey(str(params.from)) ? str(params.from) : today;
-  const source = ["IN_STORE", "CALL", "ONLINE"].includes(str(params.source)) ? (str(params.source) as "IN_STORE" | "CALL" | "ONLINE") : "";
+  const source = ["IN_STORE", "CALL", "ONLINE", "CUSTOMER"].includes(str(params.source))
+    ? (str(params.source) as "IN_STORE" | "CALL" | "ONLINE" | "CUSTOMER")
+    : "";
   const showClosed = str(params.closed) === "1";
+  const fulfil = str(params.fulfil) === "collect" || str(params.fulfil) === "setup" ? (str(params.fulfil) as "collect" | "setup") : "";
 
   // Month view covers whole weeks (Mon–Sun) around the chosen month; week view is Mon–Sun.
   const monthStart = `${from.slice(0, 7)}-01`;
@@ -59,12 +62,13 @@ export default async function CalendarPage({ searchParams }: PageProps<"/admin/c
   const supabase = await createClient();
   let query = supabase
     .from("order_summaries")
-    .select("id, reference, source, status, customer_name, due_at, item_count")
+    .select("id, reference, source, status, customer_name, due_at, item_count, fulfilment, setup_address")
     .gte("due_at", start.toISOString())
     .lt("due_at", end.toISOString())
     .order("due_at");
   if (!showClosed) query = query.in("status", [...OPEN_STATUSES, "completed"] as OrderStatus[]);
   if (source) query = query.eq("source", source);
+  if (fulfil) query = query.eq("fulfilment", fulfil);
 
   const [{ data: orders }, { data: closures }, availability] = await Promise.all([
     query,
@@ -83,7 +87,7 @@ export default async function CalendarPage({ searchParams }: PageProps<"/admin/c
   }
 
   const link = (overrides: Record<string, string>) => {
-    const next = new URLSearchParams({ view, from, ...(source ? { source } : {}), ...(showClosed ? { closed: "1" } : {}), ...overrides });
+    const next = new URLSearchParams({ view, from, ...(source ? { source } : {}), ...(fulfil ? { fulfil } : {}), ...(showClosed ? { closed: "1" } : {}), ...overrides });
     return `/admin/calendar?${next.toString()}`;
   };
   const dayHref = (day: string) => link({ view: "day", from: day });
@@ -102,7 +106,7 @@ export default async function CalendarPage({ searchParams }: PageProps<"/admin/c
     <>
       <PageHeader
         title="Calendar"
-        description={`Orders by pickup time (${tz}), all sources. Pending requests are marked until confirmed.`}
+        description={`Orders by pickup or set-up time (${tz}), all sources. Green: collect from store. Red: set up at the customer's place. Pending requests are marked until confirmed.`}
       />
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -131,7 +135,16 @@ export default async function CalendarPage({ searchParams }: PageProps<"/admin/c
             <option value="">All sources</option>
             <option value="IN_STORE">In-store</option>
             <option value="CALL">Call</option>
+            <option value="CUSTOMER">Customer</option>
             <option value="ONLINE">Online</option>
+          </Select>
+        </div>
+        <div>
+          <label htmlFor="fulfil" className="sr-only">Collect or set up</label>
+          <Select id="fulfil" name="fulfil" defaultValue={fulfil}>
+            <option value="">Collect and set up</option>
+            <option value="collect">Collect only</option>
+            <option value="setup">Set up only</option>
           </Select>
         </div>
         <label className="flex items-center gap-2 pb-2 text-sm">
@@ -149,7 +162,7 @@ export default async function CalendarPage({ searchParams }: PageProps<"/admin/c
       )}
       {view === "day" && (
         <DayView day={from} today={today} orders={byDay.get(from) ?? []} closure={closureByDay.get(from)} availability={availability}
-          filtered={Boolean(source || showClosed)} tz={tz} />
+          filtered={Boolean(source || fulfil || showClosed)} tz={tz} />
       )}
       {view === "agenda" && (
         <AgendaView from={from} days={AGENDA_DAYS} today={today} byDay={byDay} closureByDay={closureByDay} tz={tz} />

@@ -19,9 +19,15 @@ const optionalText = (max: number) =>
     .transform((v) => v.trim() || undefined)
     .optional();
 
+const fulfilmentSchema = {
+  fulfilment: z.enum(["collect", "setup"]),
+  setupAddress: optionalText(300),
+  setupNote: optionalText(300),
+};
+
 const createSchema = z.object({
   idempotencyKey: z.uuid(),
-  source: z.enum(["IN_STORE", "CALL"]),
+  source: z.enum(["IN_STORE", "CALL", "CUSTOMER"]),
   items: z
     .array(
       z.object({
@@ -39,6 +45,7 @@ const createSchema = z.object({
   internalNotes: optionalText(1000),
   confirm: z.boolean(),
   overrideReason: optionalText(300),
+  ...fulfilmentSchema,
 });
 
 export type CreateOrderInput = z.input<typeof createSchema>;
@@ -68,6 +75,9 @@ export async function createOrderAction(input: CreateOrderInput): Promise<Result
     p_internal_notes: data.internalNotes,
     p_confirm: data.confirm,
     p_override_reason: data.overrideReason,
+    p_fulfilment: data.fulfilment,
+    p_setup_address: data.fulfilment === "setup" ? data.setupAddress : undefined,
+    p_setup_note: data.fulfilment === "setup" ? data.setupNote : undefined,
   });
   if (error) return rpcError(error);
 
@@ -426,5 +436,29 @@ export async function recordHandoverAction(input: z.input<typeof handoverSchema>
   });
   if (error) return rpcError(error);
   await afterChange(parsed.data.orderId);
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// Collect from store or set up at the customer's place (2026-10-09)
+// ---------------------------------------------------------------------------
+
+const setFulfilmentSchema = z.object({ orderId: z.uuid(), version: z.number().int(), ...fulfilmentSchema });
+
+export async function setFulfilmentAction(input: z.input<typeof setFulfilmentSchema>): Promise<Result> {
+  await assertRole(["admin", "counter"]);
+  const parsed = setFulfilmentSchema.safeParse(input);
+  if (!parsed.success) return { message: parsed.error.issues[0]?.message ?? "Check the address and try again." };
+  const d = parsed.data;
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_fulfilment", {
+    p_order_id: d.orderId,
+    p_expected_version: d.version,
+    p_fulfilment: d.fulfilment,
+    p_setup_address: d.fulfilment === "setup" ? d.setupAddress : undefined,
+    p_setup_note: d.fulfilment === "setup" ? d.setupNote : undefined,
+  });
+  if (error) return rpcError(error);
+  await afterChange(d.orderId);
   return { ok: true };
 }

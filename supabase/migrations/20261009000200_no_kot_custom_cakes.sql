@@ -7,6 +7,7 @@
 -- 3. create_order takes the Customer source (call-order rules), the fulfilment and custom cake lines.
 -- 4. custom_cakes holds a custom cake's details; create_custom_cake_order, update_custom_cake.
 -- 5. set_fulfilment changes collect/set-up until the order is closed.
+-- 6. order_summaries is recreated for the new columns; the unused fulfillment_type placeholder is dropped.
 
 -- ---------------------------------------------------------------------------
 -- 1. Kitchen tickets switched off
@@ -988,6 +989,8 @@ grant execute on function
 -- ---------------------------------------------------------------------------
 
 drop view public.order_summaries;
+-- The original placeholder (always 'pickup', never read) is replaced by orders.fulfilment.
+alter table public.orders drop column fulfillment_type;
 create view public.order_summaries
 with (security_invoker = true)
 as

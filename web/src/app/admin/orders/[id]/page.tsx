@@ -6,12 +6,13 @@ import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getBusinessTimezone } from "@/lib/settings";
 import { formatPaise } from "@/lib/money";
-import { paymentMethodLabel, sourceLabel } from "@/lib/orders";
+import { ORDER_LISTS, listKeyForSource, paymentMethodLabel, sourceLabel } from "@/lib/orders";
 import { dateToZonedLocal, formatDateTime } from "@/lib/time";
 import { Alert, Badge, Card, PageHeader, VegMark, cx } from "@/components/ui";
 import { SourceBadge, StatusBadge } from "@/components/order-badges";
 import { NoShowPanel, OrderActions, PaymentForm } from "./order-actions";
 import { FulfilmentPanel } from "./fulfilment-panel";
+import { FulfilmentBanner } from "./fulfilment-banner";
 import { BillPanel, DiscountForm } from "./billing-panel";
 import { EditItems } from "./edit-items";
 import { loadCatalogue } from "@/lib/catalogue";
@@ -135,8 +136,8 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
         title={`Order ${order.reference}`}
         description={
           <span className="flex flex-wrap items-center gap-2">
-            <Link href={`/admin/orders?list=${order.source === "IN_STORE" ? "in_store" : "online_call"}`} className="text-brand hover:underline">
-              {order.source === "IN_STORE" ? "In-store" : "Online / Call"}
+            <Link href={`/admin/orders?list=${listKeyForSource(order.source)}`} className="text-brand hover:underline">
+              {ORDER_LISTS[listKeyForSource(order.source)].label}
             </Link>
             <span>/</span>
             <SourceBadge source={order.source} />
@@ -146,6 +147,15 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
       />
 
       <div className="flex flex-col gap-6">
+        <FulfilmentBanner
+          key={`fb-${order.version}`}
+          orderId={order.id}
+          version={order.version ?? 0}
+          fulfilment={order.fulfilment ?? "collect"}
+          address={order.setup_address}
+          note={order.setup_note}
+          canChange={!closed}
+        />
         {created === "1" && (
           <Alert tone="ok" title={order.status === "confirmed" ? "Order created and confirmed" : "Order created"}>
             {order.status === "pending_confirmation"
@@ -225,7 +235,7 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
           </Card>
 
           <Card>
-            <h2 className="mb-3 text-lg font-semibold">Pickup</h2>
+            <h2 className="mb-3 text-lg font-semibold">{order.fulfilment === "setup" ? "Set-up" : "Pickup"}</h2>
             <dl className="flex flex-col gap-3 text-sm">
               <div>
                 <dt className="text-muted">Due</dt>
@@ -299,6 +309,7 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
                 status={order.status}
                 isAdmin={isAdmin}
                 balancePaise={balance}
+                isSetup={order.fulfilment === "setup"}
                 packed={noShow?.packed_at ? { label: `${formatDateTime(noShow.packed_at, tz)} · ${who(noShow.packed_by)}`, note: noShow.packing_note } : null}
                 handedOver={
                   noShow?.handed_over_by && order.completed_at
@@ -395,6 +406,11 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
                       </p>
                     )}
                     {e.event_type === "packed" && typeof data.note === "string" && <p className="text-xs">Note: {data.note}</p>}
+                    {e.event_type === "fulfilment_changed" && typeof data.to === "string" && (
+                      <p className="text-xs">
+                        {data.to === "setup" ? `Set up at ${typeof data.setup_address === "string" ? data.setup_address : "the customer's place"}` : "Collect from store"}
+                      </p>
+                    )}
                     {e.event_type === "handed_over" && typeof data.collected_by === "string" && (
                       <p className="text-xs">Collected by {data.collected_by}</p>
                     )}

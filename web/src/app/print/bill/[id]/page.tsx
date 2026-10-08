@@ -37,7 +37,7 @@ export default async function BillPrintPage({ params, searchParams }: PageProps<
   const tz = await getBusinessTimezone();
 
   const supabase = await createClient();
-  const { data: bill } = await supabase.from("bills").select("*, orders(reference)").eq("id", id).maybeSingle();
+  const { data: bill } = await supabase.from("bills").select("*, orders(reference, fulfilment, setup_address)").eq("id", id).maybeSingle();
   if (!bill) notFound();
   const [{ data: payments }, { data: credits }] = await Promise.all([
     supabase.from("payments").select("kind, method, amount_paise").eq("order_id", bill.order_id).order("recorded_at"),
@@ -82,6 +82,11 @@ export default async function BillPrintPage({ params, searchParams }: PageProps<
             <p>Order: {bill.orders?.reference}</p>
             {bill.customer_name && <p>Customer: {bill.customer_name}</p>}
             {bill.customer_phone && <p>Ph: {bill.customer_phone}</p>}
+            {bill.orders?.fulfilment === "setup" ? (
+              <p className="font-bold">SET UP at: {bill.orders.setup_address}</p>
+            ) : (
+              <p className="font-bold">COLLECT from store</p>
+            )}
           </div>
         </header>
 

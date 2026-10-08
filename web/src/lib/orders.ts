@@ -4,6 +4,7 @@ import type { Enums } from "@/lib/database.types";
 export type OrderStatus = Enums<"order_status">;
 export type OrderSource = Enums<"order_source">;
 export type PaymentMethod = Enums<"payment_method">;
+export type Fulfilment = Enums<"fulfilment_type">;
 
 export const statusLabel: Record<OrderStatus, string> = {
   draft: "Draft",
@@ -38,7 +39,32 @@ export const sourceLabel: Record<OrderSource, string> = {
   IN_STORE: "In-store",
   ONLINE: "Online",
   CALL: "Call",
+  CUSTOMER: "Customer",
 };
+
+// The two source lists on the Orders page (a third tab, Custom cakes, lists orders by their lines).
+export type ListKey = "in_store" | "online_call";
+export const ORDER_LISTS: Record<ListKey, { label: string; sources: OrderSource[] }> = {
+  in_store: { label: "In-store", sources: ["IN_STORE"] },
+  online_call: { label: "Online / Call / Customer", sources: ["ONLINE", "CALL", "CUSTOMER"] },
+};
+
+export function listKeyForSource(source: OrderSource): ListKey {
+  return source === "IN_STORE" ? "in_store" : "online_call";
+}
+
+// Collect from the store (green) or set up at the customer's place (red), owner 2026-10-09. The colour
+// always comes with the words, never on its own.
+export const fulfilmentLabel: Record<Fulfilment, string> = {
+  collect: "Collect",
+  setup: "Set up",
+};
+
+export function fulfilmentRowClass(f: Fulfilment | null | undefined): string {
+  if (f === "setup") return "border-l-4 border-l-danger bg-danger-soft/40";
+  if (f === "collect") return "border-l-4 border-l-ok bg-ok-soft/30";
+  return "";
+}
 
 export const paymentMethodLabel: Record<PaymentMethod, string> = {
   cash: "Cash",

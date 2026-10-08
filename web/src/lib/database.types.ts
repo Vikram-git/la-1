@@ -26,7 +26,7 @@ type OrderRow = {
   discount_paise: number
   discount_reason: string | null
   due_at: string | null
-  fulfillment_type: string
+  fulfilment: Database["public"]["Enums"]["fulfilment_type"]
   id: string
   idempotency_key: string
   internal_notes: string | null
@@ -34,6 +34,8 @@ type OrderRow = {
   order_number: number
   reference: string | null
   requested_due_at: string
+  setup_address: string | null
+  setup_note: string | null
   source: Database["public"]["Enums"]["order_source"]
   status: Database["public"]["Enums"]["order_status"]
   subtotal_paise: number
@@ -221,6 +223,8 @@ export type Database = {
           business_name: string
           counter_discount_limit_bps: number
           currency: string
+          custom_cake_hsn_code: string | null
+          custom_cake_tax_rate_bps: number
           email: string | null
           fssai_licence: string | null
           gstin: string | null
@@ -245,6 +249,8 @@ export type Database = {
           address?: string | null
           bill_prefix?: string
           counter_discount_limit_bps?: number
+          custom_cake_hsn_code?: string | null
+          custom_cake_tax_rate_bps?: number
           business_name?: string
           currency?: string
           email?: string | null
@@ -444,6 +450,44 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      custom_cakes: {
+        Row: {
+          created_at: string
+          cream: string | null
+          filling: string | null
+          flavour: string
+          id: string
+          instructions: string | null
+          is_eggless: boolean
+          message: string | null
+          order_id: string
+          order_item_id: string
+          photo_path: string | null
+          theme: string | null
+          tiers: number
+          toppings: string | null
+          updated_at: string
+          weight_kg: number
+        }
+        Insert: never
+        Update: never
+        Relationships: [
+          {
+            foreignKeyName: "custom_cakes_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custom_cakes_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: true
+            referencedRelation: "order_items"
             referencedColumns: ["id"]
           },
         ]
@@ -1123,7 +1167,51 @@ export type Database = {
           p_items: Json
           p_override_reason?: string
           p_source: Database["public"]["Enums"]["order_source"]
+          p_fulfilment?: Database["public"]["Enums"]["fulfilment_type"]
+          p_setup_address?: string
+          p_setup_note?: string
         }
+      }
+      create_custom_cake_order: RpcReturnsOrder & {
+        Args: {
+          p_advance_method?: Database["public"]["Enums"]["payment_method"]
+          p_advance_paise?: number
+          p_advance_reference?: string
+          p_cake: Json
+          p_confirm?: boolean
+          p_customer_name: string
+          p_customer_notes?: string
+          p_customer_phone: string
+          p_due_at: string
+          p_fulfilment?: Database["public"]["Enums"]["fulfilment_type"]
+          p_idempotency_key: string
+          p_internal_notes?: string
+          p_override_reason?: string
+          p_price_paise: number
+          p_setup_address?: string
+          p_setup_note?: string
+          p_source: Database["public"]["Enums"]["order_source"]
+        }
+      }
+      update_custom_cake: RpcReturnsOrder & {
+        Args: { p_cake: Json; p_expected_version: number; p_order_id: string; p_price_paise: number }
+      }
+      set_fulfilment: RpcReturnsOrder & {
+        Args: {
+          p_expected_version: number
+          p_fulfilment: Database["public"]["Enums"]["fulfilment_type"]
+          p_order_id: string
+          p_setup_address?: string
+          p_setup_note?: string
+        }
+      }
+      set_product_image: {
+        Args: { p_image_url: string | null; p_product_id: string }
+        Returns: undefined
+      }
+      set_custom_cake_photo: {
+        Args: { p_order_id: string; p_photo_path: string | null }
+        Returns: undefined
       }
       pickup_availability: {
         Args: { p_date: string; p_exclude_order?: string }
@@ -1184,7 +1272,8 @@ export type Database = {
       }
     }
     Enums: {
-      order_source: "IN_STORE" | "ONLINE" | "CALL"
+      fulfilment_type: "collect" | "setup"
+      order_source: "IN_STORE" | "ONLINE" | "CALL" | "CUSTOMER"
       order_status:
         | "draft"
         | "pending_confirmation"
@@ -1223,7 +1312,8 @@ export type Enums<T extends keyof PublicSchema["Enums"]> = PublicSchema["Enums"]
 export const Constants = {
   public: {
     Enums: {
-      order_source: ["IN_STORE", "ONLINE", "CALL"],
+      fulfilment_type: ["collect", "setup"],
+      order_source: ["IN_STORE", "ONLINE", "CALL", "CUSTOMER"],
       order_status: [
         "draft",
         "pending_confirmation",

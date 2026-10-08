@@ -4,19 +4,22 @@ import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getBusinessTimezone } from "@/lib/settings";
 import { formatPaise } from "@/lib/money";
-import { OPEN_STATUSES, statusLabel, type OrderStatus, searchEverywhere } from "@/lib/orders";
+import { ORDER_LISTS, OPEN_STATUSES, fulfilmentRowClass, statusLabel, type ListKey, type OrderSource, type OrderStatus, searchEverywhere } from "@/lib/orders";
 import { formatDateTime, zonedDayKey, zonedDayRange } from "@/lib/time";
 import { Alert, ButtonLink, EmptyState, Input, PageHeader, Select, cx } from "@/components/ui";
-import { SourceBadge, StatusBadge } from "@/components/order-badges";
+import { FulfilmentBadge, SourceBadge, StatusBadge } from "@/components/order-badges";
 
 export const metadata: Metadata = { title: "Orders" };
 
-type ListKey = "in_store" | "online_call";
+type Tab = ListKey | "custom";
 type When = "today" | "upcoming" | "overdue" | "past" | "all";
 
-const LISTS: Record<ListKey, { label: string; sources: ("IN_STORE" | "ONLINE" | "CALL")[] }> = {
-  in_store: { label: "In-store", sources: ["IN_STORE"] },
-  online_call: { label: "Online / Call", sources: ["ONLINE", "CALL"] },
+const ALL_SOURCES: OrderSource[] = ["IN_STORE", "ONLINE", "CALL", "CUSTOMER"];
+const NO_ID = "00000000-0000-0000-0000-000000000000";
+// The two source lists plus Custom cakes: orders with a custom cake line, from any source.
+const TABS: Record<Tab, { label: string; sources: OrderSource[] }> = {
+  ...ORDER_LISTS,
+  custom: { label: "Custom cakes", sources: ALL_SOURCES },
 };
 
 function str(v: string | string[] | undefined) {
@@ -26,7 +29,8 @@ function str(v: string | string[] | undefined) {
 export default async function OrdersPage({ searchParams }: PageProps<"/admin/orders">) {
   await requireRole(["admin", "counter"]);
   const params = await searchParams;
-  const list: ListKey = str(params.list) === "online_call" ? "online_call" : "in_store";
+  const list: Tab = str(params.list) === "online_call" || str(params.list) === "custom" ? (str(params.list) as Tab) : "in_store";
+  const fulfil = str(params.fulfil) === "collect" || str(params.fulfil) === "setup" ? (str(params.fulfil) as "collect" | "setup") : "";
   const when: When = (["today", "upcoming", "overdue", "past", "all"] as const).find((w) => w === str(params.when)) ?? "today";
   const statusParam = str(params.status);
   const status: "open" | "all" | OrderStatus =
@@ -40,11 +44,18 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/ord
   const now = new Date().toISOString();
 
   const supabase = await createClient();
+  // Custom cake orders: the Custom cakes tab and its count filter on these ids.
+  const { data: cakeRows } = await supabase.from("custom_cakes").select("order_id, flavour, weight_kg");
+  const cakeByOrder = new Map((cakeRows ?? []).map((c) => [c.order_id, c]));
+  const cakeIds = cakeByOrder.size ? [...cakeByOrder.keys()] : [NO_ID];
+
   let query = supabase
     .from("order_summaries")
-    .select("id, reference, source, status, customer_name, customer_phone, due_at, is_immediate, total_paise, balance_paise, item_count")
-    .in("source", everywhere ? ["IN_STORE", "ONLINE", "CALL"] : LISTS[list].sources)
+    .select("id, reference, source, status, customer_name, customer_phone, due_at, is_immediate, total_paise, balance_paise, item_count, fulfilment, setup_address")
+    .in("source", everywhere ? ALL_SOURCES : TABS[list].sources)
     .limit(200);
+  if (!everywhere && list === "custom") query = query.in("id", cakeIds);
+  if (!everywhere && fulfil) query = query.eq("fulfilment", fulfil);
 
   if (everywhere) {
     // Top-bar search: every list and status, any date.
@@ -71,22 +82,24 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/ord
   const [{ data: orders, error }, counts] = await Promise.all([
     query,
     Promise.all(
-      (Object.keys(LISTS) as ListKey[]).map(async (key) => {
-        const { count } = await supabase
+      (Object.keys(TABS) as Tab[]).map(async (key) => {
+        let countQuery = supabase
           .from("orders")
           .select("id", { count: "exact", head: true })
-          .in("source", LISTS[key].sources)
+          .in("source", TABS[key].sources)
           .in("status", OPEN_STATUSES)
           .gte("due_at", todayStart.toISOString())
           .lt("due_at", todayEnd.toISOString());
+        if (key === "custom") countQuery = countQuery.in("id", cakeIds);
+        const { count } = await countQuery;
         return [key, count ?? 0] as const;
       }),
     ),
   ]);
-  const dueToday = Object.fromEntries(counts) as Record<ListKey, number>;
+  const dueToday = Object.fromEntries(counts) as Record<Tab, number>;
 
   const link = (overrides: Record<string, string>) => {
-    const next = new URLSearchParams({ list, when, status, ...(q ? { q } : {}), ...overrides });
+    const next = new URLSearchParams({ list, when, status, ...(q ? { q } : {}), ...(fulfil ? { fulfil } : {}), ...overrides });
     return `/admin/orders?${next.toString()}`;
   };
 
@@ -94,22 +107,24 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/ord
     <>
       <PageHeader
         title="Orders"
-        description={`Due times shown in ${tz}. Both lists share the same orders and lifecycle.`}
+        description={`Due times shown in ${tz}. Green rows are collected from the store; red rows are set up at the customer's place.`}
         actions={
           <>
-            <ButtonLink href="/admin/orders/new?source=CALL" variant="secondary">New call order</ButtonLink>
             <ButtonLink href="/admin/orders/new?source=IN_STORE">New in-store order</ButtonLink>
+            <ButtonLink href="/admin/orders/new?source=CALL" variant="secondary">New call order</ButtonLink>
+            <ButtonLink href="/admin/orders/new?source=CUSTOMER" variant="secondary">New customer order</ButtonLink>
+            <ButtonLink href="/admin/orders/new-cake" variant="secondary">New custom cake order</ButtonLink>
           </>
         }
       />
       {everywhere && (
         <p className="mb-4 rounded-2xl border border-brand/20 bg-brand-soft px-4 py-2.5 text-sm text-brand-strong">
-          Showing every order matching “{q}”, from both lists, any date and status.
+          Showing every order matching “{q}”, from every list, any date and status.
         </p>
       )}
 
       <nav aria-label="Order lists" className="mb-4 flex gap-1 border-b border-line">
-        {(Object.keys(LISTS) as ListKey[]).map((key) => (
+        {(Object.keys(TABS) as Tab[]).map((key) => (
           <Link
             key={key}
             href={link({ list: key })}
@@ -119,7 +134,7 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/ord
               list === key ? "border-brand text-brand-strong" : "border-transparent text-muted hover:text-ink",
             )}
           >
-            {LISTS[key].label}
+            {TABS[key].label}
             <span className="rounded-full bg-canvas px-2 py-0.5 text-xs text-muted" title="Open orders due today">
               {dueToday[key]} today
             </span>
@@ -141,6 +156,14 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/ord
             <option value="overdue">Overdue</option>
             <option value="past">Past</option>
             <option value="all">Any date</option>
+          </Select>
+        </div>
+        <div>
+          <label htmlFor="fulfil" className="sr-only">Collect or set up</label>
+          <Select id="fulfil" name="fulfil" defaultValue={fulfil}>
+            <option value="">Collect and set up</option>
+            <option value="collect">Collect only</option>
+            <option value="setup">Set up only</option>
           </Select>
         </div>
         <div>
@@ -182,23 +205,36 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/ord
               {orders.map((o) => {
                 const overdue = o.due_at && o.due_at < now && o.status && OPEN_STATUSES.includes(o.status);
                 return (
-                  <tr key={o.id} className="hover:bg-canvas/60">
+                  <tr key={o.id} className={cx("hover:bg-canvas/60", fulfilmentRowClass(o.fulfilment))}>
                     <td className="px-4 py-3">
                       <Link href={`/admin/orders/${o.id}`} className="font-mono font-medium text-ink hover:text-brand hover:underline">
                         {o.reference}
                       </Link>
-                      <div className="mt-1">{o.source && <SourceBadge source={o.source} />}</div>
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {o.source && <SourceBadge source={o.source} />}
+                        {o.fulfilment && <FulfilmentBadge fulfilment={o.fulfilment} />}
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <div>{o.customer_name ?? <span className="text-muted">Walk-in</span>}</div>
                       {o.customer_phone && <div className="text-xs text-muted">{o.customer_phone}</div>}
+                      {o.fulfilment === "setup" && o.setup_address && (
+                        <div className="mt-1 text-xs font-medium text-danger">Set up at: {o.setup_address}</div>
+                      )}
                     </td>
                     <td className={cx("px-4 py-3 whitespace-nowrap", overdue && "font-medium text-danger")}>
                       {o.due_at ? formatDateTime(o.due_at, tz) : "—"}
                       {o.is_immediate && <div className="text-xs text-muted">Walk-in</div>}
                       {overdue && <div className="text-xs">Overdue</div>}
                     </td>
-                    <td className="px-4 py-3">{o.item_count}</td>
+                    <td className="px-4 py-3">
+                      {o.item_count}
+                      {o.id && cakeByOrder.has(o.id) && (
+                        <div className="text-xs text-muted">
+                          🎂 {cakeByOrder.get(o.id)!.flavour}, {Number(cakeByOrder.get(o.id)!.weight_kg)} kg
+                        </div>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-right whitespace-nowrap">{formatPaise(o.total_paise ?? 0)}</td>
                     <td className={cx("px-4 py-3 text-right whitespace-nowrap", (o.balance_paise ?? 0) > 0 && "font-medium text-warn", (o.balance_paise ?? 0) < 0 && "font-medium text-danger")}>
                       {(o.balance_paise ?? 0) === 0 ? <span className="text-ok">Paid</span> : (o.balance_paise ?? 0) < 0 ? `Refund ${formatPaise(-(o.balance_paise ?? 0))}` : formatPaise(o.balance_paise ?? 0)}
