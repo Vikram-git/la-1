@@ -37,6 +37,12 @@ export function SettingsForm({ settings }: { settings: Tables<"business_settings
         <Field label="Counter staff discount limit (%)" htmlFor="counter_discount_limit" error={err.counter_discount_limit_bps} hint="Larger discounts need an admin.">
           <Input id="counter_discount_limit" name="counter_discount_limit" inputMode="decimal" defaultValue={String(settings.counter_discount_limit_bps / 100)} />
         </Field>
+        <Field label="Custom cake GST (%)" htmlFor="custom_cake_tax_rate" error={err.custom_cake_tax_rate_bps} hint="Included in the price staff type for a custom cake. Applies to new custom cake orders.">
+          <Input id="custom_cake_tax_rate" name="custom_cake_tax_rate" inputMode="decimal" defaultValue={String(settings.custom_cake_tax_rate_bps / 100)} />
+        </Field>
+        <Field label="Custom cake HSN code (optional)" htmlFor="custom_cake_hsn_code" error={err.custom_cake_hsn_code} hint="Printed on the bill line, e.g. 1905.">
+          <Input id="custom_cake_hsn_code" name="custom_cake_hsn_code" inputMode="numeric" defaultValue={settings.custom_cake_hsn_code ?? ""} maxLength={8} className="font-mono" />
+        </Field>
       </div>
       <div className="mt-6 flex items-center gap-4">
         <SubmitButton>Save settings</SubmitButton>

@@ -13,6 +13,7 @@ import { SourceBadge, StatusBadge } from "@/components/order-badges";
 import { NoShowPanel, OrderActions, PaymentForm } from "./order-actions";
 import { FulfilmentPanel } from "./fulfilment-panel";
 import { FulfilmentBanner } from "./fulfilment-banner";
+import { CakeCard } from "./cake-card";
 import { BillPanel, DiscountForm } from "./billing-panel";
 import { EditItems } from "./edit-items";
 import { loadCatalogue } from "@/lib/catalogue";
@@ -62,7 +63,7 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
   const staff = await requireRole(["admin", "counter"]);
   const isAdmin = staff.role === "admin";
   const { id } = await params;
-  const { created } = await searchParams;
+  const { created, photo } = await searchParams;
   if (!z.uuid().safeParse(id).success) notFound();
   const tz = await getBusinessTimezone();
 
@@ -99,6 +100,13 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
   const canEditItems =
     !bill && (["draft", "pending_confirmation"].includes(order.status) || (["confirmed", "preparing"].includes(order.status) && isAdmin));
   const catalogue = canEditItems ? await loadCatalogue(supabase) : [];
+
+  // Custom cake (2026-10-09): its details, and a short-lived link to the private reference photo.
+  const { data: cake } = await supabase.from("custom_cakes").select("*").eq("order_id", id).maybeSingle();
+  const cakeLine = cake ? (items ?? []).find((i) => i.id === cake.order_item_id) : undefined;
+  const photoUrl = cake?.photo_path
+    ? (await supabase.storage.from("custom-cake-photos").createSignedUrl(cake.photo_path, 3600)).data?.signedUrl ?? null
+    : null;
 
   const itemList = (
     <ul className="divide-y divide-line">
@@ -162,6 +170,23 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
               ? "It is waiting for confirmation."
               : "Pack the items when they are ready."}
           </Alert>
+        )}
+        {photo === "failed" && (
+          <Alert tone="warn" title="The reference photo was not saved">
+            The order was created. Add the photo again on the custom cake card below.
+          </Alert>
+        )}
+        {cake && (
+          <CakeCard
+            key={`cake-${order.version}`}
+            orderId={order.id}
+            version={order.version ?? 0}
+            cake={cake}
+            pricePaise={cakeLine?.unit_price_paise ?? 0}
+            photoUrl={photoUrl}
+            canEdit={["draft", "pending_confirmation", "confirmed", "preparing"].includes(order.status)}
+            canChangePhoto={!closed}
+          />
         )}
         {order.closed_reason && (
           <Alert tone="danger" title={order.status === "rejected" ? "Rejected" : "Cancelled"}>

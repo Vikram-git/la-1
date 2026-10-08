@@ -19,6 +19,8 @@ const schema = z.object({
   fssai_licence: z.string().regex(/^\d{14}$/, "FSSAI licence number is 14 digits.").nullable(),
   bill_prefix: z.string().regex(/^[A-Z0-9]{1,6}$/, "Use 1 to 6 capital letters or digits."),
   counter_discount_limit_bps: z.number({ error: "Enter a percentage." }).int().min(0).max(10000, "Maximum is 100%."),
+  custom_cake_tax_rate_bps: z.number({ error: "Enter the GST rate, e.g. 5 or 18." }).int().min(0).max(2800, "Maximum is 28%."),
+  custom_cake_hsn_code: z.string().regex(/^\d{4,8}$/, "HSN code is 4 to 8 digits.").nullable(),
 });
 
 export async function updateSettings(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -34,6 +36,10 @@ export async function updateSettings(_prev: ActionState, formData: FormData): Pr
     counter_discount_limit_bps: /^\d+(\.\d{1,2})?$/.test(text(formData, "counter_discount_limit"))
       ? Math.round(Number(text(formData, "counter_discount_limit")) * 100)
       : NaN,
+    custom_cake_tax_rate_bps: /^\d+(\.\d{1,2})?$/.test(text(formData, "custom_cake_tax_rate"))
+      ? Math.round(Number(text(formData, "custom_cake_tax_rate")) * 100)
+      : NaN,
+    custom_cake_hsn_code: optionalText(formData, "custom_cake_hsn_code")?.replace(/\s/g, "") ?? null,
   });
   if (!parsed.success) return zodErrors(parsed.error);
 

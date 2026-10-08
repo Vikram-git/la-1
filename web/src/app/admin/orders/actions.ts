@@ -9,6 +9,7 @@ import { zonedLocalToDate } from "@/lib/time";
 import { parseRupeesToPaise } from "@/lib/money";
 import { rpcError, type RpcFailure } from "@/lib/orders";
 import type { PickupAvailability } from "@/lib/capacity";
+import { cakeDetailsSchema, cakeToJson } from "@/lib/custom-cake";
 
 type Result<T = object> = ({ ok: true } & T) | ({ ok?: false } & RpcFailure);
 
@@ -460,5 +461,118 @@ export async function setFulfilmentAction(input: z.input<typeof setFulfilmentSch
   });
   if (error) return rpcError(error);
   await afterChange(d.orderId);
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// Custom cake orders (2026-10-09). The photo is uploaded from the browser straight to Storage
+// (too large for a server action) and then attached with setCustomCakePhotoAction.
+// ---------------------------------------------------------------------------
+
+const rupees = (label: string) =>
+  z.string().transform((v, ctx) => {
+    const paise = parseRupeesToPaise(v.trim() || "0");
+    if (paise === null) {
+      ctx.addIssue({ code: "custom", message: `Enter the ${label} in rupees, e.g. 1500 or 1500.50.` });
+      return z.NEVER;
+    }
+    return paise;
+  });
+
+const customCakeSchema = z.object({
+  idempotencyKey: z.uuid(),
+  source: z.enum(["IN_STORE", "CALL", "CUSTOMER"]),
+  customerName: z.string().trim().min(1, "Enter the customer's name.").max(80),
+  customerPhone: z.string().trim().min(1, "Enter the customer's phone number.").max(20),
+  dueLocal: z.string().min(1, "Choose the pickup date and time."),
+  price: rupees("price"),
+  cake: cakeDetailsSchema,
+  advance: rupees("advance"),
+  advanceMethod: z.enum(["cash", "upi", "card", "bank_transfer", "other"]).optional(),
+  advanceReference: optionalText(100),
+  customerNotes: optionalText(1000),
+  internalNotes: optionalText(1000),
+  confirm: z.boolean(),
+  overrideReason: optionalText(300),
+  ...fulfilmentSchema,
+});
+
+export type CustomCakeOrderInput = z.input<typeof customCakeSchema>;
+
+export async function createCustomCakeOrderAction(input: CustomCakeOrderInput): Promise<Result<{ orderId: string }>> {
+  await assertRole(["admin", "counter"]);
+  const parsed = customCakeSchema.safeParse(input);
+  if (!parsed.success) return { message: parsed.error.issues[0]?.message ?? "Check the order and try again." };
+  const d = parsed.data;
+  if (d.advance > 0 && !d.advanceMethod) return { message: "Choose how the advance was paid." };
+
+  const due = zonedLocalToDate(d.dueLocal, await getBusinessTimezone());
+  if (!due) return { message: "Enter a valid pickup date and time." };
+
+  const supabase = await createClient();
+  const { data: order, error } = await supabase.rpc("create_custom_cake_order", {
+    p_idempotency_key: d.idempotencyKey,
+    p_source: d.source,
+    p_customer_name: d.customerName,
+    p_customer_phone: d.customerPhone,
+    p_due_at: due.toISOString(),
+    p_price_paise: d.price,
+    p_cake: cakeToJson(d.cake),
+    p_customer_notes: d.customerNotes,
+    p_internal_notes: d.internalNotes,
+    p_confirm: d.confirm,
+    p_override_reason: d.overrideReason,
+    p_fulfilment: d.fulfilment,
+    p_setup_address: d.fulfilment === "setup" ? d.setupAddress : undefined,
+    p_setup_note: d.fulfilment === "setup" ? d.setupNote : undefined,
+    p_advance_paise: d.advance,
+    p_advance_method: d.advance > 0 ? d.advanceMethod : undefined,
+    p_advance_reference: d.advanceReference,
+  });
+  if (error) return rpcError(error);
+
+  revalidatePath("/admin", "layout");
+  return { ok: true, orderId: order.id };
+}
+
+const updateCakeSchema = z.object({
+  orderId: z.uuid(),
+  version: z.number().int(),
+  price: rupees("price"),
+  cake: cakeDetailsSchema,
+});
+
+export async function updateCustomCakeAction(input: z.input<typeof updateCakeSchema>): Promise<Result> {
+  await assertRole(["admin", "counter"]);
+  const parsed = updateCakeSchema.safeParse(input);
+  if (!parsed.success) return { message: parsed.error.issues[0]?.message ?? "Check the cake details." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("update_custom_cake", {
+    p_order_id: parsed.data.orderId,
+    p_expected_version: parsed.data.version,
+    p_cake: cakeToJson(parsed.data.cake),
+    p_price_paise: parsed.data.price,
+  });
+  if (error) return rpcError(error);
+  await afterChange(parsed.data.orderId);
+  return { ok: true };
+}
+
+const cakePhotoSchema = z.object({ orderId: z.uuid(), path: z.string().max(300).nullable() });
+
+// Attaches (or, with null, removes) the cake photo; the replaced file is deleted from Storage.
+export async function setCustomCakePhotoAction(input: z.input<typeof cakePhotoSchema>): Promise<Result> {
+  await assertRole(["admin", "counter"]);
+  const parsed = cakePhotoSchema.safeParse(input);
+  if (!parsed.success) return { message: "Invalid photo." };
+  const { orderId, path } = parsed.data;
+  const supabase = await createClient();
+  const { data: before } = await supabase.from("custom_cakes").select("photo_path").eq("order_id", orderId).maybeSingle();
+  const { error } = await supabase.rpc("set_custom_cake_photo", { p_order_id: orderId, p_photo_path: path });
+  if (error) return rpcError(error);
+  if (before?.photo_path && before.photo_path !== path) {
+    await supabase.storage.from("custom-cake-photos").remove([before.photo_path]);
+  }
+  await afterChange(orderId);
   return { ok: true };
 }
