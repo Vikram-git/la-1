@@ -1,4 +1,4 @@
-# Remove KOT, Customers for counter, customer orders, custom cake orders and product photos
+# Remove KOT, Customers for counter, customer orders, custom cake orders product photos, and collect or set up
 
 Date: 2026-10-09. Status: design approved in conversation (owner); spec for review.
 Covers mock-up pieces 3 (product photos) and 4 ("custom cake details") and reverses Phase 5 (kitchen tickets) at the owner's request.
@@ -9,6 +9,7 @@ Covers mock-up pieces 3 (product photos) and 4 ("custom cake details") and rever
 - Counter staff can look up customers.
 - Staff can take a **customer order** and a **custom cake order** from the top of the Orders page. Custom cake orders get their own list.
 - Products have photos.
+- Every order says whether the customer **collects from the store** (green) or the bakery **sets up at the customer's place** (red). The colour shows wherever orders are listed.
 
 ## 2. Decisions (owner, 2026-10-09)
 
@@ -21,6 +22,7 @@ Covers mock-up pieces 3 (product photos) and 4 ("custom cake details") and rever
 | Custom cake source | Chosen on the form: **In-store, Call or Customer**. |
 | Custom cake details | Flavour, size/weight, tiers, theme/design, cream, filling, toppings, message on cake, eggless, special instructions, **reference photo**, **price typed by staff**, **advance payment**. |
 | Product photos | Added mid-design ("also add product images"): one photo per product, uploaded by staff. |
+| Collect or set up | Added 2026-10-09: while taking an order, choose **Collect from store** or **Set up at customer's place**. Set-up orders are highlighted **red** and collect orders **green** in the calendar and everywhere else orders appear. |
 | Approach for KOT | Switch off and remove the screens. Ticket tables and their history stay in the database, unused. Nothing is dropped. |
 
 Assumptions accepted with the design (owner said "yes" to the whole design):
@@ -132,13 +134,38 @@ New table `public.custom_cakes` (one row per custom cake line):
 - Shown in: the Products list (thumbnail), the product page, `CataloguePicker` in the order entry and Counter Sale (small thumbnail on each tile), and order lines on the order page (small thumbnail). Images use `next/image` with the Supabase host allowed in `next.config`.
 - If there is no photo, a soft pink placeholder with the cake icon is shown.
 
-## 8. Error handling
+## 8. Collect from store or set up at the customer's place
+
+Assumptions (to confirm when the owner reviews the spec):
+- The choice is on **every** order form: in-store, call, customer and custom cake. Counter Sale is always Collect, because the customer is at the counter.
+- Default is **Collect from store**.
+- Set-up needs the **address** (required, up to 300 characters) and can take a **landmark/contact note** (up to 300 characters). The order's pickup time becomes the **set-up time**.
+- There is no set-up or delivery charge yet. If one is wanted, staff can add it as a line later. Delivery charges and areas stay for mock-up piece 6.
+
+### Data
+- `create type public.fulfilment_type as enum ('collect', 'setup')`.
+- `orders`: `fulfilment fulfilment_type not null default 'collect'`, `setup_address text`, `setup_note text`. The check is: setup ⇒ address not null, and collect ⇒ address and note null. Existing orders become `collect`.
+- `order_summaries` view: add `fulfilment` and `setup_address`.
+- `create_order` and `create_custom_cake_order` take `p_fulfilment default 'collect'`, `p_setup_address`, `p_setup_note` and validate them. Counter-sale functions always pass collect.
+- `public.set_fulfilment(p_order_id, p_expected_version, p_fulfilment, p_setup_address, p_setup_note)`: admin or counter, until the order is handed over, cancelled or rejected. It logs `fulfilment_changed` with the old and new values.
+
+### Screens
+- **Order forms:** two large toggle buttons, **🏪 Collect from store** (green) and **🚚 Set up at customer's place** (red). Choosing set-up shows the address and note fields, and the time label changes from "Pickup" to "Set-up time".
+- **Shared badge:** `FulfilmentBadge` in `components/order-badges.tsx`. Collect is a green pill "Collect" (ok tokens) and set-up is a red pill "Set up" (danger tokens), always with the text label and not only the colour, for accessibility.
+- **Calendar** (month, week, day and agenda): each order chip/row gets a coloured left border and background tint, green for collect and red for set-up, plus the badge. Calendar filter: All / Collect / Set up.
+- **Orders lists (all tabs, including Custom cakes):** a coloured left border on each row plus the badge. The address shows under the customer for set-up orders. Filter: All / Collect / Set up.
+- **Dashboard** due-today and next-7-days lists: badge and border.
+- **Order page:** a large banner at the top. For set-up it is red: "Set up at customer's place" with the address and note, and Change (opens the fulfilment form). For collect it is green: "Collect from store".
+- **Prints** (bill, cake sheet): "SET UP at: <address>" or "COLLECT from store", in plain text, readable on a mono printer.
+- **Handover:** for set-up orders the button reads "Set up done" instead of "Handed over". It uses the same `record_handover` function, and only the label changes.
+
+## 9. Error handling
 
 - Database messages come from `private.fail` as today and are shown by the existing form status component.
 - Custom cake form: client-side checks mirror the database limits. Idempotency key per form load, so double submits create one order.
 - Photo type and size are checked client-side and by the bucket (both buckets).
 
-## 9. Testing
+## 10. Testing
 
 - **PGlite (`supabase/local/pglite`) SQL tests**, new file `custom_cakes_logic`:
   - confirming creates no ticket;
@@ -149,13 +176,14 @@ New table `public.custom_cakes` (one row per custom cake line):
   - advance is recorded, balance is correct, advance > total is refused;
   - update_custom_cake is refused after packing and after a bill;
   - counter can read customers and custom_cakes, but cannot block a customer;
+  - collect/setup: setup without an address is refused, collect clears the address, set_fulfilment is refused after handover and logs the change, and counter sale is always collect;
   - set_product_image is admin-only and refuses URLs outside the bucket.
 - The existing SQL suites are re-run. Kitchen-ticket suites that no longer apply are removed or updated to the new rule.
 - Unit tests: `lib/shell.test.ts` (menu: no KOT, Customers for counter, bell count), `lib/home` tests updated, `lib/orders` source labels.
 - `npm run build`, lint and typecheck.
-- A browser check (dev server with `--webpack`): Orders tabs and buttons, new customer order, new custom cake order with photo and advance, order page note card, cake print, Customers as counter staff, product photo upload and thumbnails, no KOT anywhere.
+- A browser check (dev server with `--webpack`): Orders tabs and buttons, new customer order, new custom cake order with photo and advance, order page note card, cake print, Customers as counter staff, product photo upload and thumbnails, collect/set-up choice and red/green highlights in the calendar and lists, no KOT anywhere.
 
-## 10. Out of scope
+## 11. Out of scope
 
 - Dropping the ticket tables, kitchens table or chef role values. They can be removed later if wanted.
 - Customers placing custom cake requests themselves (public website).
