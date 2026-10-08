@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { checkbox, dbError, optionalText, text, zodErrors } from "@/lib/form";
 import { parseRupeesToPaise } from "@/lib/money";
 import type { ActionState } from "@/components/form-status";
+import { productPhotoPath } from "@/lib/product-photo";
 
 const uuid = z.uuid("Choose a valid option.");
 
@@ -206,4 +207,29 @@ export async function setVariantArchived(variantId: string, archived: boolean) {
     .eq("id", variantId);
   if (error) throw new Error(dbError(error, "variant").message);
   revalidatePath("/admin/products", "layout");
+}
+
+// ---------------------------------------------------------------------------
+// Product photo (2026-10-09). Uploaded from the browser to the public product-photos bucket first.
+// ---------------------------------------------------------------------------
+
+const photoSchema = z.object({ productId: uuid, path: z.string().max(300).nullable() });
+
+export async function setProductPhotoAction(input: z.input<typeof photoSchema>): Promise<ActionState> {
+  await assertRole(["admin"]);
+  const parsed = photoSchema.safeParse(input);
+  if (!parsed.success) return { message: "Invalid photo." };
+  const { productId, path } = parsed.data;
+  if (path && !path.startsWith(`${productId}/`)) return { message: "The photo is not stored under this product." };
+
+  const supabase = await createClient();
+  const { data: before } = await supabase.from("products").select("image_url").eq("id", productId).maybeSingle();
+  const url = path ? supabase.storage.from("product-photos").getPublicUrl(path).data.publicUrl : null;
+  const { error } = await supabase.rpc("set_product_image", { p_product_id: productId, p_image_url: url });
+  if (error) return { message: error.message };
+
+  const oldPath = productPhotoPath(before?.image_url);
+  if (oldPath && oldPath !== path) await supabase.storage.from("product-photos").remove([oldPath]);
+  revalidatePath("/admin", "layout");
+  return { ok: true, message: path ? "Photo saved." : "Photo removed." };
 }

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ProductThumb } from "@/components/product-thumb";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { formatPaise } from "@/lib/money";
@@ -22,7 +23,7 @@ export default async function ProductsPage({ searchParams }: PageProps<"/admin/p
   let query = supabase
     .from("products")
     .select(
-      "id, name, prep_type, is_veg, contains_egg, is_available, archived_at, categories(name), product_variants(id, price_paise, is_eggless, archived_at)",
+      "id, name, image_url, prep_type, is_veg, contains_egg, is_available, archived_at, categories(name), product_variants(id, price_paise, is_eggless, archived_at)",
     )
     .order("name");
   if (q) query = query.ilike("name", `%${q.replace(/[%_]/g, "\\$&")}%`);
@@ -120,6 +121,9 @@ export default async function ProductsPage({ searchParams }: PageProps<"/admin/p
                 return (
                   <tr key={p.id} className="hover:bg-canvas/60">
                     <td className="px-4 py-3">
+                      <div className="flex items-start gap-3">
+                      <ProductThumb url={p.image_url} name={p.name} size="sm" />
+                      <div>
                       <Link href={`/admin/products/${p.id}`} className="font-medium text-ink hover:text-brand hover:underline">
                         {p.name}
                       </Link>
@@ -127,6 +131,8 @@ export default async function ProductsPage({ searchParams }: PageProps<"/admin/p
                         <VegMark isVeg={p.is_veg} />
                         {p.contains_egg && <Badge>Contains egg</Badge>}
                         {hasEggless && <Badge tone="ok">Eggless option</Badge>}
+                      </div>
+                      </div>
                       </div>
                     </td>
                     <td className="px-4 py-3 text-muted">{p.categories?.name}</td>

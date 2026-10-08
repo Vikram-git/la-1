@@ -13,7 +13,7 @@ export default async function CounterPage() {
   const [{ data: products }, { data: settings }] = await Promise.all([
     supabase
       .from("products")
-      .select("name, is_veg, categories(name, sort_order), product_variants(id, name, price_paise, is_eggless, is_available, archived_at, sort_order)")
+      .select("name, image_url, is_veg, categories(name, sort_order), product_variants(id, name, price_paise, is_eggless, is_available, archived_at, sort_order)")
       .eq("prep_type", "ready_stock")
       .eq("is_available", true)
       .is("archived_at", null)
@@ -35,6 +35,7 @@ export default async function CounterPage() {
           pricePaise: v.price_paise,
           isVeg: p.is_veg,
           isEggless: v.is_eggless,
+          imageUrl: p.image_url,
         })),
     );
 

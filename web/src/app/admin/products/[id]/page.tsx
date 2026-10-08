@@ -8,6 +8,7 @@ import { Alert, Badge, Card, EmptyState, PageHeader } from "@/components/ui";
 import { ProductForm } from "../product-form";
 import { NewVariantForm, VariantRow } from "../variant-forms";
 import { ArchiveProductButton } from "./archive-button";
+import { ProductPhoto } from "./photo-card";
 import {
   createVariant,
   setProductArchived,
@@ -56,9 +57,14 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
       <div className="flex flex-col gap-6">
         {created === "1" && (
           <Alert tone="ok" title="Product created">
-            Now add at least one variant with a price.
+            Now add at least one variant with a price, and a photo.
           </Alert>
         )}
+
+        <Card>
+          <h2 className="mb-4 text-lg font-semibold">Photo</h2>
+          <ProductPhoto productId={product.id} name={product.name} url={product.image_url} canEdit={isAdmin && !product.archived_at} />
+        </Card>
 
         <Card>
           <h2 className="mb-4 text-lg font-semibold">Variants and prices</h2>

@@ -14,6 +14,7 @@ import { NoShowPanel, OrderActions, PaymentForm } from "./order-actions";
 import { FulfilmentPanel } from "./fulfilment-panel";
 import { FulfilmentBanner } from "./fulfilment-banner";
 import { CakeCard } from "./cake-card";
+import { ProductThumb } from "@/components/product-thumb";
 import { BillPanel, DiscountForm } from "./billing-panel";
 import { EditItems } from "./edit-items";
 import { loadCatalogue } from "@/lib/catalogue";
@@ -101,6 +102,13 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
     !bill && (["draft", "pending_confirmation"].includes(order.status) || (["confirmed", "preparing"].includes(order.status) && isAdmin));
   const catalogue = canEditItems ? await loadCatalogue(supabase) : [];
 
+  // Product photos for the item list.
+  const productIds = [...new Set((items ?? []).map((i) => i.product_id).filter((v): v is string => Boolean(v)))];
+  const { data: productPhotos } = productIds.length
+    ? await supabase.from("products").select("id, image_url").in("id", productIds)
+    : { data: [] };
+  const photoByProduct = new Map((productPhotos ?? []).map((p) => [p.id, p.image_url]));
+
   // Custom cake (2026-10-09): its details, and a short-lived link to the private reference photo.
   const { data: cake } = await supabase.from("custom_cakes").select("*").eq("order_id", id).maybeSingle();
   const cakeLine = cake ? (items ?? []).find((i) => i.id === cake.order_item_id) : undefined;
@@ -115,6 +123,8 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
         const removed = i.quantity === i.cancelled_quantity;
         return (
           <li key={i.id} className={cx("flex flex-wrap items-start justify-between gap-3 py-3", removed && "opacity-60")}>
+            <div className="flex min-w-0 gap-3">
+            <ProductThumb url={i.product_id ? photoByProduct.get(i.product_id) : null} name={i.product_name} size="sm" />
             <div className="min-w-0">
               <p className={cx("font-medium", removed && "line-through")}>
                 {removed ? i.quantity : i.quantity - i.cancelled_quantity} × {i.product_name} — {i.variant_name}
@@ -127,6 +137,7 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
                 {i.allergens.length > 0 && <span className="text-xs text-muted">Allergens: {i.allergens.join(", ")}</span>}
               </div>
               {i.notes && <p className="mt-1 text-sm">“{i.notes}”</p>}
+            </div>
             </div>
             <div className="text-right">
               <p className="font-medium">{formatPaise(i.line_total_paise)}</p>

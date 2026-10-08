@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Badge, Button, Input, VegMark } from "@/components/ui";
 import { formatLeadTime, formatPaise } from "@/lib/money";
 import type { CatalogueProduct } from "@/lib/catalogue";
+import { ProductThumb } from "@/components/product-thumb";
 
 // Searchable product list; picking a variant calls onAdd. Used by the new-order form and item editing.
 export function CataloguePicker({
@@ -37,7 +38,9 @@ export function CataloguePicker({
       <ul className={`mt-4 flex flex-col gap-3 overflow-y-auto pr-1 ${listClassName}`}>
         {filtered.length === 0 && <li className="py-6 text-center text-sm text-muted">No available products match.</li>}
         {filtered.map((p) => (
-          <li key={p.id} className="rounded-lg border border-line p-3">
+          <li key={p.id} className="flex gap-3 rounded-lg border border-line p-3">
+            <ProductThumb url={p.imageUrl} name={p.name} />
+            <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-medium">{p.name}</span>
               <VegMark isVeg={p.isVeg} />
@@ -59,6 +62,7 @@ export function CataloguePicker({
                   )}
                 </button>
               ))}
+            </div>
             </div>
           </li>
         ))}

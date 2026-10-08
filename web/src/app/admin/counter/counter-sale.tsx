@@ -5,6 +5,7 @@ import { Alert, Button, Card, Field, Input, Select, VegMark, cx } from "@/compon
 import { formatPaise, parseRupeesToPaise, paiseToRupeesInput } from "@/lib/money";
 import { paymentMethodLabel, type PaymentMethod } from "@/lib/orders";
 import { counterSaleAction } from "./actions";
+import { ProductThumb } from "@/components/product-thumb";
 
 export type CounterItem = {
   variantId: string;
@@ -14,6 +15,7 @@ export type CounterItem = {
   pricePaise: number;
   isVeg: boolean;
   isEggless: boolean;
+  imageUrl: string | null;
 };
 
 type Split = { key: string; method: PaymentMethod; amount: string; reference: string };
@@ -157,6 +159,7 @@ export function CounterSale({ items, discountLimitBps, isAdmin }: { items: Count
                   <button type="button" onClick={() => add(i.variantId)}
                     className={cx("flex h-full w-full flex-col items-start gap-1 rounded-xl border p-3 text-left transition-colors hover:border-brand hover:bg-brand-soft",
                       qty > 0 ? "border-brand bg-brand-soft/60" : "border-line bg-surface")}>
+                    <ProductThumb url={i.imageUrl} name={i.productName} size="fill" className="mb-1" />
                     <span className="flex w-full items-start justify-between gap-2">
                       <span className="font-medium leading-snug">{i.productName}</span>
                       {qty > 0 && <span className="rounded-full bg-brand px-2 text-xs font-semibold text-white">{qty}</span>}

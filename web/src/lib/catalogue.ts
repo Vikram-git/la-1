@@ -8,6 +8,7 @@ export type CatalogueProduct = {
   isVeg: boolean;
   containsEgg: boolean;
   prepType: "made_to_order" | "ready_stock";
+  imageUrl: string | null;
   variants: { id: string; name: string; pricePaise: number; isEggless: boolean; leadTimeMinutes: number }[];
 };
 
@@ -15,7 +16,7 @@ export type CatalogueProduct = {
 export async function loadCatalogue(supabase: Awaited<ReturnType<typeof createClient>>): Promise<CatalogueProduct[]> {
   const { data: products } = await supabase
     .from("products")
-    .select("id, name, category_id, is_veg, contains_egg, prep_type, categories(name, sort_order), product_variants(id, name, price_paise, is_eggless, lead_time_minutes, is_available, archived_at, sort_order)")
+    .select("id, name, image_url, category_id, is_veg, contains_egg, prep_type, categories(name, sort_order), product_variants(id, name, price_paise, is_eggless, lead_time_minutes, is_available, archived_at, sort_order)")
     .is("archived_at", null)
     .eq("is_available", true)
     .order("name");
@@ -35,6 +36,7 @@ export async function loadCatalogue(supabase: Awaited<ReturnType<typeof createCl
       isVeg: p.is_veg,
       containsEgg: p.contains_egg,
       prepType: p.prep_type,
+      imageUrl: p.image_url,
       variants: p.product_variants
         .filter((v) => v.is_available && !v.archived_at)
         .sort((a, b) => a.sort_order - b.sort_order || a.price_paise - b.price_paise)
