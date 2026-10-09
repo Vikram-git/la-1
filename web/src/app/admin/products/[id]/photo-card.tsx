@@ -7,7 +7,7 @@ import { ProductThumb } from "@/components/product-thumb";
 import { uploadPhoto } from "@/lib/photo-upload";
 import { setProductPhotoAction } from "../actions";
 
-// One photo per product: shown on the order screens, Counter Sale and (later) the website.
+// One photo per product: shown on the order screens and (later) the website.
 export function ProductPhoto({ productId, name, url, canEdit }: { productId: string; name: string; url: string | null; canEdit: boolean }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);

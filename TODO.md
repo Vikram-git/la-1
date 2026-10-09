@@ -5,7 +5,8 @@ Checkboxes represent actual completion, not intentions.
 
 ## Start here — next developer
 
-- [ ] Ship the 2026-10-09 branch `no-kot-custom-cakes`: owner approves; apply migrations `20261009000100`, `0200`, `0300` to the live project (0100 on its own first); merge into `main`; confirm the Vercel deployment; click through the new screens (HANDOVER section 19).
+- [x] Ship the 2026-10-09 branch `no-kot-custom-cakes`: migrations applied to the live project, merged into `main`, deployed (2026-10-09). Counter Sale and the New customer order button removed the same day.
+- [ ] Click through the new screens on the live site (HANDOVER section 19).
 - [ ] Owner to confirm: custom cake GST 5% (Settings), no charge for set-up, counter staff may take custom cakes but only an admin re-prices a confirmed one.
 
 1. [ ] Read [HANDOVER.md](HANDOVER.md), then PRD sections 5F, 7, 10A, and 14A.

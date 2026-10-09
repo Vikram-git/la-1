@@ -18,7 +18,6 @@ import {
   Settings,
   ShoppingCart,
   Star,
-  Store,
   UserCog,
   Users,
   X,
@@ -31,7 +30,6 @@ import { signOut } from "@/app/login/actions";
 const ICONS: Record<NavIcon, LucideIcon> = {
   dashboard: LayoutDashboard,
   orders: ShoppingCart,
-  counter: Store,
   calendar: CalendarDays,
   products: Package,
   customers: Users,

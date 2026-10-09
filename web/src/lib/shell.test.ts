@@ -6,15 +6,16 @@ const hrefs = (role: "admin" | "counter") => navSections(role).flatMap((s) => s.
 
 test("admins see every working screen and the coming-soon ones", () => {
   const h = hrefs("admin");
-  for (const href of ["/admin", "/admin/orders", "/admin/counter", "/admin/calendar", "/admin/customers", "/admin/products",
+  for (const href of ["/admin", "/admin/orders", "/admin/calendar", "/admin/customers", "/admin/products",
     "/admin/reports", "/admin/staff", "/admin/settings"]) assert.ok(h.includes(href), href);
   for (const slug of ["notifications", "offers", "reviews"]) assert.ok(h.includes(`/admin/soon/${slug}`), slug);
 });
 
-test("KOT is gone and custom cakes are no longer coming soon", () => {
+test("KOT and Counter Sale are gone and custom cakes are no longer coming soon", () => {
   for (const role of ["admin", "counter"] as const) {
     const h = hrefs(role);
     assert.ok(!h.includes("/admin/kot"));
+    assert.ok(!h.includes("/admin/counter"));
     assert.ok(!h.includes("/admin/soon/custom-cakes"));
   }
   assert.equal(SOON_PAGES["custom-cakes"], undefined);
@@ -30,7 +31,7 @@ test("Customers takes KOT's place, right after Calendar, for counter staff too",
 test("counter staff never see admin-only screens", () => {
   const h = hrefs("counter");
   for (const href of ["/admin/reports", "/admin/staff", "/admin/settings"]) assert.ok(!h.includes(href), href);
-  for (const href of ["/admin", "/admin/orders", "/admin/counter", "/admin/calendar", "/admin/customers", "/admin/products"]) assert.ok(h.includes(href), href);
+  for (const href of ["/admin", "/admin/orders", "/admin/calendar", "/admin/customers", "/admin/products"]) assert.ok(h.includes(href), href);
 });
 
 test("the staff screen is called Staff", () => {

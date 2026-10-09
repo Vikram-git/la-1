@@ -4,7 +4,7 @@
 
 Planning documents: [PRD.md](PRD.md), [TODO.md](TODO.md), [PROJECT_RULES.md](PROJECT_RULES.md).
 
-Status (2026-10-09): on branch `no-kot-custom-cakes` (not yet live) KOT and the chef screens are removed, and Customers (for counter staff too), Customer orders, custom cake orders with photo and advance, product photos and collect / set-up with green and red highlights are added (HANDOVER section 19). Live, from 2026-10-05: staff login, catalogue, orders, calendar, payments, counter sale, GST bills, kitchen tickets with a chef screen and KOT, changes after the kitchen started, packing and handover, chef PIN sign-in on kitchen tablets, the daily sales report and the Home dashboard are built and deployed. The admin screens now use the owner's pink La Patisserie look; the rest of the owner's mock-up (Orders page, product photos, custom cake details, notifications, delivery) is being built in pieces. The live database holds demo data. Production: https://bakery-admin-ten.vercel.app (`main` deploys on every push). See [HANDOVER.md](HANDOVER.md).
+Status (2026-10-09, live): KOT, the chef screens and Counter Sale are removed, and Customers (for counter staff too), Customer orders, custom cake orders with photo and advance, product photos and collect / set-up with green and red highlights are added (HANDOVER section 19). Live, from 2026-10-05: staff login, catalogue, orders, calendar, payments, counter sale, GST bills, kitchen tickets with a chef screen and KOT, changes after the kitchen started, packing and handover, chef PIN sign-in on kitchen tablets, the daily sales report and the Home dashboard are built and deployed. The admin screens now use the owner's pink La Patisserie look; the rest of the owner's mock-up (Orders page, product photos, custom cake details, notifications, delivery) is being built in pieces. The live database holds demo data. Production: https://bakery-admin-ten.vercel.app (`main` deploys on every push). See [HANDOVER.md](HANDOVER.md).
 
 `la pater/` is the original static prototype, kept as reference.
 
@@ -55,7 +55,7 @@ After changing the schema, update `web/src/lib/database.types.ts` and rerun the 
 | Role | Lands on | Can |
 |---|---|---|
 | Admin | `/admin` | Everything, including confirming call orders, cancel, reschedule, refunds, credit notes, staff, settings |
-| Counter staff | `/admin` | Take in-store, call, customer and custom cake orders, confirm walk-ins, look up customers, record payments, counter sales, issue bills, discounts up to the limit, pack and hand over orders (handing over with a balance due needs an admin) |
+| Counter staff | `/admin` | Take in-store, call, customer and custom cake orders, confirm walk-ins, look up customers, record payments, issue bills, discounts up to the limit, pack and hand over orders (handing over with a balance due needs an admin) |
 | Chef | — | No access since KOT was removed (2026-10-09); give former chefs a counter role or disable them |
 
 Access is enforced by Postgres row-level security, not just by hiding screens.

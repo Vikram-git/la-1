@@ -112,7 +112,6 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/ord
           <>
             <ButtonLink href="/admin/orders/new?source=IN_STORE">New in-store order</ButtonLink>
             <ButtonLink href="/admin/orders/new?source=CALL" variant="secondary">New call order</ButtonLink>
-            <ButtonLink href="/admin/orders/new?source=CUSTOMER" variant="secondary">New customer order</ButtonLink>
             <ButtonLink href="/admin/orders/new-cake" variant="secondary">New custom cake order</ButtonLink>
           </>
         }

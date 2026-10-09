@@ -5,7 +5,7 @@ import type { Enums } from "@/lib/database.types";
 type Role = Exclude<Enums<"staff_role">, "chef">;
 
 export type NavIcon =
-  | "dashboard" | "orders" | "counter" | "calendar" | "products" | "customers" | "analytics"
+  | "dashboard" | "orders" | "calendar" | "products" | "customers" | "analytics"
   | "staff" | "settings" | "bell" | "offers" | "reviews";
 
 export type NavItem = {
@@ -28,7 +28,6 @@ const SECTIONS: NavSection[] = [
     items: [
       { href: "/admin", label: "Dashboard", icon: "dashboard", roles: BOTH },
       { href: "/admin/orders", label: "Orders", icon: "orders", roles: BOTH, badge: "pending" },
-      { href: "/admin/counter", label: "Counter Sale", icon: "counter", roles: BOTH },
       { href: "/admin/calendar", label: "Calendar", icon: "calendar", roles: BOTH },
       { href: "/admin/customers", label: "Customers", icon: "customers", roles: BOTH },
       { href: "/admin/products", label: "Products", icon: "products", roles: BOTH },
