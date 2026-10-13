@@ -7,7 +7,7 @@ Checkboxes represent actual completion, not intentions.
 
 - [x] Ship the 2026-10-09 branch `no-kot-custom-cakes`: migrations applied to the live project, merged into `main`, deployed (2026-10-09). Counter Sale and the New customer order button removed the same day.
 - [ ] Click through the new screens on the live site (HANDOVER section 19).
-- [ ] Ship branch `custom-cake-extras` (2026-10-13): custom cakes gain theme, design, model, fondant, cupcakes/popsicles ticks, and set-up and delivery charges (each its own bill line at the custom cake GST rate); the calendar shows cake, weight, fondant and theme. Apply migration `20261013000100_custom_cake_extras.sql`, merge, deploy.
+- [x] Shipped `custom-cake-extras` (2026-10-13; migration applied to live, merged, deployed): custom cakes gain theme, design, model, fondant, cupcakes/popsicles ticks, and set-up and delivery charges (each its own bill line at the custom cake GST rate); the calendar shows cake, weight, fondant and theme. Apply migration `20261013000100_custom_cake_extras.sql`, merge, deploy.
 - [ ] Owner to confirm: custom cake GST 5% (Settings), set-up and delivery charges taxed at that same rate, counter staff may take custom cakes but only an admin re-prices a confirmed one (price or charges).
 
 1. [ ] Read [HANDOVER.md](HANDOVER.md), then PRD sections 5F, 7, 10A, and 14A.
