@@ -4,6 +4,7 @@ import { z } from "zod";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getBusinessTimezone } from "@/lib/settings";
+import { cakeExtras } from "@/lib/custom-cake";
 import { formatPaise } from "@/lib/money";
 import { sourceLabel } from "@/lib/orders";
 import { formatDateTime } from "@/lib/time";
@@ -39,10 +40,14 @@ export default async function CakeSheetPage({ params, searchParams }: PageProps<
     ["Flavour", cake.flavour],
     ["Size", `${Number(cake.weight_kg)} kg${cake.tiers > 1 ? ` · ${cake.tiers} tiers` : ""}`],
     ["Egg", cake.is_eggless ? "EGGLESS" : "With egg"],
-    ["Design / theme", cake.theme],
+    ["Theme", cake.theme],
+    ["Design", cake.design],
+    ["Model", cake.model],
+    ["Fondant", cake.fondant],
     ["Cream", cake.cream],
     ["Filling", cake.filling],
     ["Toppings", cake.toppings],
+    ["Extras", cakeExtras(cake) || null],
     ["Instructions", cake.instructions],
   ];
 

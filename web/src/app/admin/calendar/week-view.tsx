@@ -2,7 +2,7 @@ import Link from "next/link";
 import { addDays, formatTime } from "@/lib/time";
 import { cx } from "@/components/ui";
 import { fulfilmentLabel, fulfilmentRowClass } from "@/lib/orders";
-import { plural, type OrdersByDay } from "./order-row";
+import { cakeSummary, plural, type OrdersByDay } from "./order-row";
 import { WEEKDAYS } from "./month-view";
 
 // Mon–Sun columns; each order is a compact chip. Column headers open the day view.
@@ -44,10 +44,14 @@ export function WeekView({ weekStart, today, byDay, closureByDay, tz, dayHref }:
                         <span className="font-semibold tabular-nums">{o.due_at && formatTime(o.due_at, tz)}</span>{" "}
                         <span className="font-mono">{o.reference}</span>
                         <span className="block truncate">{o.customer_name ?? "Walk-in"}</span>
+                        {o.cake && <span className="block">🎂 {cakeSummary(o.cake)}</span>}
                         {o.fulfilment && (
                           <span className={cx("block font-semibold", o.fulfilment === "setup" ? "text-danger" : "text-ok")}>
                             {o.fulfilment === "setup" ? "🚚 " : "🏪 "}{fulfilmentLabel[o.fulfilment]}
                           </span>
+                        )}
+                        {o.fulfilment === "setup" && o.setup_address && (
+                          <span className="block text-danger">{o.setup_address}</span>
                         )}
                         {pending && <span className="font-medium text-warn">Pending</span>}
                       </Link>

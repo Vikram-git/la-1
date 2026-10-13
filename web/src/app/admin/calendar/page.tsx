@@ -7,7 +7,7 @@ import { OPEN_STATUSES, type OrderStatus } from "@/lib/orders";
 import type { PickupAvailability } from "@/lib/capacity";
 import { addDays, formatDayHeading, zonedDayKey, zonedDayRange } from "@/lib/time";
 import { PageHeader, Select, cx } from "@/components/ui";
-import type { OrdersByDay } from "./order-row";
+import type { CalendarCake, OrdersByDay } from "./order-row";
 import { AgendaView } from "./agenda-view";
 import { DayView } from "./day-view";
 import { MonthView } from "./month-view";
@@ -79,11 +79,18 @@ export default async function CalendarPage({ searchParams }: PageProps<"/admin/c
   ]);
   const closureByDay = new Map((closures ?? []).map((c) => [c.closed_on, c.reason]));
 
+  // Custom cakes (2026-10-13): what cake, its weight, fondant and theme on each order.
+  const orderIds = (orders ?? []).map((o) => o.id).filter((v): v is string => Boolean(v));
+  const { data: cakes } = orderIds.length
+    ? await supabase.from("custom_cakes").select("order_id, flavour, weight_kg, tiers, fondant, theme").in("order_id", orderIds)
+    : { data: [] };
+  const cakeByOrder = new Map<string, CalendarCake>((cakes ?? []).map((c) => [c.order_id, c]));
+
   const byDay: OrdersByDay = new Map();
   for (const o of orders ?? []) {
     if (!o.due_at) continue;
     const key = zonedDayKey(o.due_at, tz);
-    byDay.set(key, [...(byDay.get(key) ?? []), o]);
+    byDay.set(key, [...(byDay.get(key) ?? []), { ...o, cake: o.id ? cakeByOrder.get(o.id) ?? null : null }]);
   }
 
   const link = (overrides: Record<string, string>) => {

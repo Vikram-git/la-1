@@ -458,15 +458,24 @@ export type Database = {
         Row: {
           created_at: string
           cream: string | null
+          delivery_charge_item_id: string | null
+          delivery_charge_paise: number
+          design: string | null
           filling: string | null
           flavour: string
+          fondant: string | null
+          has_cupcakes: boolean
+          has_popsicles: boolean
           id: string
           instructions: string | null
           is_eggless: boolean
           message: string | null
+          model: string | null
           order_id: string
           order_item_id: string
           photo_path: string | null
+          setup_charge_item_id: string | null
+          setup_charge_paise: number
           theme: string | null
           tiers: number
           toppings: string | null
@@ -476,6 +485,13 @@ export type Database = {
         Insert: never
         Update: never
         Relationships: [
+          {
+            foreignKeyName: "custom_cakes_delivery_charge_item_id_fkey"
+            columns: ["delivery_charge_item_id"]
+            isOneToOne: false
+            referencedRelation: "order_items"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "custom_cakes_order_id_fkey"
             columns: ["order_id"]
@@ -487,6 +503,13 @@ export type Database = {
             foreignKeyName: "custom_cakes_order_item_id_fkey"
             columns: ["order_item_id"]
             isOneToOne: true
+            referencedRelation: "order_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custom_cakes_setup_charge_item_id_fkey"
+            columns: ["setup_charge_item_id"]
+            isOneToOne: false
             referencedRelation: "order_items"
             referencedColumns: ["id"]
           },

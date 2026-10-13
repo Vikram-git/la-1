@@ -3,9 +3,9 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Alert, Button, ButtonLink, Field, Input, cx } from "@/components/ui";
-import { CakeFields, type CakeFormValue } from "@/components/cake-fields";
-import { cakePhotoProblem } from "@/lib/custom-cake";
-import { paiseToRupeesInput } from "@/lib/money";
+import { CakeChargeFields, CakeFields, type CakeFormValue } from "@/components/cake-fields";
+import { cakeExtras, cakePhotoProblem } from "@/lib/custom-cake";
+import { formatPaise, paiseToRupeesInput } from "@/lib/money";
 import { uploadPhoto } from "@/lib/photo-upload";
 import { setCustomCakePhotoAction, updateCustomCakeAction } from "../actions";
 
@@ -14,12 +14,19 @@ export type CustomCake = {
   weight_kg: number;
   tiers: number;
   theme: string | null;
+  design: string | null;
+  model: string | null;
+  fondant: string | null;
   cream: string | null;
   filling: string | null;
   toppings: string | null;
   message: string | null;
   is_eggless: boolean;
   instructions: string | null;
+  has_cupcakes: boolean;
+  has_popsicles: boolean;
+  setup_charge_paise: number;
+  delivery_charge_paise: number;
 };
 
 // The custom cake as a yellow sticky note (owner's mock-up), with its photo, edit and print.
@@ -47,12 +54,19 @@ export function CakeCard({
     weightKg: String(Number(cake.weight_kg)),
     tiers: String(cake.tiers),
     theme: cake.theme ?? "",
+    design: cake.design ?? "",
+    model: cake.model ?? "",
+    fondant: cake.fondant ?? "",
     cream: cake.cream ?? "",
     filling: cake.filling ?? "",
     toppings: cake.toppings ?? "",
     message: cake.message ?? "",
     isEggless: cake.is_eggless,
     instructions: cake.instructions ?? "",
+    hasCupcakes: cake.has_cupcakes,
+    hasPopsicles: cake.has_popsicles,
+    setupCharge: cake.setup_charge_paise ? paiseToRupeesInput(cake.setup_charge_paise) : "",
+    deliveryCharge: cake.delivery_charge_paise ? paiseToRupeesInput(cake.delivery_charge_paise) : "",
   }));
   const [price, setPrice] = useState(paiseToRupeesInput(pricePaise));
   const [error, setError] = useState<string | null>(null);
@@ -96,11 +110,17 @@ export function CakeCard({
   const rows: [string, string | null][] = [
     ["Flavour", cake.flavour],
     ["Size", `${Number(cake.weight_kg)} kg${cake.tiers > 1 ? ` · ${cake.tiers} tiers` : ""}`],
-    ["Design / theme", cake.theme],
+    ["Theme", cake.theme],
+    ["Design", cake.design],
+    ["Model", cake.model],
+    ["Fondant", cake.fondant],
     ["Cream", cake.cream],
     ["Filling", cake.filling],
     ["Toppings", cake.toppings],
+    ["Extras", cakeExtras(cake) || null],
     ["Instructions", cake.instructions],
+    ["Set-up charges", cake.setup_charge_paise ? formatPaise(cake.setup_charge_paise) : null],
+    ["Delivery charges", cake.delivery_charge_paise ? formatPaise(cake.delivery_charge_paise) : null],
   ];
 
   return (
@@ -116,9 +136,12 @@ export function CakeCard({
       {editing ? (
         <div className="flex flex-col gap-4 rounded-xl bg-surface/80 p-4">
           <CakeFields value={value} onChange={setValue} idPrefix="edit-cake" />
-          <Field label="Price (₹, incl. GST)" htmlFor="edit-cake-price" hint="Changing the price changes the order total.">
-            <Input id="edit-cake-price" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} className="max-w-40" />
-          </Field>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Field label="Cake price (₹, incl. GST)" htmlFor="edit-cake-price" hint="Price and charges change the order total.">
+              <Input id="edit-cake-price" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} />
+            </Field>
+            <CakeChargeFields value={value} onChange={setValue} idPrefix="edit-cake" />
+          </div>
           {error && <Alert tone="danger">{error}</Alert>}
           <div className="flex gap-2">
             <Button disabled={pending} onClick={save}>{pending ? "Saving…" : "Save cake"}</Button>

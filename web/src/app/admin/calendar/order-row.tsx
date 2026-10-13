@@ -15,7 +15,29 @@ export type CalendarOrder = {
   item_count: number | null;
   fulfilment: Fulfilment | null;
   setup_address: string | null;
+  cake?: CalendarCake | null;
 };
+
+// A custom cake's headline details, joined on by the calendar page.
+export type CalendarCake = {
+  flavour: string;
+  weight_kg: number;
+  tiers: number;
+  fondant: string | null;
+  theme: string | null;
+};
+
+// "Chocolate truffle · 1.5 kg · Fondant: Full · Theme: Unicorn"
+export function cakeSummary(c: CalendarCake): string {
+  return [
+    c.flavour,
+    `${Number(c.weight_kg)} kg${c.tiers > 1 ? ` · ${c.tiers} tiers` : ""}`,
+    c.fondant && `Fondant: ${c.fondant}`,
+    c.theme && `Theme: ${c.theme}`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
 
 // Orders grouped by business-local day ("YYYY-MM-DD"), sorted by due time.
 export type OrdersByDay = Map<string, CalendarOrder[]>;
@@ -30,6 +52,7 @@ export function OrderList({ orders, tz }: { orders: CalendarOrder[]; tz: string 
             <span className="font-mono text-sm">{o.reference}</span>
             <span className="min-w-32 flex-1">
               {o.customer_name ?? "Walk-in"}
+              {o.cake && <span className="block text-sm font-medium">🎂 {cakeSummary(o.cake)}</span>}
               {o.fulfilment === "setup" && o.setup_address && (
                 <span className="block text-xs font-medium text-danger">Set up at: {o.setup_address}</span>
               )}

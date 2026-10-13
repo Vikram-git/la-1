@@ -127,6 +127,72 @@ begin
     (select tax_rate_bps from public.order_items where order_id = o.id) || ' / ' || o.tax_paise);
 end $$;
 
+-- 2026-10-13: design, model, fondant, cupcakes and popsicles, set-up and delivery charges.
+reset role;
+update public.business_settings set custom_cake_tax_rate_bps = 500;
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000ea1","role":"authenticated"}', true);
+do $$
+declare o public.orders; c public.custom_cakes;
+  extras jsonb := '{"design": "Gold drip", "model": "Doll cake", "fondant": " Full fondant ", "has_cupcakes": true,
+    "has_popsicles": false, "setup_charge_paise": 50000, "delivery_charge_paise": 20000}';
+begin
+  o := pg_temp.order_with(gen_random_uuid(), pg_temp.cake() || extras, 150000, 210000);
+  select * into c from public.custom_cakes where order_id = o.id;
+  -- expect: Gold drip / Doll cake / Full fondant / true / false / 50000 / 20000
+  insert into r(check_name,outcome) values ('C15 the new cake details are kept',
+    c.design || ' / ' || c.model || ' / ' || c.fondant || ' / ' || c.has_cupcakes || ' / ' || c.has_popsicles
+    || ' / ' || c.setup_charge_paise || ' / ' || c.delivery_charge_paise);
+  -- expect: 220000 / 10476 / 10000 / Custom cake=150000,Set-up charges=50000,Delivery charges=20000 / true
+  insert into r(check_name,outcome) values ('C16 charges are their own lines in the total, and the advance can cover them',
+    o.total_paise || ' / ' || o.tax_paise || ' / ' || (select balance_paise from public.order_summaries where id = o.id) || ' / '
+    || (select string_agg(product_name || '=' || line_total_paise, ',' order by line_no) from public.order_items where order_id = o.id)
+    || ' / ' || (c.setup_charge_item_id is not null and c.delivery_charge_item_id is not null));
+
+  o := public.update_custom_cake(o.id, o.version, pg_temp.cake() || extras || '{"setup_charge_paise": 0, "delivery_charge_paise": 30000}', 150000);
+  select * into c from public.custom_cakes where order_id = o.id;
+  -- expect: 180000 / Custom cake=150000,Delivery charges=30000 / true
+  insert into r(check_name,outcome) values ('C17 changing the charges removes or re-prices their lines',
+    o.total_paise || ' / '
+    || (select string_agg(product_name || '=' || line_total_paise, ',' order by line_no) from public.order_items where order_id = o.id)
+    || ' / ' || (c.setup_charge_item_id is null));
+
+  o := public.update_custom_cake(o.id, o.version, pg_temp.cake() || extras, 150000);
+  -- expect: 220000 / 3
+  insert into r(check_name,outcome) values ('C18 a charge put back adds its line again',
+    o.total_paise || ' / ' || (select count(*) from public.order_items where order_id = o.id));
+
+  begin perform pg_temp.order_with(gen_random_uuid(), pg_temp.cake() || extras, 150000, 220100);
+    insert into r(check_name,outcome) values ('C19 an advance above the whole total is refused', 'ALLOWED');
+  -- expect: The advance is more than the price.
+  exception when others then insert into r(check_name,outcome) values ('C19 an advance above the whole total is refused', sqlerrm); end;
+
+  begin perform pg_temp.order_with(gen_random_uuid(), pg_temp.cake() || '{"delivery_charge_paise": -5}', 150000);
+    insert into r(check_name,outcome) values ('C20 charges cannot be negative', 'ALLOWED');
+  -- expect: Delivery charges must be between ₹0 and ₹10,00,000.
+  exception when others then insert into r(check_name,outcome) values ('C20 charges cannot be negative', sqlerrm); end;
+
+  o := public.confirm_order(o.id, o.version);
+  insert into ctx values ('X', o.id::text);
+end $$;
+
+-- Counter staff can change a confirmed cake's details but not its charges.
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000ec1","role":"authenticated"}', true);
+do $$
+declare o public.orders; x uuid := (select v::uuid from ctx where k = 'X');
+  extras jsonb := '{"design": "Gold drip", "model": "Doll cake", "fondant": "Full fondant", "has_cupcakes": true,
+    "setup_charge_paise": 50000, "delivery_charge_paise": 20000}';
+begin
+  o := public.update_custom_cake(x, (select version from public.orders where id = x), pg_temp.cake() || extras || '{"fondant": "Semi fondant"}', 150000);
+  -- expect: Semi fondant / 220000
+  insert into r(check_name,outcome) values ('C21 counter staff change the details of a confirmed cake',
+    (select fondant from public.custom_cakes where order_id = x) || ' / ' || o.total_paise);
+  begin perform public.update_custom_cake(x, o.version, pg_temp.cake() || extras || '{"delivery_charge_paise": 0}', 150000);
+    insert into r(check_name,outcome) values ('C22 only an admin changes a confirmed cake''s charges', 'ALLOWED');
+  -- expect: Only an admin can change the price or charges of a confirmed order.
+  exception when others then insert into r(check_name,outcome) values ('C22 only an admin changes a confirmed cake''s charges', sqlerrm); end;
+end $$;
+
 reset role;
 select check_name, outcome from r order by n;
 rollback;

@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card, Checkbox, Field, Input, Select, Textarea, cx } from "@/components/ui";
-import { CakeFields, EMPTY_CAKE, type CakeFormValue } from "@/components/cake-fields";
+import { CakeChargeFields, CakeFields, EMPTY_CAKE, type CakeFormValue } from "@/components/cake-fields";
 import { FulfilmentFields, type FulfilmentValue } from "@/components/fulfilment-fields";
 import { CustomerWarning } from "@/components/customer-warning";
 import { OverridePrompt } from "@/components/override-prompt";
@@ -48,6 +48,8 @@ export function CakeOrderForm({ isAdmin, defaultDueLocal, minDueLocal }: { isAdm
 
   const pricePaise = parseRupeesToPaise(price.trim() || "0") ?? 0;
   const advancePaise = parseRupeesToPaise(advance.trim() || "0") ?? 0;
+  const chargesPaise = (parseRupeesToPaise(cake.setupCharge.trim() || "0") ?? 0) + (parseRupeesToPaise(cake.deliveryCharge.trim() || "0") ?? 0);
+  const totalPaise = pricePaise + chargesPaise;
   const isSetup = fulfil.fulfilment === "setup";
 
   function choosePhoto(file: File | null) {
@@ -78,18 +80,7 @@ export function CakeOrderForm({ isAdmin, defaultDueLocal, minDueLocal }: { isAdm
           customerPhone,
           dueLocal,
           price,
-          cake: {
-            flavour: cake.flavour,
-            weightKg: cake.weightKg,
-            tiers: cake.tiers,
-            theme: cake.theme,
-            cream: cake.cream,
-            filling: cake.filling,
-            toppings: cake.toppings,
-            message: cake.message,
-            isEggless: cake.isEggless,
-            instructions: cake.instructions,
-          },
+          cake: { ...cake },
           advance,
           advanceMethod: advancePaise > 0 ? advanceMethod : undefined,
           advanceReference,
@@ -147,9 +138,10 @@ export function CakeOrderForm({ isAdmin, defaultDueLocal, minDueLocal }: { isAdm
         <Card className="flex flex-col gap-4">
           <h2 className="text-lg font-semibold">Price and advance</h2>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Price (₹, incl. GST)" htmlFor="cake-price">
+            <Field label="Cake price (₹, incl. GST)" htmlFor="cake-price">
               <Input id="cake-price" inputMode="decimal" value={price} onChange={(e) => { setError(null); setPrice(e.target.value); }} placeholder="1500" required />
             </Field>
+            <CakeChargeFields value={cake} onChange={(v) => { setError(null); setCake(v); }} />
             <Field label="Advance received (₹, optional)" htmlFor="cake-advance">
               <Input id="cake-advance" inputMode="decimal" value={advance} onChange={(e) => { setError(null); setAdvance(e.target.value); }} placeholder="500" />
             </Field>
@@ -170,12 +162,13 @@ export function CakeOrderForm({ isAdmin, defaultDueLocal, minDueLocal }: { isAdm
           </div>
           {pricePaise > 0 && (
             <p className="text-sm">
-              Total {formatPaise(pricePaise)}
+              Total {formatPaise(totalPaise)}
+              {chargesPaise > 0 && <span className="text-muted"> (cake {formatPaise(pricePaise)} + charges {formatPaise(chargesPaise)})</span>}
               {advancePaise > 0 && (
                 <>
                   {" "}· Advance {formatPaise(advancePaise)} ·{" "}
-                  <span className={cx("font-semibold", advancePaise > pricePaise ? "text-danger" : "text-warn")}>
-                    {advancePaise > pricePaise ? "Advance is more than the price" : `Balance ${formatPaise(pricePaise - advancePaise)}`}
+                  <span className={cx("font-semibold", advancePaise > totalPaise ? "text-danger" : "text-warn")}>
+                    {advancePaise > totalPaise ? "Advance is more than the total" : `Balance ${formatPaise(totalPaise - advancePaise)}`}
                   </span>
                 </>
               )}
@@ -255,8 +248,8 @@ export function CakeOrderForm({ isAdmin, defaultDueLocal, minDueLocal }: { isAdm
           />
         )}
 
-        <Button type="button" className="py-3 text-base" disabled={pending || missing || advancePaise > pricePaise} onClick={() => submit()}>
-          {pending ? "Saving…" : `${confirm ? "Create and confirm" : "Create custom cake order"}${pricePaise > 0 ? ` · ${formatPaise(pricePaise)}` : ""}`}
+        <Button type="button" className="py-3 text-base" disabled={pending || missing || advancePaise > totalPaise} onClick={() => submit()}>
+          {pending ? "Saving…" : `${confirm ? "Create and confirm" : "Create custom cake order"}${pricePaise > 0 ? ` · ${formatPaise(totalPaise)}` : ""}`}
         </Button>
         {missing && !pending && (
           <p className="-mt-2 text-xs text-muted">Needs the flavour, price, customer name and phone, the time{isSetup ? " and the set-up address" : ""}.</p>

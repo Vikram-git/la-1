@@ -24,6 +24,7 @@ export function MonthView({ gridStart, month, today, byDay, closureByDay, dayHre
           const pending = dayOrders.filter((o) => o.status === "pending_confirmation").length;
           const setups = dayOrders.filter((o) => o.fulfilment === "setup").length;
           const collects = dayOrders.length - setups;
+          const cakes = dayOrders.filter((o) => o.cake).length;
           const inMonth = day.startsWith(month);
           return (
             <Link key={day} href={dayHref(day)}
@@ -33,6 +34,7 @@ export function MonthView({ gridStart, month, today, byDay, closureByDay, dayHre
               {dayOrders.length > 0 && <span className="font-semibold">{plural(dayOrders.length, "order")}</span>}
               {setups > 0 && <span className="rounded bg-danger-soft px-1 text-xs font-semibold text-danger">🚚 {setups} set up</span>}
               {collects > 0 && <span className="rounded bg-ok-soft px-1 text-xs font-semibold text-ok">🏪 {collects} collect</span>}
+              {cakes > 0 && <span className="text-xs font-medium">🎂 {plural(cakes, "custom cake")}</span>}
               {pending > 0 && <span className="text-xs text-warn">{pending} pending</span>}
             </Link>
           );
