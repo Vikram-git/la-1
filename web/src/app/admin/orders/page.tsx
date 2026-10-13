@@ -122,19 +122,19 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/ord
         </p>
       )}
 
-      <nav aria-label="Order lists" className="mb-4 flex gap-1 border-b border-line">
+      <nav aria-label="Order lists" className="mb-4 grid grid-cols-3 border-b border-line sm:flex sm:gap-1">
         {(Object.keys(TABS) as Tab[]).map((key) => (
           <Link
             key={key}
             href={link({ list: key })}
             aria-current={list === key ? "page" : undefined}
             className={cx(
-              "-mb-px flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium",
+              "-mb-px flex flex-col items-center justify-end gap-1 border-b-2 px-1 py-2.5 text-center text-sm font-medium sm:flex-row sm:gap-2 sm:px-4 sm:text-left",
               list === key ? "border-brand text-brand-strong" : "border-transparent text-muted hover:text-ink",
             )}
           >
             {TABS[key].label}
-            <span className="rounded-full bg-canvas px-2 py-0.5 text-xs text-muted" title="Open orders due today">
+            <span className="whitespace-nowrap rounded-full bg-canvas px-2 py-0.5 text-xs text-muted" title="Open orders due today">
               {dueToday[key]} today
             </span>
           </Link>
@@ -187,7 +187,51 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/ord
           {when === "today" ? "Nothing due today in this list. Try Upcoming or Any date." : "Try a different filter."}
         </EmptyState>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-line bg-surface">
+        <>
+        {/* Phones: one card per order. */}
+        <ul className="flex flex-col gap-3 md:hidden">
+          {orders.map((o) => {
+            const overdue = o.due_at && o.due_at < now && o.status && OPEN_STATUSES.includes(o.status);
+            const cake = o.id ? cakeByOrder.get(o.id) : undefined;
+            const balance = o.balance_paise ?? 0;
+            return (
+              <li key={o.id}>
+                <Link href={`/admin/orders/${o.id}`} className={cx("block rounded-xl border border-line bg-surface p-4 hover:border-brand", fulfilmentRowClass(o.fulfilment))}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-mono font-medium">{o.reference}</p>
+                      <p className="truncate">{o.customer_name ?? <span className="text-muted">Walk-in</span>}</p>
+                      {o.customer_phone && <p className="text-xs text-muted">{o.customer_phone}</p>}
+                    </div>
+                    {o.status && <StatusBadge status={o.status} />}
+                  </div>
+                  <p className={cx("mt-2 text-sm", overdue && "font-medium text-danger")}>
+                    {o.due_at ? formatDateTime(o.due_at, tz) : "—"}
+                    {o.is_immediate && <span className="text-muted"> · Walk-in</span>}
+                    {overdue && " · Overdue"}
+                  </p>
+                  {cake && <p className="mt-1 text-sm">🎂 {cake.flavour}, {Number(cake.weight_kg)} kg</p>}
+                  {o.fulfilment === "setup" && o.setup_address && (
+                    <p className="mt-1 text-xs font-medium text-danger">Set up at: {o.setup_address}</p>
+                  )}
+                  <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                    {o.source && <SourceBadge source={o.source} />}
+                    {o.fulfilment && <FulfilmentBadge fulfilment={o.fulfilment} />}
+                    <span className="ml-auto text-sm">
+                      {o.item_count} item{o.item_count === 1 ? "" : "s"} · {formatPaise(o.total_paise ?? 0)}
+                      {" · "}
+                      <span className={cx("font-medium", balance > 0 && "text-warn", balance < 0 && "text-danger", balance === 0 && "text-ok")}>
+                        {balance === 0 ? "Paid" : balance < 0 ? `Refund ${formatPaise(-balance)}` : `Due ${formatPaise(balance)}`}
+                      </span>
+                    </span>
+                  </div>
+                </Link>
+              </li>
+            );
+          })}
+          {orders.length === 200 && <li className="text-xs text-muted">Showing the first 200. Narrow the filters to see more.</li>}
+        </ul>
+        <div className="hidden overflow-x-auto rounded-xl border border-line bg-surface md:block">
           <table className="w-full min-w-[820px] text-left text-sm">
             <thead className="border-b border-line bg-canvas text-xs uppercase tracking-wider text-muted">
               <tr>
@@ -250,6 +294,7 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/ord
           </table>
           {orders.length === 200 && <p className="border-t border-line px-4 py-2 text-xs text-muted">Showing the first 200. Narrow the filters to see more.</p>}
         </div>
+        </>
       )}
     </>
   );

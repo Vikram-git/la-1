@@ -102,7 +102,7 @@ export function OrderEntry({
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]">
       {/* Catalogue */}
-      <Card className="order-2 lg:order-1">
+      <Card className="lg:order-1">
         <div className="mb-4 flex items-center justify-between gap-3">
           <h2 className="text-lg font-semibold">Add items</h2>
           <SourceBadge source={source} />
@@ -111,7 +111,7 @@ export function OrderEntry({
       </Card>
 
       {/* Order */}
-      <div className="order-1 flex flex-col gap-4 lg:order-2">
+      <div className="flex flex-col gap-4 lg:order-2">
         <Card>
           <h2 className="mb-3 text-lg font-semibold">Order</h2>
           {lines.length === 0 ? (

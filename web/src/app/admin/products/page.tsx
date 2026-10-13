@@ -103,13 +103,13 @@ export default async function ProductsPage({ searchParams }: PageProps<"/admin/p
         </EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-line bg-surface">
-          <table className="w-full min-w-[720px] text-left text-sm">
+          <table className="w-full text-left text-sm">
             <thead className="border-b border-line bg-canvas text-xs uppercase tracking-wider text-muted">
               <tr>
                 <th scope="col" className="px-4 py-3 font-medium">Product</th>
-                <th scope="col" className="px-4 py-3 font-medium">Category</th>
-                <th scope="col" className="px-4 py-3 font-medium">Type</th>
-                <th scope="col" className="px-4 py-3 font-medium">Price</th>
+                <th scope="col" className="hidden px-4 py-3 font-medium md:table-cell">Category</th>
+                <th scope="col" className="hidden px-4 py-3 font-medium md:table-cell">Type</th>
+                <th scope="col" className="hidden px-4 py-3 font-medium md:table-cell">Price</th>
                 <th scope="col" className="px-4 py-3 font-medium">Status</th>
               </tr>
             </thead>
@@ -118,6 +118,11 @@ export default async function ProductsPage({ searchParams }: PageProps<"/admin/p
                 const variants = p.product_variants.filter((v) => !v.archived_at);
                 const prices = variants.map((v) => v.price_paise);
                 const hasEggless = variants.some((v) => v.is_eggless);
+                const price = prices.length === 0
+                  ? <span className="text-danger">No variants</span>
+                  : Math.min(...prices) === Math.max(...prices)
+                    ? formatPaise(prices[0])
+                    : `${formatPaise(Math.min(...prices))} – ${formatPaise(Math.max(...prices))}`;
                 return (
                   <tr key={p.id} className="hover:bg-canvas/60">
                     <td className="px-4 py-3">
@@ -132,18 +137,13 @@ export default async function ProductsPage({ searchParams }: PageProps<"/admin/p
                         {p.contains_egg && <Badge>Contains egg</Badge>}
                         {hasEggless && <Badge tone="ok">Eggless option</Badge>}
                       </div>
+                      <p className="mt-1 text-xs text-muted md:hidden">{p.categories?.name} · {price}</p>
                       </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-muted">{p.categories?.name}</td>
-                    <td className="px-4 py-3">{p.prep_type === "made_to_order" ? "Made to order" : "Ready stock"}</td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      {prices.length === 0
-                        ? <span className="text-danger">No variants</span>
-                        : Math.min(...prices) === Math.max(...prices)
-                          ? formatPaise(prices[0])
-                          : `${formatPaise(Math.min(...prices))} – ${formatPaise(Math.max(...prices))}`}
-                    </td>
+                    <td className="hidden px-4 py-3 text-muted md:table-cell">{p.categories?.name}</td>
+                    <td className="hidden px-4 py-3 md:table-cell">{p.prep_type === "made_to_order" ? "Made to order" : "Ready stock"}</td>
+                    <td className="hidden px-4 py-3 whitespace-nowrap md:table-cell">{price}</td>
                     <td className="px-4 py-3">
                       {p.archived_at ? (
                         <Badge>Archived</Badge>

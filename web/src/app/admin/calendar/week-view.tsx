@@ -15,13 +15,14 @@ export function WeekView({ weekStart, today, byDay, closureByDay, tz, dayHref }:
   dayHref: (day: string) => string;
 }) {
   return (
-    <div className="overflow-x-auto">
-      <div className="grid min-w-[700px] grid-cols-7 gap-px overflow-hidden rounded-xl border border-line bg-line text-sm">
+    <div className="md:overflow-x-auto">
+      {/* Phones: days stacked; wider screens: Mon–Sun columns. */}
+      <div className="grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-line bg-line text-sm md:min-w-[700px] md:grid-cols-7">
         {Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)).map((day, i) => {
           const dayOrders = byDay.get(day) ?? [];
           const closure = closureByDay.get(day);
           return (
-            <section key={day} aria-labelledby={`week-${day}`} className={cx("flex min-h-64 flex-col bg-surface", day === today && "ring-2 ring-inset ring-brand")}>
+            <section key={day} aria-labelledby={`week-${day}`} className={cx("flex flex-col bg-surface md:min-h-64", day === today && "ring-2 ring-inset ring-brand")}>
               <Link id={`week-${day}`} href={dayHref(day)} className="flex flex-col border-b border-line bg-canvas px-2 py-1.5 hover:bg-brand-soft/50">
                 <span className="text-xs font-medium uppercase tracking-wider text-muted">
                   {WEEKDAYS[i]} {Number(day.slice(8))}

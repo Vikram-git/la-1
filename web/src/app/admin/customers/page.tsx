@@ -34,14 +34,14 @@ export default async function CustomersPage({ searchParams }: PageProps<"/admin/
         <EmptyState title={q ? "No customers match" : "No customers yet"}>Customers are added when an order is taken with a phone number.</EmptyState>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-line bg-surface">
-          <table className="w-full min-w-[640px] text-left text-sm">
+          <table className="w-full text-left text-sm md:min-w-[640px]">
             <thead className="border-b border-line bg-canvas text-xs uppercase tracking-wider text-muted">
               <tr>
                 <th scope="col" className="px-4 py-3 font-medium">Name</th>
                 <th scope="col" className="px-4 py-3 font-medium">Phone</th>
                 <th scope="col" className="px-4 py-3 font-medium">Orders</th>
-                <th scope="col" className="px-4 py-3 font-medium">Latest</th>
-                <th scope="col" className="px-4 py-3 font-medium">Flags</th>
+                <th scope="col" className="hidden px-4 py-3 font-medium md:table-cell">Latest</th>
+                <th scope="col" className="hidden px-4 py-3 font-medium md:table-cell">Flags</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
@@ -51,10 +51,16 @@ export default async function CustomersPage({ searchParams }: PageProps<"/admin/
                   <tr key={c.id}>
                     <td className="px-4 py-3 font-medium">
                       <Link href={`/admin/customers/${c.id}`} className="hover:text-brand hover:underline">{c.full_name}</Link>
+                      {(c.is_blocked || c.no_show_count > 0) && (
+                        <div className="mt-1 flex flex-wrap gap-1 md:hidden">
+                          {c.is_blocked && <Badge tone="danger">Blocked</Badge>}
+                          {c.no_show_count > 0 && <Badge tone="warn">{c.no_show_count} no-show{c.no_show_count === 1 ? "" : "s"}</Badge>}
+                        </div>
+                      )}
                     </td>
                     <td className="px-4 py-3"><a href={`tel:${c.phone}`} className="text-brand hover:underline">{c.phone}</a></td>
                     <td className="px-4 py-3">{c.orders.length}</td>
-                    <td className="px-4 py-3">
+                    <td className="hidden px-4 py-3 md:table-cell">
                       {latest ? (
                         <Link href={`/admin/orders/${latest.id}`} className="hover:text-brand hover:underline">
                           <span className="font-mono">{latest.reference}</span>
@@ -62,7 +68,7 @@ export default async function CustomersPage({ searchParams }: PageProps<"/admin/
                         </Link>
                       ) : "—"}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="hidden px-4 py-3 md:table-cell">
                       <div className="flex gap-1">
                         {c.is_blocked && <Badge tone="danger">Blocked</Badge>}
                         {c.no_show_count > 0 && <Badge tone="warn">{c.no_show_count} no-show{c.no_show_count === 1 ? "" : "s"}</Badge>}
