@@ -361,3 +361,18 @@ Spec `docs/superpowers/specs/2026-10-09-no-kot-custom-cakes-design.md`; plan `do
 - `supabase/seed/demo_data.sql` and `supabase/local/concurrency-kitchen.sh` still use kitchen tickets; re-running the demo seed fails at its ticket steps (the live demo data is already loaded).
 - A photo uploaded but not attached (network drop between the two steps) stays in the bucket as an orphan.
 - Thumbnails load the full photo (no image optimisation); upload reasonably sized photos.
+
+## 20. Custom cake extras and cake details on the calendar (owner, 2026-10-13)
+
+Migration `20261013000100_custom_cake_extras.sql`. **Shipped 2026-10-13:** applied to the live project, merged into `main`, deployed.
+
+- **New cake details** (`custom_cakes`): `theme` (now its own field), `design`, `model`, `fondant` (text, e.g. "Full fondant"), `has_cupcakes`, `has_popsicles`. On the new custom cake form, the order page's cake card (view and edit) and the printed cake sheet ("Extras: Cupcakes, Popsicles").
+- **Set-up and delivery charges** (`setup_charge_paise`, `delivery_charge_paise`, optional, in the form's price section). A charge above zero is its own order line ("Set-up charges" / "Delivery charges", variant "Custom cake") at the custom cake GST rate and HSN from Settings, so totals, bills and balances include it. `private.sync_cake_charges` adds, re-prices or deletes the lines; `custom_cakes.setup_charge_item_id` / `delivery_charge_item_id` point at them. The advance is checked against the whole total. Only an admin changes a confirmed cake's price or charges; counter staff can still change its details.
+- `create_custom_cake_order` now creates the order unconfirmed, adds the details and charge lines, then confirms if asked.
+- **Calendar:** day and agenda rows show "🎂 flavour · weight · Fondant · Theme" under the customer name, with the set-up address; week chips show the same and the address; month cells count custom cakes.
+- Checks: `supabase/tests/custom_cakes_logic.sql` C15–C22; `web/src/lib/custom-cake.test.ts`.
+
+**Not done / to watch**
+- Not yet clicked through on the live site.
+- Owner to confirm the charges' GST (same rate as custom cakes, default 5%); delivery services are often taxed differently.
+- Cupcakes and popsicles are ticks only, with no count (counts go in Special instructions).
