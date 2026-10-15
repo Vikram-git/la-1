@@ -7,7 +7,7 @@ import { formatPaise } from "@/lib/money";
 import { ORDER_LISTS, OPEN_STATUSES, fulfilmentRowClass, statusLabel, type ListKey, type OrderSource, type OrderStatus, searchEverywhere } from "@/lib/orders";
 import { formatDateTime, zonedDayKey, zonedDayRange } from "@/lib/time";
 import { Alert, ButtonLink, EmptyState, Input, PageHeader, Select, cx } from "@/components/ui";
-import { FulfilmentBadge, SourceBadge, StatusBadge } from "@/components/order-badges";
+import { ContactBadge, FulfilmentBadge, SourceBadge, StatusBadge } from "@/components/order-badges";
 
 export const metadata: Metadata = { title: "Orders" };
 
@@ -195,13 +195,12 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/ord
             const cake = o.id ? cakeByOrder.get(o.id) : undefined;
             const balance = o.balance_paise ?? 0;
             return (
-              <li key={o.id}>
-                <Link href={`/admin/orders/${o.id}`} className={cx("block rounded-xl border border-line bg-surface p-4 hover:border-brand", fulfilmentRowClass(o.fulfilment))}>
+              <li key={o.id} className={cx("relative rounded-xl border border-line bg-surface p-4 hover:border-brand", fulfilmentRowClass(o.fulfilment))}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="font-mono font-medium">{o.reference}</p>
+                      {/* The reference's link covers the whole card; the phone badge sits above it. */}
+                      <Link href={`/admin/orders/${o.id}`} className="font-mono font-medium after:absolute after:inset-0">{o.reference}</Link>
                       <p className="truncate">{o.customer_name ?? <span className="text-muted">Walk-in</span>}</p>
-                      {o.customer_phone && <p className="text-xs text-muted">{o.customer_phone}</p>}
                     </div>
                     {o.status && <StatusBadge status={o.status} />}
                   </div>
@@ -215,7 +214,7 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/ord
                     <p className="mt-1 text-xs font-medium text-danger">Set up at: {o.setup_address}</p>
                   )}
                   <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                    {o.source && <SourceBadge source={o.source} />}
+                    {o.source && <ContactBadge source={o.source} phone={o.customer_phone} />}
                     {o.fulfilment && <FulfilmentBadge fulfilment={o.fulfilment} />}
                     <span className="ml-auto text-sm">
                       {o.item_count} item{o.item_count === 1 ? "" : "s"} · {formatPaise(o.total_paise ?? 0)}
@@ -225,7 +224,6 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/ord
                       </span>
                     </span>
                   </div>
-                </Link>
               </li>
             );
           })}

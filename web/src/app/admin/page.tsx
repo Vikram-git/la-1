@@ -7,7 +7,7 @@ import { formatPaise } from "@/lib/money";
 import { OPEN_STATUSES, fulfilmentRowClass } from "@/lib/orders";
 import { addDays, formatDateTime, zonedDayKey, zonedDayRange } from "@/lib/time";
 import { Badge, ButtonLink, Card, PageHeader, cx } from "@/components/ui";
-import { FulfilmentBadge, SourceBadge, StatusBadge } from "@/components/order-badges";
+import { ContactBadge, FulfilmentBadge, StatusBadge } from "@/components/order-badges";
 import { netCollected } from "@/lib/home";
 
 export const metadata: Metadata = { title: "Home" };
@@ -36,11 +36,11 @@ export default async function AdminHome() {
       .gte("due_at", start.toISOString()).lt("due_at", end.toISOString()),
     supabase.from("orders").select("id", { count: "exact", head: true }).eq("status", "pending_confirmation"),
     supabase.from("orders").select("id", { count: "exact", head: true }).in("status", OPEN_STATUSES).lt("due_at", nowIso),
-    supabase.from("order_summaries").select("id, reference, source, status, customer_name, due_at, fulfilment").in("status", OPEN_STATUSES)
+    supabase.from("order_summaries").select("id, reference, source, status, customer_name, customer_phone, due_at, fulfilment").in("status", OPEN_STATUSES)
       .gte("due_at", end.toISOString()).lt("due_at", weekEnd.toISOString()).order("due_at").limit(10),
     supabase.from("business_settings").select("gstin, fssai_licence").single(),
     supabase.from("products").select("id", { count: "exact", head: true }).is("archived_at", null),
-    supabase.from("order_summaries").select("id, reference, source, customer_name, due_at, balance_paise, fulfilment")
+    supabase.from("order_summaries").select("id, reference, source, customer_name, customer_phone, due_at, balance_paise, fulfilment")
       .eq("status", "ready").order("due_at").limit(20),
     // Money received today (payment dates, like the sales report); admins only.
     isAdmin
@@ -104,16 +104,14 @@ export default async function AdminHome() {
               {ready.map((o) => {
                 const overdue = isLate(o.due_at);
                 return (
-                  <li key={o.id}>
-                    <Link href={`/admin/orders/${o.id}`} className={cx("flex flex-wrap items-center gap-3 px-2 py-2.5 hover:text-brand", fulfilmentRowClass(o.fulfilment))}>
+                  <li key={o.id} className={cx("relative flex flex-wrap items-center gap-3 px-2 py-2.5 hover:text-brand", fulfilmentRowClass(o.fulfilment))}>
                       <span className={`w-40 text-sm ${overdue ? "font-semibold text-danger" : ""}`}>{o.due_at && formatDateTime(o.due_at, tz)}</span>
-                      <span className="font-mono text-sm">{o.reference}</span>
+                      <Link href={`/admin/orders/${o.id}`} className="font-mono text-sm after:absolute after:inset-0">{o.reference}</Link>
                       <span className="flex-1 text-sm">{o.customer_name ?? "Walk-in"}</span>
                       {o.fulfilment && <FulfilmentBadge fulfilment={o.fulfilment} />}
-                      {o.source && <SourceBadge source={o.source} />}
+                      {o.source && <ContactBadge source={o.source} phone={o.customer_phone} />}
                       {(o.balance_paise ?? 0) > 0 && <Badge tone="warn">Due {formatPaise(o.balance_paise ?? 0)}</Badge>}
                       {overdue && <Badge tone="danger">Late</Badge>}
-                    </Link>
                   </li>
                 );
               })}
@@ -131,15 +129,13 @@ export default async function AdminHome() {
           ) : (
             <ul className="divide-y divide-line">
               {(upcoming.data ?? []).map((o) => (
-                <li key={o.id}>
-                  <Link href={`/admin/orders/${o.id}`} className={cx("flex flex-wrap items-center gap-3 px-2 py-2.5 hover:text-brand", fulfilmentRowClass(o.fulfilment))}>
+                <li key={o.id} className={cx("relative flex flex-wrap items-center gap-3 px-2 py-2.5 hover:text-brand", fulfilmentRowClass(o.fulfilment))}>
                     <span className="w-40 text-sm">{o.due_at && formatDateTime(o.due_at, tz)}</span>
-                    <span className="font-mono text-sm">{o.reference}</span>
+                    <Link href={`/admin/orders/${o.id}`} className="font-mono text-sm after:absolute after:inset-0">{o.reference}</Link>
                     <span className="flex-1 text-sm">{o.customer_name ?? "Walk-in"}</span>
                     {o.fulfilment && <FulfilmentBadge fulfilment={o.fulfilment} />}
-                    {o.source && <SourceBadge source={o.source} />}
+                    {o.source && <ContactBadge source={o.source} phone={o.customer_phone} />}
                     {o.status && <StatusBadge status={o.status} />}
-                  </Link>
                 </li>
               ))}
             </ul>

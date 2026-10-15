@@ -62,7 +62,7 @@ export default async function CalendarPage({ searchParams }: PageProps<"/admin/c
   const supabase = await createClient();
   let query = supabase
     .from("order_summaries")
-    .select("id, reference, source, status, customer_name, due_at, item_count, fulfilment, setup_address")
+    .select("id, reference, source, status, customer_name, customer_phone, due_at, item_count, fulfilment, setup_address")
     .gte("due_at", start.toISOString())
     .lt("due_at", end.toISOString())
     .order("due_at");

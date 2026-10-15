@@ -2,7 +2,7 @@ import Link from "next/link";
 import { fulfilmentRowClass, type Fulfilment, type OrderSource, type OrderStatus } from "@/lib/orders";
 import { formatTime } from "@/lib/time";
 import { cx } from "@/components/ui";
-import { FulfilmentBadge, SourceBadge, StatusBadge } from "@/components/order-badges";
+import { ContactBadge, FulfilmentBadge, StatusBadge } from "@/components/order-badges";
 
 // Columns selected from order_summaries by the calendar page.
 export type CalendarOrder = {
@@ -11,6 +11,7 @@ export type CalendarOrder = {
   source: OrderSource | null;
   status: OrderStatus | null;
   customer_name: string | null;
+  customer_phone: string | null;
   due_at: string | null;
   item_count: number | null;
   fulfilment: Fulfilment | null;
@@ -69,10 +70,10 @@ export function OrderList({ orders, tz }: { orders: CalendarOrder[]; tz: string 
   return (
     <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
       {orders.map((o) => (
-        <li key={o.id}>
-          <Link href={`/admin/orders/${o.id}`} className={cx("flex flex-wrap items-center gap-3 px-4 py-3 hover:bg-canvas/60", fulfilmentRowClass(o.fulfilment), o.status === "pending_confirmation" && "bg-warn-soft/40")}>
+        <li key={o.id} className={cx("relative flex flex-wrap items-center gap-3 px-4 py-3 hover:bg-canvas/60", fulfilmentRowClass(o.fulfilment), o.status === "pending_confirmation" && "bg-warn-soft/40")}>
             <span className="w-20 font-semibold tabular-nums">{o.due_at && formatTime(o.due_at, tz)}</span>
-            <span className="font-mono text-sm">{o.reference}</span>
+            {/* The reference's link covers the whole row; the phone badge sits above it. */}
+            <Link href={`/admin/orders/${o.id}`} className="font-mono text-sm after:absolute after:inset-0">{o.reference}</Link>
             <span className={cx("min-w-32", o.cake ? "w-40" : "flex-1")}>
               {o.customer_name ?? "Walk-in"}
               {!o.cake && o.fulfilment === "setup" && o.setup_address && (
@@ -82,9 +83,8 @@ export function OrderList({ orders, tz }: { orders: CalendarOrder[]; tz: string 
             {o.cake && <CakeDetails cake={o.cake} fulfilment={o.fulfilment} setupAddress={o.setup_address} />}
             <span className="text-sm text-muted">{o.item_count} item{o.item_count === 1 ? "" : "s"}</span>
             {o.fulfilment && <FulfilmentBadge fulfilment={o.fulfilment} />}
-            {o.source && <SourceBadge source={o.source} />}
+            {o.source && <ContactBadge source={o.source} phone={o.customer_phone} />}
             {o.status && <StatusBadge status={o.status} />}
-          </Link>
         </li>
       ))}
     </ul>
