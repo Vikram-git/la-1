@@ -27,6 +27,14 @@ export async function createClient() {
   });
 }
 
+// No login and no cookies: acts as the anonymous website visitor (anon role). Only for the public
+// website's functions (website_catalogue, submit_website_order).
+export function createPublicClient() {
+  return createSupabaseClient<Database>(env.supabaseUrl, env.supabasePublishableKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+}
+
 // Bypasses RLS. Only for Auth admin operations (creating staff logins, resetting passwords)
 // after the caller has been verified as an admin.
 export function createAdminClient() {

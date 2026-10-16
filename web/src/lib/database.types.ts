@@ -1240,6 +1240,25 @@ export type Database = {
         Args: { p_date: string; p_exclude_order?: string }
         Returns: Json
       }
+      website_catalogue: {
+        Args: never
+        Returns: Json
+      }
+      submit_website_order: {
+        Args: {
+          p_idempotency_key: string
+          p_name: string
+          p_phone: string
+          p_due_at: string
+          p_message: string | null
+          p_order_type?: string | null
+          p_email?: string | null
+          p_items?: Json
+          p_fulfilment?: Database["public"]["Enums"]["fulfilment_type"]
+          p_setup_address?: string | null
+        }
+        Returns: Json
+      }
       set_customer_blocked: {
         Args: { p_blocked: boolean; p_customer_id: string; p_reason: string }
         Returns: Database["public"]["Tables"]["customers"]["Row"]

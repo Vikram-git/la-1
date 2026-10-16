@@ -376,3 +376,14 @@ Migration `20261013000100_custom_cake_extras.sql`. **Shipped 2026-10-13:** appli
 - Not yet clicked through on the live site.
 - Owner to confirm the charges' GST (same rate as custom cakes, default 5%); delivery services are often taxed differently.
 - Cupcakes and popsicles are ticks only, with no count (counts go in Special instructions).
+
+## 21. Public website connected to the order system (owner, 2026-10-16)
+
+The owner sent the finished static site (`la-patisserie-frontend.zip`, a newer version of `la pater/` with logos) and asked to connect it. Migration `20261016000100_website_orders.sql`; checks `supabase/tests/website_logic.sql` (18/18 on PGlite); `web/src/lib/website.ts` (unit-tested).
+
+- **Where it lives:** `web/public/site/` (the owner's HTML, CSS and JS, kept as plain files so later versions can be dropped in). `next.config.ts` rewrites `/` to `/site/index.html`; the old `/` → login redirect is gone. Staff use `/login` (linked in the footer).
+- **Products:** `script.js` loads `/api/site/catalogue` → `public.website_catalogue()` (anon): available products in active categories with available sizes, lowest price, photo, veg/egg and eggless flags; nothing staff-only. Cards replace the showcase cards; if the call fails or the catalogue is empty the showcase cards stay. Products without a photo get one of the site's photos.
+- **Orders:** the form (name, phone, optional email, optional product and size from the catalogue + quantity, date and time, collect or set up with address, order type, message) posts to `/api/site/order` → `public.submit_website_order` (anon). The order arrives in Orders as **Online 🌐, pending confirmation**; an admin confirms, edits items or rejects it as usual. Requests with no product arrive with a total of 0 for staff to price (Edit items) or reject and re-enter as a custom cake order. The type, email and message go into the customer notes.
+- **Checks:** opening hours and closures, lead time and capacity are enforced (no overrides from the website); blocked phones are refused; an existing customer's name is never changed by a visitor. Spam: hidden honeypot field, at most 3 waiting orders per phone and 30 website orders an hour in total. Retries with the same key return the same order.
+- **Time zone:** the website reads dates in Asia/Kolkata (visitors cannot read Settings).
+- **Not done:** the newsletter box does nothing; the contact section's hours (10 AM–8 PM) are typed into the HTML and differ from Settings (9–9 default); no confirmation message or email to the customer (staff call them); no order status page for customers (`orders.access_token` is reserved for it).
