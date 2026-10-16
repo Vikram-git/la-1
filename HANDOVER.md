@@ -379,6 +379,8 @@ Migration `20261013000100_custom_cake_extras.sql`. **Shipped 2026-10-13:** appli
 
 ## 21. Public website connected to the order system (owner, 2026-10-16)
 
+**Database shipped 2026-10-16:** `website_orders` applied to the live project (function digests compared with the file: identical; `website_catalogue()` returns the 16 demo products). The security advisor now also lists `anon_security_definer_function_executable` for these two functions: intentional, they are the website's only way in.
+
 The owner sent the finished static site (`la-patisserie-frontend.zip`, a newer version of `la pater/` with logos) and asked to connect it. Migration `20261016000100_website_orders.sql`; checks `supabase/tests/website_logic.sql` (18/18 on PGlite); `web/src/lib/website.ts` (unit-tested).
 
 - **Where it lives:** `web/public/site/` (the owner's HTML, CSS and JS, kept as plain files so later versions can be dropped in). `next.config.ts` rewrites `/` to `/site/index.html`; the old `/` → login redirect is gone. Staff use `/login` (linked in the footer).
