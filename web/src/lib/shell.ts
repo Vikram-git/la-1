@@ -13,8 +13,7 @@ export type NavItem = {
   label: string;
   icon: NavIcon;
   roles: Role[];
-  badge?: "pending"; // filled from the shell counts
-  soon?: boolean; // a "Coming soon" placeholder page
+  badge?: "pending" | "attention" | "reviews"; // filled from the shell counts
 };
 
 export type NavSection = { title: string | null; items: NavItem[] };
@@ -31,17 +30,12 @@ const SECTIONS: NavSection[] = [
       { href: "/admin/calendar", label: "Calendar", icon: "calendar", roles: BOTH },
       { href: "/admin/customers", label: "Customers", icon: "customers", roles: BOTH },
       { href: "/admin/products", label: "Products", icon: "products", roles: BOTH },
+      { href: "/admin/notifications", label: "Notifications", icon: "bell", roles: BOTH, badge: "attention" },
+      { href: "/admin/offers", label: "Offers & Banners", icon: "offers", roles: ADMIN },
+      { href: "/admin/reviews", label: "Reviews", icon: "reviews", roles: ADMIN, badge: "reviews" },
       { href: "/admin/reports", label: "Analytics", icon: "analytics", roles: ADMIN },
       { href: "/admin/staff", label: "Staff", icon: "staff", roles: ADMIN },
       { href: "/admin/settings", label: "Shop Settings", icon: "settings", roles: ADMIN },
-    ],
-  },
-  {
-    title: "Coming soon",
-    items: [
-      { href: "/admin/soon/notifications", label: "Notifications", icon: "bell", roles: BOTH, soon: true },
-      { href: "/admin/soon/offers", label: "Offers & Banners", icon: "offers", roles: ADMIN, soon: true },
-      { href: "/admin/soon/reviews", label: "Reviews", icon: "reviews", roles: ADMIN, soon: true },
     ],
   },
 ];
@@ -54,24 +48,8 @@ export function isActivePath(pathname: string, href: string): boolean {
   return href === "/admin" ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
 }
 
-// What the bell counts until real notifications exist (piece 5): orders awaiting confirmation and
-// late pickups.
-export function attentionCount(c: { pending?: number | null; latePickups?: number | null }): number {
-  return [c.pending, c.latePickups].reduce<number>((sum, n) => sum + Math.max(0, n ?? 0), 0);
+// What the bell and Notifications count: orders awaiting confirmation, late pickups and (admins) reviews
+// waiting for approval.
+export function attentionCount(c: { pending?: number | null; latePickups?: number | null; reviews?: number | null }): number {
+  return [c.pending, c.latePickups, c.reviews].reduce<number>((sum, n) => sum + Math.max(0, n ?? 0), 0);
 }
-
-// The placeholder pages behind the "Coming soon" items.
-export const SOON_PAGES: Record<string, { title: string; text: string }> = {
-  notifications: {
-    title: "Notifications",
-    text: "New orders waiting and late pickups, in one list. Until then the bell opens the Dashboard, which shows the same alerts.",
-  },
-  offers: {
-    title: "Offers & Banners",
-    text: "Promotions and banners for the public website. They come with the website.",
-  },
-  reviews: {
-    title: "Reviews",
-    text: "Customer reviews from the public website. They come with the website.",
-  },
-};

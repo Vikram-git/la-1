@@ -301,6 +301,62 @@ export type Database = {
           },
         ]
       }
+      offers: {
+        Row: {
+          id: string
+          title: string
+          body: string | null
+          image_url: string | null
+          button_label: string | null
+          button_link: string | null
+          starts_on: string | null
+          ends_on: string | null
+          is_active: boolean
+          sort_order: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          body?: string | null
+          image_url?: string | null
+          button_label?: string | null
+          button_link?: string | null
+          starts_on?: string | null
+          ends_on?: string | null
+          is_active?: boolean
+          sort_order?: number
+        }
+        Update: {
+          title?: string
+          body?: string | null
+          image_url?: string | null
+          button_label?: string | null
+          button_link?: string | null
+          starts_on?: string | null
+          ends_on?: string | null
+          is_active?: boolean
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      reviews: {
+        Row: {
+          id: string
+          customer_name: string
+          rating: number
+          comment: string
+          status: "pending" | "approved" | "hidden"
+          decided_at: string | null
+          decided_by: string | null
+          created_at: string
+        }
+        // Reviews arrive only through submit_review; staff change the status.
+        Insert: never
+        Update: { status?: "pending" | "approved" | "hidden" }
+        Relationships: []
+      }
       bills: {
         Row: BillRow
         Insert: never
@@ -1243,6 +1299,14 @@ export type Database = {
       website_catalogue: {
         Args: never
         Returns: Json
+      }
+      website_content: {
+        Args: never
+        Returns: Json
+      }
+      submit_review: {
+        Args: { p_name: string; p_rating: number; p_comment: string }
+        Returns: undefined
       }
       submit_website_order: {
         Args: {

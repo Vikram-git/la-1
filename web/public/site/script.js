@@ -433,6 +433,127 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     loadCatalogue();
 
+    // ---------- Offers and reviews (from Offers & Banners and Reviews in the admin) ----------
+    function offerCard(offer) {
+        const card = el('article', 'offer-card');
+        if (offer.image_url) {
+            const wrap = el('div', 'offer-image card-image');
+            const img = el('img');
+            img.src = offer.image_url;
+            img.alt = '';
+            img.loading = 'lazy';
+            wrap.appendChild(img);
+            card.appendChild(wrap);
+            fadeIn(img);
+        }
+        const body = el('div', 'offer-body');
+        body.appendChild(el('h3', null, offer.title));
+        if (offer.body) body.appendChild(el('p', null, offer.body));
+        if (offer.ends_on) {
+            const until = new Date(offer.ends_on + 'T00:00:00Z').toLocaleDateString('en-IN', { day: 'numeric', month: 'long', timeZone: 'UTC' });
+            body.appendChild(el('p', 'offer-until', `Until ${until}`));
+        }
+        // Links are checked by the database: a #section, a /page or https only.
+        if (offer.button_label && offer.button_link) {
+            const link = el('a', 'btn btn-primary', offer.button_label);
+            link.href = offer.button_link;
+            if (offer.button_link.startsWith('https://')) {
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+            } else if (offer.button_link.startsWith('#')) {
+                link.addEventListener('click', (e) => {
+                    const target = document.querySelector(offer.button_link);
+                    if (target) {
+                        e.preventDefault();
+                        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                });
+            }
+            body.appendChild(link);
+        }
+        card.appendChild(body);
+        return card;
+    }
+
+    function reviewCard(review) {
+        const card = el('div', 'testimonial-card');
+        card.appendChild(el('div', 'testimonial-stars', '★'.repeat(review.rating) + '☆'.repeat(5 - review.rating)));
+        card.lastChild.setAttribute('aria-label', `${review.rating} out of 5 stars`);
+        card.appendChild(el('p', 'testimonial-text', `“${review.comment}”`));
+        const author = el('div', 'testimonial-author');
+        author.appendChild(el('div', 'author-avatar', review.name.trim().charAt(0).toUpperCase()));
+        const who = el('div');
+        who.appendChild(el('h4', null, review.name));
+        who.appendChild(el('span', null, new Date(review.created_at).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })));
+        author.appendChild(who);
+        card.appendChild(author);
+        return card;
+    }
+
+    async function loadContent() {
+        let content = { offers: [], reviews: [] };
+        try {
+            const res = await fetch('/api/site/content');
+            if (res.ok) content = await res.json();
+        } catch {
+            return;
+        }
+        const offersSection = document.getElementById('offers');
+        const offersGrid = document.getElementById('offersGrid');
+        if (offersSection && offersGrid && content.offers && content.offers.length) {
+            content.offers.forEach(o => offersGrid.appendChild(offerCard(o)));
+            offersSection.hidden = false;
+        }
+        const reviewsList = document.getElementById('reviewsList');
+        const track = document.getElementById('testimonialsTrack');
+        if (reviewsList && track && content.reviews && content.reviews.length) {
+            content.reviews.forEach(r => track.appendChild(reviewCard(r)));
+            reviewsList.hidden = false;
+            // The slider sizes itself on resize: let it count the new cards.
+            window.dispatchEvent(new Event('resize'));
+        }
+    }
+    loadContent();
+
+    const reviewForm = document.getElementById('reviewForm');
+    const reviewStatus = document.getElementById('reviewStatus');
+    if (reviewForm) {
+        reviewForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const say = (message, success) => {
+                reviewStatus.textContent = message;
+                reviewStatus.classList.toggle('success', Boolean(success));
+                reviewStatus.hidden = false;
+            };
+            const rating = parseInt(reviewForm.querySelector('input[name="rating"]:checked')?.value || '0', 10);
+            const name = document.getElementById('reviewName').value.trim();
+            const comment = document.getElementById('reviewComment').value.trim();
+            if (!rating) return say('Please choose 1 to 5 stars.');
+            if (!name || !comment) return say('Please enter your name and your review.');
+
+            const btn = reviewForm.querySelector('button[type="submit"]');
+            btn.disabled = true;
+            try {
+                const res = await fetch('/api/site/review', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, rating, comment, website: document.getElementById('reviewWebsite').value })
+                });
+                const result = await res.json().catch(() => ({}));
+                if (res.ok && result.ok) {
+                    say('Thank you! Your review will appear here once we have read it.', true);
+                    reviewForm.reset();
+                } else {
+                    say(result.message || 'Sorry, we could not send your review. Please try again.');
+                }
+            } catch {
+                say('Could not reach us. Check your internet connection and try again.');
+            } finally {
+                btn.disabled = false;
+            }
+        });
+    }
+
     // ---------- Order Form (sends the order to the bakery) ----------
     const contactForm = document.getElementById('contactForm');
     const formStatus = document.getElementById('formStatus');

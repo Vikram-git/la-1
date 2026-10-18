@@ -94,6 +94,17 @@
 
     </section>
 
+    <!-- Current Offers (from Offers & Banners in the admin; hidden when there are none) -->
+    <section id="offers" hidden>
+        <div class="section-container">
+            <div class="section-header center">
+                <span class="section-tag">Current Offers</span>
+                <h2 class="section-title">Sweet <em>Deals</em></h2>
+            </div>
+            <div class="offers-grid" id="offersGrid"></div>
+        </div>
+    </section>
+
     <!-- About Section -->
     <section id="about">
         <div class="section-container">
@@ -342,6 +353,59 @@
     </section>
 
 
+
+    <!-- Reviews (approved in the admin; the list is hidden until there are some) -->
+    <section id="testimonials">
+        <div class="section-container">
+            <div class="section-header center" data-animate="fade-up">
+                <span class="section-tag">Reviews</span>
+                <h2 class="section-title">Sweet <em>Words</em></h2>
+                <p class="section-desc">What our customers say about us.</p>
+            </div>
+            <div id="reviewsList" hidden>
+                <div class="testimonials-slider">
+                    <div class="testimonials-track" id="testimonialsTrack"></div>
+                </div>
+                <div class="slider-controls">
+                    <button class="slider-btn" id="prevBtn" aria-label="Previous review">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+                    </button>
+                    <div class="slider-dots" id="sliderDots"></div>
+                    <button class="slider-btn" id="nextBtn" aria-label="Next review">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <form class="review-form" id="reviewForm" novalidate>
+                <h3 class="form-title">Share your experience</h3>
+                <fieldset class="review-stars" id="reviewStars">
+                    <legend>Your rating</legend>
+                    <div class="star-row">
+                    <input type="radio" name="rating" id="star5" value="5"><label for="star5" title="5 stars">★</label>
+                    <input type="radio" name="rating" id="star4" value="4"><label for="star4" title="4 stars">★</label>
+                    <input type="radio" name="rating" id="star3" value="3"><label for="star3" title="3 stars">★</label>
+                    <input type="radio" name="rating" id="star2" value="2"><label for="star2" title="2 stars">★</label>
+                    <input type="radio" name="rating" id="star1" value="1"><label for="star1" title="1 star">★</label>
+                    </div>
+                </fieldset>
+                <div class="form-group">
+                    <input type="text" id="reviewName" placeholder=" " maxlength="60" autocomplete="name">
+                    <label for="reviewName">Your Name</label>
+                </div>
+                <div class="form-group">
+                    <textarea id="reviewComment" rows="3" placeholder=" " maxlength="600"></textarea>
+                    <label for="reviewComment">Your review</label>
+                </div>
+                <div class="form-hp" aria-hidden="true">
+                    <label for="reviewWebsite">Leave this empty</label>
+                    <input type="text" id="reviewWebsite" tabindex="-1" autocomplete="off">
+                </div>
+                <p class="form-status" id="reviewStatus" role="status" aria-live="polite" hidden></p>
+                <button type="submit" class="btn btn-primary btn-full"><span>Send Review</span></button>
+            </form>
+        </div>
+    </section>
 
     <!-- Contact Section -->
     <section id="contact">

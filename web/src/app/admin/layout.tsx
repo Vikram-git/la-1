@@ -7,8 +7,8 @@ const roleLabel = { admin: "Admin", counter: "Counter staff", chef: "Chef" } as 
 
 export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
   const staff = await requireRole(["admin", "counter"]);
-  const counts = await getShellCounts();
   const role = staff.role === "admin" ? "admin" : "counter";
+  const counts = await getShellCounts(role === "admin");
 
   return (
     <AdminShell sections={navSections(role)} counts={counts} name={staff.fullName} roleLabel={roleLabel[staff.role]}>

@@ -9,6 +9,6 @@ export async function GET() {
   }
   return Response.json(
     { products: data ?? [] },
-    { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=86400" } },
+    { headers: { "Cache-Control": "public, max-age=0, s-maxage=300, stale-while-revalidate=86400" } },
   );
 }

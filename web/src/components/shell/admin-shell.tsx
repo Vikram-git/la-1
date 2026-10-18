@@ -41,7 +41,7 @@ const ICONS: Record<NavIcon, LucideIcon> = {
   reviews: Star,
 };
 
-type Counts = { pending: number; attention: number };
+type Counts = { pending: number; reviews: number; attention: number };
 
 function SidebarContent({ sections, counts, onNavigate }: { sections: NavSection[]; counts: Counts; onNavigate?: () => void }) {
   const pathname = usePathname();
@@ -58,7 +58,7 @@ function SidebarContent({ sections, counts, onNavigate }: { sections: NavSection
               {section.items.map((item) => {
                 const Icon = ICONS[item.icon];
                 const active = isActivePath(pathname, item.href);
-                const badge = item.badge === "pending" ? counts.pending : 0;
+                const badge = item.badge ? counts[item.badge] : 0;
                 return (
                   <li key={item.href}>
                     <Link
@@ -67,7 +67,7 @@ function SidebarContent({ sections, counts, onNavigate }: { sections: NavSection
                       aria-current={active ? "page" : undefined}
                       className={cx(
                         "flex items-center gap-3 rounded-xl px-3 py-2 text-[15px] transition-colors",
-                        active ? "bg-brand font-medium text-white shadow-sm shadow-brand/30" : item.soon ? "text-muted hover:bg-brand-soft" : "text-ink hover:bg-brand-soft",
+                        active ? "bg-brand font-medium text-white shadow-sm shadow-brand/30" : "text-ink hover:bg-brand-soft",
                       )}
                     >
                       <Icon aria-hidden className="size-5 shrink-0" strokeWidth={1.75} />
@@ -83,7 +83,6 @@ function SidebarContent({ sections, counts, onNavigate }: { sections: NavSection
                           <span className="sr-only"> waiting</span>
                         </span>
                       )}
-                      {item.soon && !active && <span className="text-[10px] uppercase tracking-wide text-muted">Soon</span>}
                     </Link>
                   </li>
                 );
@@ -192,7 +191,7 @@ export function AdminShell({
             <ScriptText className="ml-auto hidden -rotate-3 whitespace-nowrap text-3xl xl:block">Good Cakes, Better Days ♥</ScriptText>
             <div className="ml-auto flex items-center gap-2 xl:ml-4">
               <Link
-                href="/admin"
+                href="/admin/notifications"
                 aria-label={counts.attention > 0 ? `${counts.attention} things need attention` : "Nothing needs attention"}
                 className="relative rounded-full p-2.5 hover:bg-brand-soft"
               >
