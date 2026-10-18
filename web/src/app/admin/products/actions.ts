@@ -67,7 +67,6 @@ const productSchema = z.object({
   prep_type: z.enum(["made_to_order", "ready_stock"]),
   is_veg: z.boolean(),
   contains_egg: z.boolean(),
-  allergens: z.array(z.string().min(1).max(40)).max(20),
   hsn_code: z
     .string()
     .regex(/^\d{4,8}$/, "HSN code is 4 to 8 digits.")
@@ -90,11 +89,6 @@ function readProduct(formData: FormData) {
     prep_type: text(formData, "prep_type"),
     is_veg: text(formData, "food_type") !== "non_veg",
     contains_egg: checkbox(formData, "contains_egg"),
-    allergens: text(formData, "allergens")
-      .split(",")
-      .map((a) => a.trim().toLowerCase())
-      .filter(Boolean)
-      .filter((a, i, all) => all.indexOf(a) === i),
     hsn_code: optionalText(formData, "hsn_code"),
     tax_rate_bps: /^\d+(\.\d{1,2})?$/.test(taxText) ? Math.round(taxPercent * 100) : NaN,
     is_available: checkbox(formData, "is_available"),

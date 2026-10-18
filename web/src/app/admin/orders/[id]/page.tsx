@@ -133,9 +133,7 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
               <div className="mt-1 flex flex-wrap items-center gap-2 text-sm">
                 <VegMark isVeg={i.is_veg} />
                 {i.is_eggless ? <Badge tone="ok">Eggless</Badge> : i.contains_egg && <Badge>Contains egg</Badge>}
-                {i.prep_type === "ready_stock" ? <Badge>Ready stock</Badge> : <Badge tone="brand">Made to order</Badge>}
-                {i.allergens.length > 0 && <span className="text-xs text-muted">Allergens: {i.allergens.join(", ")}</span>}
-              </div>
+                {i.prep_type === "ready_stock" ? <Badge>Ready stock</Badge> : <Badge tone="brand">Made to order</Badge>}              </div>
               {i.notes && <p className="mt-1 text-sm">“{i.notes}”</p>}
             </div>
             </div>

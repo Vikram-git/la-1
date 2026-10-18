@@ -68,15 +68,6 @@ export function ProductForm({
           </Select>
         </Field>
 
-        <Field
-          label="Allergens"
-          htmlFor="allergens"
-          error={err.allergens}
-          hint="Comma separated, as supplied by the bakery, e.g. gluten, milk, nuts."
-        >
-          <Input id="allergens" name="allergens" defaultValue={product?.allergens.join(", ")} />
-        </Field>
-
         <Field label="HSN code" htmlFor="hsn_code" error={err.hsn_code} hint="From your accountant. Optional for now.">
           <Input id="hsn_code" name="hsn_code" inputMode="numeric" defaultValue={product?.hsn_code ?? ""} />
         </Field>
