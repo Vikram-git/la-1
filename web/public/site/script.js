@@ -307,6 +307,20 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // ---------- Photo placeholders: a soft shimmer until each photo arrives, then a fade ----------
+    function fadeIn(img) {
+        if (!img) return;
+        const done = () => {
+            img.classList.add('is-loaded');
+            if (img.parentElement) img.parentElement.classList.add('ph-done');
+        };
+        if (img.complete && img.naturalWidth > 0) return done();
+        img.classList.add('img-fade');
+        img.addEventListener('load', done, { once: true });
+        img.addEventListener('error', done, { once: true });
+    }
+    document.querySelectorAll('.card-image img, .gallery-item img, .about-img-main img, .about-img-accent img').forEach(fadeIn);
+
     // ---------- Catalogue (live from the bakery's product list) ----------
     const productsGrid = document.getElementById('productsGrid');
     const orderItem = document.getElementById('orderItem');
@@ -380,24 +394,42 @@ document.addEventListener('DOMContentLoaded', () => {
         itemRow.hidden = false;
     }
 
+    function skeletonCard() {
+        const card = el('div', 'specialty-card skeleton');
+        card.setAttribute('aria-hidden', 'true');
+        card.appendChild(el('div', 'card-image'));
+        const content = el('div', 'card-content');
+        ['short', 'title', 'line', 'line', 'price'].forEach(kind => content.appendChild(el('div', 'skeleton-bar ' + kind)));
+        card.appendChild(content);
+        return card;
+    }
+
     async function loadCatalogue() {
         if (!productsGrid) return;
+        const cta = productsGrid.querySelector('.specialty-cta');
+        const skeletons = Array.from({ length: 6 }, skeletonCard);
+        skeletons.forEach(s => productsGrid.insertBefore(s, cta));
+        productsGrid.classList.add('is-loading');
+        productsGrid.setAttribute('aria-busy', 'true');
+        let products = [];
         try {
             const res = await fetch('/api/site/catalogue');
-            if (!res.ok) return;
-            const { products } = await res.json();
-            if (!Array.isArray(products) || products.length === 0) return; // keep the showcase cards
-            const cta = productsGrid.querySelector('.specialty-cta');
-            productsGrid.querySelectorAll('.specialty-card:not(.specialty-cta)').forEach(c => c.remove());
-            products.forEach((p, i) => {
-                const card = productCard(p, i);
-                productsGrid.insertBefore(card, cta);
-                bindTilt(card);
-            });
-            fillItemPicker(products);
+            if (res.ok) products = (await res.json()).products || [];
         } catch {
             // Offline or the server is down: the showcase cards and WhatsApp still work.
         }
+        skeletons.forEach(s => s.remove());
+        productsGrid.classList.remove('is-loading');
+        productsGrid.removeAttribute('aria-busy');
+        if (!Array.isArray(products) || products.length === 0) return; // keep the showcase cards
+        productsGrid.querySelectorAll('.specialty-card:not(.specialty-cta)').forEach(c => c.remove());
+        products.forEach((p, i) => {
+            const card = productCard(p, i);
+            productsGrid.insertBefore(card, cta);
+            fadeIn(card.querySelector('img'));
+            bindTilt(card);
+        });
+        fillItemPicker(products);
     }
     loadCatalogue();
 
