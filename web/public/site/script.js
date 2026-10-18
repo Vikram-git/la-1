@@ -5,37 +5,46 @@
 document.addEventListener('DOMContentLoaded', () => {
 
     // ---------- Preloader ----------
+    // Shown only briefly: the page is usable as soon as the HTML is in, without waiting for every photo.
     const preloader = document.getElementById('preloader');
-    window.addEventListener('load', () => {
-        setTimeout(() => {
-            preloader.classList.add('hidden');
-            document.body.style.overflow = '';
-            initScrollAnimations();
-        }, 1200);
-    });
-
-    // Fallback in case load fires before DOMContentLoaded listener
-    setTimeout(() => {
-        if (!preloader.classList.contains('hidden')) {
-            preloader.classList.add('hidden');
-            document.body.style.overflow = '';
-            initScrollAnimations();
-        }
-    }, 3000);
+    let revealed = false;
+    function reveal() {
+        if (revealed) return;
+        revealed = true;
+        preloader.classList.add('hidden');
+        document.body.style.overflow = '';
+        initScrollAnimations();
+    }
+    setTimeout(reveal, 350);
 
     // ---------- Sparkle Cursor Effect ----------
     const sparkleCanvas = document.getElementById('sparkle-canvas');
     const ctx = sparkleCanvas.getContext('2d');
     let sparkles = [];
 
+    // Only for a mouse (not phones), only when motion is welcome, and the drawing loop sleeps
+    // while there is nothing to draw.
+    const sparklesOn = window.matchMedia('(hover: hover) and (pointer: fine)').matches
+        && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let sparkleLoop = false;
+
     function resizeCanvas() {
         sparkleCanvas.width = window.innerWidth;
         sparkleCanvas.height = window.innerHeight;
     }
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
+    if (sparklesOn) {
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+    } else {
+        sparkleCanvas.style.display = 'none';
+    }
 
     document.addEventListener('mousemove', (e) => {
+        if (!sparklesOn) return;
+        if (!sparkleLoop) {
+            sparkleLoop = true;
+            requestAnimationFrame(animateSparkles);
+        }
         if (Math.random() > 0.55) {
             for (let i = 0; i < 2; i++) {
                 sparkles.push({
@@ -81,9 +90,9 @@ document.addEventListener('DOMContentLoaded', () => {
             s.size *= 0.98;
             drawSparkle(s);
         });
-        requestAnimationFrame(animateSparkles);
+        if (sparkles.length) requestAnimationFrame(animateSparkles);
+        else sparkleLoop = false;
     }
-    animateSparkles();
 
     // ---------- Navbar Scroll ----------
     const navbar = document.getElementById('navbar');
@@ -520,9 +529,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ---------- Subtle Parallax on Scroll ----------
+    const heroImg = document.querySelector('.hero-img');
     window.addEventListener('scroll', () => {
         const scrolled = window.scrollY;
-        const heroImg = document.querySelector('.hero-img');
         if (heroImg && scrolled < window.innerHeight) {
             // very gentle parallax; CSS animation handles the base zoom
             heroImg.style.transform = `scale(${1.0 + scrolled * 0.00008}) translateY(${scrolled * 0.18}px)`;

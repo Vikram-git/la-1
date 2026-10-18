@@ -53,7 +53,7 @@
     <!-- Hero Section -->
     <section id="hero">
         <div class="hero-bg">
-            <img src="/site/images/hero.jpg" alt="La Patisserie Madras bakery display" class="hero-img">
+            <img src="/site/images/hero.jpg" alt="La Patisserie Madras bakery display" class="hero-img" fetchpriority="high" decoding="async">
             <div class="hero-overlay"></div>
         </div>
         <div class="hero-particles" id="heroParticles"></div>
@@ -100,10 +100,10 @@
             <div class="about-grid">
                 <div class="about-images" data-animate="fade-right">
                     <div class="about-img-main">
-                        <img src="/site/images/pastries.jpg" alt="Fresh croissants and pastries">
+                        <img src="/site/images/pastries.jpg" alt="Fresh croissants and pastries" loading="lazy" decoding="async">
                     </div>
                     <div class="about-img-accent">
-                        <img src="/site/images/macarons.jpg" alt="Colorful French macarons">
+                        <img src="/site/images/macarons.jpg" alt="Colorful French macarons" loading="lazy" decoding="async">
                     </div>
                     <div class="about-badge-float">
                         <span class="badge-number">100%</span>
@@ -155,7 +155,7 @@
             <div class="specialties-grid" id="productsGrid">
                 <div class="specialty-card" data-animate="fade-up" data-delay="0">
                     <div class="card-image">
-                        <img src="/site/images/chocolate.jpg" alt="Dark Chocolate Ganache Cake">
+                        <img src="/site/images/chocolate.jpg" alt="Dark Chocolate Ganache Cake" loading="lazy" decoding="async">
                         <div class="card-overlay">
                             <span class="card-tag">Bestseller</span>
                         </div>
@@ -176,7 +176,7 @@
 
                 <div class="specialty-card" data-animate="fade-up" data-delay="150">
                     <div class="card-image">
-                        <img src="/site/images/vanilla.jpg" alt="Vanilla Dream Cake">
+                        <img src="/site/images/vanilla.jpg" alt="Vanilla Dream Cake" loading="lazy" decoding="async">
                         <div class="card-overlay">
                             <span class="card-tag">Popular</span>
                         </div>
@@ -197,7 +197,7 @@
 
                 <div class="specialty-card" data-animate="fade-up" data-delay="300">
                     <div class="card-image">
-                        <img src="/site/images/redvelvet.jpg" alt="Red Velvet Cake">
+                        <img src="/site/images/redvelvet.jpg" alt="Red Velvet Cake" loading="lazy" decoding="async">
                         <div class="card-overlay">
                             <span class="card-tag">Chef's Pick</span>
                         </div>
@@ -218,7 +218,7 @@
 
                 <div class="specialty-card" data-animate="fade-up" data-delay="100">
                     <div class="card-image">
-                        <img src="/site/images/macarons.jpg" alt="French Macarons Collection">
+                        <img src="/site/images/macarons.jpg" alt="French Macarons Collection" loading="lazy" decoding="async">
                         <div class="card-overlay">
                             <span class="card-tag">Gift Box</span>
                         </div>
@@ -239,7 +239,7 @@
 
                 <div class="specialty-card" data-animate="fade-up" data-delay="250">
                     <div class="card-image">
-                        <img src="/site/images/pastries.jpg" alt="Butter Croissants">
+                        <img src="/site/images/pastries.jpg" alt="Butter Croissants" loading="lazy" decoding="async">
                         <div class="card-overlay">
                             <span class="card-tag">Morning Fav</span>
                         </div>
@@ -302,37 +302,37 @@
             </div>
             <div class="gallery-grid" data-animate="fade-up">
                 <div class="gallery-item gi-1">
-                    <img src="/site/images/hero.jpg" alt="Patisserie display">
+                    <img src="/site/images/hero.jpg" alt="Patisserie display" loading="lazy" decoding="async">
                     <div class="gallery-hover">
                         <span>Our Atelier</span>
                     </div>
                 </div>
                 <div class="gallery-item gi-2">
-                    <img src="/site/images/chocolate.jpg" alt="Chocolate cake">
+                    <img src="/site/images/chocolate.jpg" alt="Chocolate cake" loading="lazy" decoding="async">
                     <div class="gallery-hover">
                         <span>Chocolate Bliss</span>
                     </div>
                 </div>
                 <div class="gallery-item gi-3">
-                    <img src="/site/images/macarons.jpg" alt="Macarons">
+                    <img src="/site/images/macarons.jpg" alt="Macarons" loading="lazy" decoding="async">
                     <div class="gallery-hover">
                         <span>Macaron Art</span>
                     </div>
                 </div>
                 <div class="gallery-item gi-4">
-                    <img src="/site/images/vanilla.jpg" alt="Vanilla cake">
+                    <img src="/site/images/vanilla.jpg" alt="Vanilla cake" loading="lazy" decoding="async">
                     <div class="gallery-hover">
                         <span>Vanilla Elegance</span>
                     </div>
                 </div>
                 <div class="gallery-item gi-5">
-                    <img src="/site/images/redvelvet.jpg" alt="Red velvet">
+                    <img src="/site/images/redvelvet.jpg" alt="Red velvet" loading="lazy" decoding="async">
                     <div class="gallery-hover">
                         <span>Red Velvet Love</span>
                     </div>
                 </div>
                 <div class="gallery-item gi-6">
-                    <img src="/site/images/pastries.jpg" alt="Pastries">
+                    <img src="/site/images/pastries.jpg" alt="Pastries" loading="lazy" decoding="async">
                     <div class="gallery-hover">
                         <span>Morning Pastries</span>
                     </div>
@@ -523,7 +523,7 @@
     <div id="imageLightbox" class="lightbox" aria-hidden="true" role="dialog">
         <button class="lightbox-close" id="lightboxClose" aria-label="Close image modal">&times;</button>
         <div class="lightbox-content">
-            <img id="lightboxImg" src="" alt="Gallery Image Preview">
+            <img id="lightboxImg" src="" alt="Gallery Image Preview" loading="lazy" decoding="async">
             <div id="lightboxCaption" class="lightbox-caption"></div>
         </div>
     </div>
