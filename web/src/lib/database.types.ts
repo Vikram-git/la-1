@@ -1304,6 +1304,10 @@ export type Database = {
         Args: never
         Returns: Json
       }
+      record_customer_message: {
+        Args: { p_order_id: string; p_kind: string }
+        Returns: undefined
+      }
       submit_review: {
         Args: { p_name: string; p_rating: number; p_comment: string }
         Returns: undefined

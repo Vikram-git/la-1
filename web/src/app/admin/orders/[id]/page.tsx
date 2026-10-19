@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 import { requireRole } from "@/lib/auth";
@@ -18,6 +19,8 @@ import { ProductThumb } from "@/components/product-thumb";
 import { BillPanel, DiscountForm } from "./billing-panel";
 import { EditItems } from "./edit-items";
 import { loadCatalogue } from "@/lib/catalogue";
+import { MESSAGE_LABEL, availableMessages, messageText, whatsappNumber, type MessageKind } from "@/lib/whatsapp";
+import { WhatsAppCard } from "./whatsapp-card";
 
 export const metadata: Metadata = { title: "Order" };
 
@@ -55,6 +58,7 @@ const eventLabel: Record<string, string> = {
   custom_cake_created: "Custom cake ordered",
   custom_cake_changed: "Custom cake changed",
   custom_cake_photo: "Cake photo changed",
+  customer_message: "WhatsApp message opened",
 };
 
 // PRD 5F: only orders the customer should have collected can count as a no-show.
@@ -77,7 +81,7 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
       supabase.from("order_events").select("*").eq("order_id", id).order("occurred_at"),
       supabase.from("staff_profiles").select("user_id, full_name"),
       supabase.from("bills").select("id, bill_number, total_paise, issued_at, credit_notes(id, credit_note_number, total_paise, reason, issued_at)").eq("order_id", id).maybeSingle(),
-      supabase.from("business_settings").select("counter_discount_limit_bps").single(),
+      supabase.from("business_settings").select("counter_discount_limit_bps, business_name").single(),
       // order_summaries predates the no-show and packing columns, so read them (and the customer's flags) from orders.
       supabase
         .from("orders")
@@ -115,6 +119,30 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
   const photoUrl = cake?.photo_path
     ? (await supabase.storage.from("custom-cake-photos").createSignedUrl(cake.photo_path, 3600)).data?.signedUrl ?? null
     : null;
+
+  // WhatsApp messages for the customer (2026-10-19). The review link points at this site's reviews section.
+  const requestHeaders = await headers();
+  const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "";
+  const proto = requestHeaders.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+  const messageOrder = {
+    reference: order.reference ?? "",
+    customerName: order.customer_name,
+    status: order.status,
+    fulfilment: order.fulfilment ?? "collect",
+    setupAddress: order.setup_address,
+    dueAt: order.due_at,
+    totalPaise: order.total_paise ?? 0,
+    balancePaise: balance,
+    items: (items ?? [])
+      .filter((i) => i.quantity > i.cancelled_quantity)
+      .map((i) => ({ name: `${i.product_name} — ${i.variant_name}`, quantity: i.quantity - i.cancelled_quantity })),
+  };
+  const messageContext = { shop: settings?.business_name ?? "La Patisserie", timeZone: tz, reviewUrl: `${proto}://${host}/#testimonials` };
+  const messages = availableMessages(messageOrder).map((kind) => ({ kind, text: messageText(kind, messageOrder, messageContext) }));
+  const sentKinds = (events ?? [])
+    .filter((e) => e.event_type === "customer_message")
+    .map((e) => (e.data as { kind?: MessageKind } | null)?.kind)
+    .filter((k): k is MessageKind => Boolean(k));
 
   const itemList = (
     <ul className="divide-y divide-line">
@@ -332,6 +360,13 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
           </Card>
         </div>
 
+        {order.customer_phone && (
+          <Card>
+            <h2 className="mb-3 text-lg font-semibold">Message the customer</h2>
+            <WhatsAppCard key={`w-${order.version}`} orderId={order.id} phone={whatsappNumber(order.customer_phone)} messages={messages} sentKinds={sentKinds} />
+          </Card>
+        )}
+
         <div className="grid gap-6 lg:grid-cols-2">
           {["confirmed", "preparing", "ready", "completed"].includes(order.status) && (
             <Card className="lg:col-span-2">
@@ -440,6 +475,9 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
                       </p>
                     )}
                     {e.event_type === "packed" && typeof data.note === "string" && <p className="text-xs">Note: {data.note}</p>}
+                    {e.event_type === "customer_message" && typeof data.kind === "string" && data.kind in MESSAGE_LABEL && (
+                      <p className="text-xs">{MESSAGE_LABEL[data.kind as MessageKind]}</p>
+                    )}
                     {e.event_type === "fulfilment_changed" && typeof data.to === "string" && (
                       <p className="text-xs">
                         {data.to === "setup" ? `Set up at ${typeof data.setup_address === "string" ? data.setup_address : "the customer's place"}` : "Collect from store"}

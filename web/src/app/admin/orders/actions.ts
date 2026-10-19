@@ -576,3 +576,23 @@ export async function setCustomCakePhotoAction(input: z.input<typeof cakePhotoSc
   await afterChange(orderId);
   return { ok: true };
 }
+
+// ---------------------------------------------------------------------------
+// WhatsApp messages (2026-10-19): staff open a ready-made message in WhatsApp; the timeline records it.
+// ---------------------------------------------------------------------------
+
+const messageSchema = z.object({
+  orderId: z.uuid(),
+  kind: z.enum(["received", "confirmed", "ready", "balance", "thanks"]),
+});
+
+export async function recordCustomerMessageAction(input: z.input<typeof messageSchema>): Promise<Result> {
+  await assertRole(["admin", "counter"]);
+  const parsed = messageSchema.safeParse(input);
+  if (!parsed.success) return { message: "Unknown message." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("record_customer_message", { p_order_id: parsed.data.orderId, p_kind: parsed.data.kind });
+  if (error) return rpcError(error);
+  revalidatePath(`/admin/orders/${parsed.data.orderId}`);
+  return { ok: true };
+}
