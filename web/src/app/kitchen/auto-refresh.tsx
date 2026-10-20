@@ -30,8 +30,8 @@ export function AutoRefresh({ loadedAt, tz }: { loadedAt: string; tz: string }) 
 
   const time = new Intl.DateTimeFormat("en-IN", { timeZone: tz, hour: "numeric", minute: "2-digit" }).format(new Date(loadedAt));
   return (
-    <p role="status" className={offline ? "rounded-full bg-danger-soft px-3 py-1 text-sm font-medium text-danger" : "text-sm text-muted"}>
-      {offline ? `Offline · showing ${time}` : `Updated ${time} · refreshes every minute`}
+    <p role="status" className={offline ? "whitespace-nowrap rounded-full bg-danger-soft px-3 py-1 text-sm font-medium text-danger" : "whitespace-nowrap text-sm text-muted"}>
+      {offline ? `Offline · showing ${time}` : <>Updated {time}<span className="hidden sm:inline"> · refreshes every minute</span></>}
     </p>
   );
 }
