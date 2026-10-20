@@ -62,3 +62,22 @@ export function submitArgs(order: WebsiteOrder, timeZone: string): { args: Submi
     },
   };
 }
+
+// Whether a product is listed on the website's menu. Mirrors the filter in public.website_catalogue():
+// not archived, available, in a shown category, with at least one available size (2026-10-20).
+export type MenuCheck = {
+  archived: boolean;
+  isAvailable: boolean;
+  categoryActive: boolean;
+  variants: { archived: boolean; isAvailable: boolean }[];
+};
+
+export function websiteMenuStatus(p: MenuCheck): { shown: true } | { shown: false; reason: string } {
+  if (p.archived) return { shown: false, reason: "It is archived." };
+  if (!p.isAvailable) return { shown: false, reason: "It is marked unavailable." };
+  if (!p.categoryActive) return { shown: false, reason: "Its category is hidden." };
+  const live = p.variants.filter((v) => !v.archived);
+  if (live.length === 0) return { shown: false, reason: "It has no size and price yet. Add one below." };
+  if (!live.some((v) => v.isAvailable)) return { shown: false, reason: "None of its sizes are available." };
+  return { shown: true };
+}

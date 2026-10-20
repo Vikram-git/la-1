@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { submitArgs, websiteOrderSchema } from "./website.ts";
+import { submitArgs, websiteMenuStatus, websiteOrderSchema } from "./website.ts";
 
 const base = {
   idempotencyKey: "0f8fad5b-d9cb-469f-a165-70867728950e",
@@ -46,4 +46,15 @@ test("an order needs a message or items; set-up needs an address", () => {
   assert.deepEqual(ok.args.p_items, [{ variant_id: "1b4e28ba-2fa1-41d2-883f-0016d3cca427", quantity: 2 }]);
   const setup = websiteOrderSchema.parse({ ...base, fulfilment: "setup" });
   assert.deepEqual(submitArgs(setup, "Asia/Kolkata"), { error: "Please enter the address where we should set up." });
+});
+
+test("a product is on the website menu only with an available size, in a shown category", () => {
+  const ok = { archived: false, isAvailable: true, categoryActive: true, variants: [{ archived: false, isAvailable: true }] };
+  assert.deepEqual(websiteMenuStatus(ok), { shown: true });
+  assert.match((websiteMenuStatus({ ...ok, variants: [] }) as { reason: string }).reason, /no size and price/);
+  assert.match((websiteMenuStatus({ ...ok, variants: [{ archived: true, isAvailable: true }] }) as { reason: string }).reason, /no size and price/);
+  assert.match((websiteMenuStatus({ ...ok, variants: [{ archived: false, isAvailable: false }] }) as { reason: string }).reason, /None of its sizes/);
+  assert.match((websiteMenuStatus({ ...ok, categoryActive: false }) as { reason: string }).reason, /category is hidden/);
+  assert.match((websiteMenuStatus({ ...ok, isAvailable: false }) as { reason: string }).reason, /unavailable/);
+  assert.match((websiteMenuStatus({ ...ok, archived: true }) as { reason: string }).reason, /archived/);
 });

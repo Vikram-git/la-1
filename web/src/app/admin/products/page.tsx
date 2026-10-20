@@ -4,6 +4,7 @@ import { ProductThumb } from "@/components/product-thumb";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { formatPaise } from "@/lib/money";
+import { websiteMenuStatus } from "@/lib/website";
 import { Alert, Badge, ButtonLink, EmptyState, Input, PageHeader, Select, VegMark } from "@/components/ui";
 
 export const metadata: Metadata = { title: "Products" };
@@ -23,7 +24,7 @@ export default async function ProductsPage({ searchParams }: PageProps<"/admin/p
   let query = supabase
     .from("products")
     .select(
-      "id, name, image_url, prep_type, is_veg, contains_egg, is_available, archived_at, categories(name), product_variants(id, price_paise, is_eggless, archived_at, kitchens(name))",
+      "id, name, image_url, prep_type, is_veg, contains_egg, is_available, archived_at, categories(name, is_active), product_variants(id, price_paise, is_eggless, is_available, archived_at, kitchens(name))",
     )
     .order("name");
   if (q) query = query.ilike("name", `%${q.replace(/[%_]/g, "\\$&")}%`);
@@ -128,6 +129,7 @@ export default async function ProductsPage({ searchParams }: PageProps<"/admin/p
                 <th scope="col" className="hidden px-4 py-3 font-medium md:table-cell">Price</th>
                 <th scope="col" className="hidden px-4 py-3 font-medium md:table-cell">Kitchen</th>
                 <th scope="col" className="px-4 py-3 font-medium">Status</th>
+                <th scope="col" className="px-4 py-3 font-medium">Website</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
@@ -136,6 +138,12 @@ export default async function ProductsPage({ searchParams }: PageProps<"/admin/p
                 const prices = variants.map((v) => v.price_paise);
                 const hasEggless = variants.some((v) => v.is_eggless);
                 const kitchenNames = [...new Set(variants.flatMap((v) => (v.kitchens ? [v.kitchens.name] : [])))];
+                const onWebsite = websiteMenuStatus({
+                  archived: Boolean(p.archived_at),
+                  isAvailable: p.is_available,
+                  categoryActive: Boolean(p.categories?.is_active),
+                  variants: p.product_variants.map((v) => ({ archived: Boolean(v.archived_at), isAvailable: v.is_available })),
+                }).shown;
                 const needsKitchen = p.prep_type === "made_to_order" && variants.some((v) => !v.kitchens);
                 const price = prices.length === 0
                   ? <span className="text-danger">No variants</span>
@@ -180,6 +188,9 @@ export default async function ProductsPage({ searchParams }: PageProps<"/admin/p
                       ) : (
                         <Badge tone="warn">Unavailable</Badge>
                       )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {onWebsite ? <Badge tone="ok">On website</Badge> : <Badge tone="warn">Not shown</Badge>}
                     </td>
                   </tr>
                 );

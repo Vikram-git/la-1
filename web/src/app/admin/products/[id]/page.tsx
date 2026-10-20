@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { z } from "zod";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { websiteMenuStatus } from "@/lib/website";
 import { Alert, Badge, Card, EmptyState, PageHeader } from "@/components/ui";
 import { ProductForm } from "../product-form";
 import { NewVariantForm, VariantRow } from "../variant-forms";
@@ -45,6 +46,12 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
 
   const activeKitchens = [...new Set((variants ?? []).filter((v) => !v.archived_at).map((v) => v.kitchen_id))];
   const currentKitchen = activeKitchens.length > 1 ? "mixed" : (activeKitchens[0] ?? null);
+  const onWebsite = websiteMenuStatus({
+    archived: Boolean(product.archived_at),
+    isAvailable: product.is_available,
+    categoryActive: Boolean((categories ?? []).find((c) => c.id === product.category_id)?.is_active),
+    variants: (variants ?? []).map((v) => ({ archived: Boolean(v.archived_at), isAvailable: v.is_available })),
+  });
 
   return (
     <>
@@ -63,6 +70,16 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
         {created === "1" && (
           <Alert tone="ok" title="Product created">
             Now add at least one variant with a price, then choose the kitchen and add a photo.
+          </Alert>
+        )}
+
+        {onWebsite.shown ? (
+          <Alert tone="ok" title="Shown on the website">
+            Customers see it on the menu and can order it. Changes reach the website within a minute.
+          </Alert>
+        ) : (
+          <Alert tone="warn" title="Not on the website yet">
+            {onWebsite.reason}
           </Alert>
         )}
 
