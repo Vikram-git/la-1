@@ -17,12 +17,13 @@ grant all on results to authenticated, anon;
 
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000c","role":"authenticated"}', true);
-insert into results select 'chef sees products (expect 1)', count(*)::text from public.products;
+insert into results select 'chef sees no products: reads through chef_work only (expect 0)', count(*)::text from public.products;
 insert into results select 'chef sees staff rows (expect 1 = self)', count(*)::text from public.staff_profiles;
 update public.product_variants set price_paise = 1;
-insert into results select 'chef price update blocked (expect 90000)', (select string_agg(price_paise::text, ',') from public.product_variants);
+insert into results select 'chef sees no prices (expect 0)', count(*)::text from public.product_variants;
+insert into results select 'chef sees no settings (expect 0)', count(*)::text from public.business_settings;
 do $$ begin
-  begin insert into public.products (category_id, name) select id, 'X' from public.categories limit 1;
+  begin insert into public.products (category_id, name) values (gen_random_uuid(), 'X');
     insert into results values ('chef insert product (expect denied)', 'ALLOWED');
   exception when insufficient_privilege then insert into results values ('chef insert product (expect denied)', 'denied'); end;
 end $$;

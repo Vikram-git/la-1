@@ -1292,6 +1292,33 @@ export type Database = {
         Args: { p_order_id: string; p_photo_path: string | null }
         Returns: undefined
       }
+      chef_work: {
+        Args: { p_from: string; p_to: string }
+        Returns: {
+          order_id: string
+          reference: string
+          status: Database["public"]["Enums"]["order_status"]
+          due_at: string
+          is_immediate: boolean
+          fulfilment: Database["public"]["Enums"]["fulfilment_type"]
+          item_id: string
+          line_no: number
+          product_name: string
+          variant_name: string
+          quantity: number
+          is_veg: boolean
+          is_eggless: boolean
+          notes: string | null
+          kitchen_id: string | null
+          kitchen_name: string | null
+          image_url: string | null
+          cake: Json | null
+        }[]
+      }
+      set_item_kitchen: {
+        Args: { p_item_id: string; p_kitchen_id: string | null }
+        Returns: undefined
+      }
       pickup_availability: {
         Args: { p_date: string; p_exclude_order?: string }
         Returns: Json

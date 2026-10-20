@@ -21,7 +21,17 @@ const SOURCES: { value: Source; icon: string }[] = [
   { value: "CUSTOMER", icon: "💬" },
 ];
 
-export function CakeOrderForm({ isAdmin, defaultDueLocal, minDueLocal }: { isAdmin: boolean; defaultDueLocal: string; minDueLocal: string }) {
+export function CakeOrderForm({
+  isAdmin,
+  defaultDueLocal,
+  minDueLocal,
+  kitchens,
+}: {
+  isAdmin: boolean;
+  defaultDueLocal: string;
+  minDueLocal: string;
+  kitchens: { id: string; name: string }[];
+}) {
   const router = useRouter();
   const [idempotencyKey] = useState(() => crypto.randomUUID());
   const [source, setSource] = useState<Source>("CALL");
@@ -30,6 +40,8 @@ export function CakeOrderForm({ isAdmin, defaultDueLocal, minDueLocal }: { isAdm
   const [dueLocal, setDueLocal] = useState(defaultDueLocal);
   const [fulfil, setFulfil] = useState<FulfilmentValue>({ fulfilment: "collect", address: "", note: "" });
   const [cake, setCake] = useState<CakeFormValue>(EMPTY_CAKE);
+  // The kitchen that makes the cake; it shows on that kitchen's chef screen.
+  const [kitchenId, setKitchenId] = useState(kitchens[0]?.id ?? "");
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoError, setPhotoError] = useState<string | null>(null);
@@ -91,6 +103,7 @@ export function CakeOrderForm({ isAdmin, defaultDueLocal, minDueLocal }: { isAdm
           fulfilment: fulfil.fulfilment,
           setupAddress: fulfil.address,
           setupNote: fulfil.note,
+          kitchenId: kitchenId || undefined,
         });
       } catch {
         result = { message: "Not saved, check the connection." };
@@ -123,6 +136,16 @@ export function CakeOrderForm({ isAdmin, defaultDueLocal, minDueLocal }: { isAdm
         <Card className="flex flex-col gap-4">
           <h2 className="text-lg font-semibold">The cake</h2>
           <CakeFields value={cake} onChange={(v) => { setError(null); setCake(v); }} />
+          {kitchens.length > 0 && (
+            <Field label="Made in" htmlFor="cake-kitchen" hint="The cake shows on this kitchen's chef screen.">
+              <Select id="cake-kitchen" value={kitchenId} onChange={(e) => setKitchenId(e.target.value)}>
+                {kitchens.map((k) => (
+                  <option key={k.id} value={k.id}>{k.name}</option>
+                ))}
+                <option value="">Not set (every chef sees it)</option>
+              </Select>
+            </Field>
+          )}
           <Field label="Reference photo (optional)" htmlFor="cake-photo" hint="JPEG, PNG or WebP, up to 5 MB." error={photoError ?? undefined}>
             <Input id="cake-photo" type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => choosePhoto(e.target.files?.[0] ?? null)} />
           </Field>

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { getStaff, HOME_PATH } from "@/lib/auth";
+import { getStaff, homeFor } from "@/lib/auth";
 import Image from "next/image";
 import { Brand, ScriptText } from "@/components/ui";
 import { LoginForm, type DemoLogin } from "./login-form";
@@ -18,7 +18,7 @@ function demoLogins(): DemoLogin[] {
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const staff = await getStaff();
-  if (staff) redirect(HOME_PATH);
+  if (staff) redirect(homeFor(staff.role));
 
   const { next } = await searchParams;
 
@@ -39,7 +39,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
           <div className="mb-8 flex flex-col items-center text-center">
             <Brand />
             <h1 className="mt-8 text-2xl font-semibold">Staff sign in</h1>
-            <p className="mt-1 text-sm text-muted">Admins and counter staff.</p>
+            <p className="mt-1 text-sm text-muted">Admins, counter staff and chefs.</p>
           </div>
           <div className="rounded-2xl border border-line bg-surface p-6 shadow-[0_8px_30px_-16px_rgba(176,58,94,0.28)]">
             <LoginForm next={typeof next === "string" ? next : undefined} demoLogins={demoLogins()} />

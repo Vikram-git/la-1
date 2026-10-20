@@ -409,3 +409,14 @@ The owner sent the finished static site (`la-patisserie-frontend.zip`, a newer v
 - **`SUPABASE_SECRET_KEY` is now on Vercel production** (2026-10-19, marked sensitive), so admins can create staff logins and reset passwords on the live Staff page. It is still the key that was pasted in a chat: **rotate it before go-live** (Supabase → API Keys) and update both `web/.env.local` and Vercel.
 - **Test counter login** `counter@auri.test` (role counter), password in `web/.admin-password.txt` (git-ignored). Remove it with the demo accounts before go-live.
 - Owner (2026-10-19): FSSAI and GSTIN are not needed for now.
+
+## 24. Chef screen is back, with no amounts (owner, 2026-10-20)
+
+Migration `20261020000100_chef_screen.sql` (**applied live 2026-10-20**); checks `supabase/tests/chef_screen_logic.sql` 17/17 and `rls_foundation.sql` updated; `web/src/lib/kitchen.ts` (unit-tested).
+
+- **Chefs sign in again** at `/login` and land on **`/kitchen`**. Tabs: Today / Tomorrow / Next 2 weeks; a kitchen switch for chefs in more than one kitchen; "Total to make" per product and size; one card per order with pickup time, order number, Collect (green) / Set up (red), status (To make / Preparing / Packed ✓ / Cancelled — stop), items with photo, quantity, size, veg/eggless and item notes; custom cakes as a yellow note with every cake detail and the reference photo. Refreshes every minute.
+- **No amounts or customer details reach chefs.** They read only through `public.chef_work(from, to)`, which returns no prices, totals, payments, customer names, phones, addresses or order notes. `private.is_staff()` now means admin or counter, so every "Staff read …" policy (products, prices, settings, offers, reviews, hours…) excludes chefs. Chefs can read kitchen names and only the cake photos of cakes on their own screen. Every `/admin` and `/print` page sends a chef back to `/kitchen`.
+- **Which chef sees what:** each order line keeps the kitchen of its product size. A chef sees the kitchens ticked for them on **Staff**, plus lines with **no kitchen set** (so nothing is missed; they are labelled). Pending orders never show; packed and cancelled ones stay visible, greyed.
+- **Setting kitchens:** Products → product → **Kitchen** (one choice for all its sizes; new sizes copy it; the list shows a Kitchen column and warns about made-to-order products without one). New custom cake form → **Made in** (default the first kitchen). Order page → a **Kitchen** picker on every made-to-order line until the order is packed or closed (`public.set_item_kitchen`, admin and counter, logged "Kitchen changed"). Staff page: Chef role with kitchen ticks, and kitchen renaming.
+- Admin and counter staff have **Chef screen** in the sidebar to see what chefs see (all kitchens).
+- Three test orders B-1025–B-1027 (internal note `DEMO DATA`) were added to try the screen; `remove_demo_data.sql` deletes them.

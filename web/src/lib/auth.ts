@@ -26,8 +26,7 @@ export const getStaff = cache(async (): Promise<Staff | null> => {
     .select("full_name, role, is_active")
     .eq("user_id", claims.sub)
     .maybeSingle();
-  // Chef logins have no screens since the kitchen screen was removed (2026-10-09).
-  if (!profile || !profile.is_active || profile.role === "chef") return null;
+  if (!profile || !profile.is_active) return null;
 
   return {
     userId: claims.sub,
@@ -39,12 +38,18 @@ export const getStaff = cache(async (): Promise<Staff | null> => {
 });
 
 export const HOME_PATH = "/admin";
+export const KITCHEN_PATH = "/kitchen";
+
+// Where a staff member lands after signing in: chefs have only the kitchen screen.
+export function homeFor(role: StaffRole): string {
+  return role === "chef" ? KITCHEN_PATH : HOME_PATH;
+}
 
 // For pages and layouts: redirects when the visitor lacks one of the allowed roles.
 export async function requireRole(allowed: StaffRole[]): Promise<Staff> {
   const staff = await getStaff();
   if (!staff) redirect("/login");
-  if (!allowed.includes(staff.role)) redirect(HOME_PATH);
+  if (!allowed.includes(staff.role)) redirect(homeFor(staff.role));
   return staff;
 }
 

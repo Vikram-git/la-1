@@ -8,6 +8,7 @@ import {
   Bell,
   CalendarDays,
   ChartLine,
+  ChefHat,
   ChevronDown,
   LayoutDashboard,
   LogOut,
@@ -39,6 +40,7 @@ const ICONS: Record<NavIcon, LucideIcon> = {
   bell: Bell,
   offers: Megaphone,
   reviews: Star,
+  kitchen: ChefHat,
 };
 
 type Counts = { pending: number; reviews: number; attention: number };

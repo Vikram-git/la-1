@@ -31,6 +31,10 @@ test("counter staff never see admin-only screens", () => {
   for (const href of ["/admin", "/admin/orders", "/admin/calendar", "/admin/customers", "/admin/products", "/admin/notifications"]) assert.ok(h.includes(href), href);
 });
 
+test("admins and counter staff can open the chef screen", () => {
+  for (const role of ["admin", "counter"] as const) assert.ok(hrefs(role).includes("/kitchen"), role);
+});
+
 test("the staff screen is called Staff", () => {
   assert.equal(navSections("admin").flatMap((s) => s.items).find((i) => i.href === "/admin/staff")?.label, "Staff");
 });

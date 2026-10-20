@@ -21,6 +21,7 @@ import { EditItems } from "./edit-items";
 import { loadCatalogue } from "@/lib/catalogue";
 import { MESSAGE_LABEL, availableMessages, messageText, whatsappNumber, type MessageKind } from "@/lib/whatsapp";
 import { WhatsAppCard } from "./whatsapp-card";
+import { ItemKitchen } from "./item-kitchen";
 
 export const metadata: Metadata = { title: "Order" };
 
@@ -55,6 +56,7 @@ const eventLabel: Record<string, string> = {
   handed_over: "Handed over",
   kitchen_tickets_retired: "Kitchen tickets retired",
   fulfilment_changed: "Collect / set-up changed",
+  item_kitchen_changed: "Kitchen changed",
   custom_cake_created: "Custom cake ordered",
   custom_cake_changed: "Custom cake changed",
   custom_cake_photo: "Cake photo changed",
@@ -113,6 +115,11 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
     : { data: [] };
   const photoByProduct = new Map((productPhotos ?? []).map((p) => [p.id, p.image_url]));
 
+  // Kitchen per made-to-order item: decides which chef screen shows it (2026-10-20).
+  const { data: kitchens } = await supabase.from("kitchens").select("id, name, is_active").order("sort_order");
+  const kitchenName = new Map((kitchens ?? []).map((k) => [k.id, k.name]));
+  const canRouteKitchen = !["ready", "completed", "cancelled", "rejected"].includes(order.status);
+
   // Custom cake (2026-10-09): its details, and a short-lived link to the private reference photo.
   const { data: cake } = await supabase.from("custom_cakes").select("*").eq("order_id", id).maybeSingle();
   const cakeLine = cake ? (items ?? []).find((i) => i.id === cake.order_item_id) : undefined;
@@ -161,7 +168,20 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
               <div className="mt-1 flex flex-wrap items-center gap-2 text-sm">
                 <VegMark isVeg={i.is_veg} />
                 {i.is_eggless ? <Badge tone="ok">Eggless</Badge> : i.contains_egg && <Badge>Contains egg</Badge>}
-                {i.prep_type === "ready_stock" ? <Badge>Ready stock</Badge> : <Badge tone="brand">Made to order</Badge>}              </div>
+                {i.prep_type === "ready_stock" ? <Badge>Ready stock</Badge> : <Badge tone="brand">Made to order</Badge>}
+              </div>
+              {i.prep_type === "made_to_order" && !removed && (
+                canRouteKitchen ? (
+                  <ItemKitchen
+                    orderId={id}
+                    itemId={i.id}
+                    kitchenId={i.kitchen_id}
+                    kitchens={(kitchens ?? []).filter((k) => k.is_active || k.id === i.kitchen_id)}
+                  />
+                ) : (
+                  <p className="mt-1 text-sm text-muted">Kitchen: {i.kitchen_id ? (kitchenName.get(i.kitchen_id) ?? "Kitchen") : "not set"}</p>
+                )
+              )}
               {i.notes && <p className="mt-1 text-sm">“{i.notes}”</p>}
             </div>
             </div>

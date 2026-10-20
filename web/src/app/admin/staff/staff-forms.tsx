@@ -5,30 +5,88 @@ import { Badge, Button, Checkbox, Field, Input, Select } from "@/components/ui";
 import { FormMessage, SubmitButton, type ActionState } from "@/components/form-status";
 
 type SaveAction = (prev: ActionState, formData: FormData) => Promise<ActionState>;
+type Kitchen = { id: string; code: string; name: string; is_active: boolean };
 export type StaffMember = {
   user_id: string;
   full_name: string;
   role: "admin" | "counter" | "chef";
   is_active: boolean;
   email: string | null;
+  kitchen_ids: string[];
 };
 
-const roleLabels = { admin: "Admin", counter: "Counter staff", chef: "Chef (no access)" };
+const roleLabels = { admin: "Admin", counter: "Counter staff", chef: "Chef" };
 
-// Chef logins are no longer used (KOT removed 2026-10-09): a former chef is given a new role or disabled.
-function RoleSelect({ defaultRole, error, prefix }: { defaultRole: StaffMember["role"]; error?: string; prefix: string }) {
+export function KitchenForm({ kitchen, action }: { kitchen: Kitchen; action: SaveAction }) {
+  const [state, formAction] = useActionState(action, {});
   return (
-    <Field label="Role" htmlFor={`${prefix}-role`} error={error}>
-      <Select id={`${prefix}-role`} name="role" defaultValue={defaultRole === "chef" ? "" : defaultRole} required>
-        {defaultRole === "chef" && <option value="" disabled>Choose a new role</option>}
-        <option value="counter">Counter staff</option>
-        <option value="admin">Admin</option>
-      </Select>
-    </Field>
+    <form action={formAction} className="flex flex-wrap items-end gap-3 rounded-lg border border-line p-4">
+      <div className="min-w-48 flex-1">
+        <label htmlFor={`kitchen-${kitchen.id}`} className="mb-1 block text-xs font-medium text-muted">
+          {kitchen.code} name
+        </label>
+        <Input id={`kitchen-${kitchen.id}`} name="name" defaultValue={kitchen.name} required maxLength={60} />
+        {state.fieldErrors?.name && <p className="mt-1 text-xs text-danger">{state.fieldErrors.name}</p>}
+      </div>
+      <div className="pb-2">
+        <Checkbox name="is_active" label="Active" defaultChecked={kitchen.is_active} />
+      </div>
+      <SubmitButton variant="secondary">Save</SubmitButton>
+      <FormMessage state={state} />
+    </form>
   );
 }
 
-export function NewStaffForm({ action, disabledReason }: { action: SaveAction; disabledReason?: string }) {
+// Kitchens show only for chefs: they decide which orders the chef sees.
+function RoleAndKitchens({
+  kitchens,
+  defaultRole,
+  defaultKitchenIds,
+  errors,
+  prefix,
+}: {
+  kitchens: Kitchen[];
+  defaultRole: StaffMember["role"];
+  defaultKitchenIds: string[];
+  errors: Record<string, string>;
+  prefix: string;
+}) {
+  const [role, setRole] = useState(defaultRole);
+  return (
+    <>
+      <Field label="Role" htmlFor={`${prefix}-role`} error={errors.role}>
+        <Select id={`${prefix}-role`} name="role" value={role} onChange={(e) => setRole(e.target.value as StaffMember["role"])}>
+          <option value="counter">Counter staff</option>
+          <option value="chef">Chef (kitchen screen only, no amounts)</option>
+          <option value="admin">Admin</option>
+        </Select>
+      </Field>
+      {role === "chef" && (
+        <fieldset className="flex flex-col gap-1.5">
+          <legend className="mb-1.5 text-sm font-medium">Kitchens</legend>
+          <div className="flex flex-wrap gap-4">
+            {kitchens.map((k) => (
+              <Checkbox
+                key={k.id}
+                name="kitchen_ids"
+                value={k.id}
+                label={k.name + (k.is_active ? "" : " (inactive)")}
+                defaultChecked={defaultKitchenIds.includes(k.id)}
+              />
+            ))}
+          </div>
+          {errors.kitchen_ids ? (
+            <p className="text-xs text-danger">{errors.kitchen_ids}</p>
+          ) : (
+            <p className="text-xs text-muted">The chef sees orders for the kitchens ticked here.</p>
+          )}
+        </fieldset>
+      )}
+    </>
+  );
+}
+
+export function NewStaffForm({ kitchens, action, disabledReason }: { kitchens: Kitchen[]; action: SaveAction; disabledReason?: string }) {
   const [state, formAction] = useActionState(action, {});
   const ref = useRef<HTMLFormElement>(null);
   const err = state.fieldErrors ?? {};
@@ -48,7 +106,7 @@ export function NewStaffForm({ action, disabledReason }: { action: SaveAction; d
         <Field label="Temporary password" htmlFor="new-staff-password" error={err.password} hint="At least 10 characters. Share it privately.">
           <Input id="new-staff-password" name="password" type="password" required minLength={10} autoComplete="new-password" />
         </Field>
-        <RoleSelect defaultRole="counter" error={err.role} prefix="new-staff" />
+        <RoleAndKitchens kitchens={kitchens} defaultRole="counter" defaultKitchenIds={[]} errors={err} prefix="new-staff" />
       </fieldset>
       <div className="mt-5 flex flex-wrap items-center gap-4">
         <SubmitButton pendingText="Creating…" disabled={Boolean(disabledReason)}>
@@ -61,11 +119,13 @@ export function NewStaffForm({ action, disabledReason }: { action: SaveAction; d
 }
 
 export function StaffRow({
+  kitchens,
   member,
   isSelf,
   saveAction,
   resetAction,
 }: {
+  kitchens: Kitchen[];
   member: StaffMember;
   isSelf: boolean;
   saveAction: SaveAction;
@@ -79,6 +139,7 @@ export function StaffRow({
   }, {});
   const [resetState, resetFormAction] = useActionState(resetAction, {});
   const err = state.fieldErrors ?? {};
+  const kitchenNames = kitchens.filter((k) => member.kitchen_ids.includes(k.id)).map((k) => k.name);
 
   return (
     <li className="rounded-lg border border-line p-4">
@@ -92,6 +153,7 @@ export function StaffRow({
           </div>
           <p className="mt-1 text-sm text-muted">
             {member.email ?? "Email hidden (secret key not set)"}
+            {member.role === "chef" && ` · ${kitchenNames.length ? kitchenNames.join(", ") : "No kitchen ticked"}`}
           </p>
         </div>
         {mode === "view" && (
@@ -109,7 +171,13 @@ export function StaffRow({
             <Field label="Full name" htmlFor={`staff-${member.user_id}-name`} error={err.full_name}>
               <Input id={`staff-${member.user_id}-name`} name="full_name" defaultValue={member.full_name} required />
             </Field>
-            <RoleSelect defaultRole={member.role} error={err.role} prefix={`staff-${member.user_id}`} />
+            <RoleAndKitchens
+              kitchens={kitchens}
+              defaultRole={member.role}
+              defaultKitchenIds={member.kitchen_ids}
+              errors={err}
+              prefix={`staff-${member.user_id}`}
+            />
             <div className="md:col-span-2">
               <Checkbox
                 name="is_active"

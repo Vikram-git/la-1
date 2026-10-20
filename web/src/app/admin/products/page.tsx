@@ -23,7 +23,7 @@ export default async function ProductsPage({ searchParams }: PageProps<"/admin/p
   let query = supabase
     .from("products")
     .select(
-      "id, name, image_url, prep_type, is_veg, contains_egg, is_available, archived_at, categories(name), product_variants(id, price_paise, is_eggless, archived_at)",
+      "id, name, image_url, prep_type, is_veg, contains_egg, is_available, archived_at, categories(name), product_variants(id, price_paise, is_eggless, archived_at, kitchens(name))",
     )
     .order("name");
   if (q) query = query.ilike("name", `%${q.replace(/[%_]/g, "\\$&")}%`);
@@ -31,10 +31,12 @@ export default async function ProductsPage({ searchParams }: PageProps<"/admin/p
   if (status === "active") query = query.is("archived_at", null);
   if (status === "archived") query = query.not("archived_at", "is", null);
 
-  const [{ data: products, error }, { data: categories }] = await Promise.all([
+  const [{ data: products, error }, { data: categories }, { data: unmapped }] = await Promise.all([
     query,
     supabase.from("categories").select("id, name").order("sort_order").order("name"),
+    supabase.from("unmapped_variants").select("product_id, product_name"),
   ]);
+  const unmappedProducts = [...new Map((unmapped ?? []).map((u) => [u.product_id, u.product_name])).entries()];
 
   return (
     <>
@@ -52,6 +54,20 @@ export default async function ProductsPage({ searchParams }: PageProps<"/admin/p
           )
         }
       />
+
+      {isAdmin && unmappedProducts.length > 0 && (
+        <div className="mb-6">
+          <Alert tone="warn" title={`${unmappedProducts.length} made-to-order product${unmappedProducts.length === 1 ? " has" : "s have"} no kitchen`}>
+            Their orders show on every chef&apos;s screen until you choose a kitchen:{" "}
+            {unmappedProducts.map(([id, name], i) => (
+              <span key={id}>
+                {i > 0 && ", "}
+                <Link href={`/admin/products/${id}`} className="font-medium underline">{name}</Link>
+              </span>
+            ))}
+          </Alert>
+        </div>
+      )}
 
       <form className="mb-4 flex flex-wrap items-end gap-3" role="search">
         <div className="min-w-48 flex-1">
@@ -110,6 +126,7 @@ export default async function ProductsPage({ searchParams }: PageProps<"/admin/p
                 <th scope="col" className="hidden px-4 py-3 font-medium md:table-cell">Category</th>
                 <th scope="col" className="hidden px-4 py-3 font-medium md:table-cell">Type</th>
                 <th scope="col" className="hidden px-4 py-3 font-medium md:table-cell">Price</th>
+                <th scope="col" className="hidden px-4 py-3 font-medium md:table-cell">Kitchen</th>
                 <th scope="col" className="px-4 py-3 font-medium">Status</th>
               </tr>
             </thead>
@@ -118,6 +135,8 @@ export default async function ProductsPage({ searchParams }: PageProps<"/admin/p
                 const variants = p.product_variants.filter((v) => !v.archived_at);
                 const prices = variants.map((v) => v.price_paise);
                 const hasEggless = variants.some((v) => v.is_eggless);
+                const kitchenNames = [...new Set(variants.flatMap((v) => (v.kitchens ? [v.kitchens.name] : [])))];
+                const needsKitchen = p.prep_type === "made_to_order" && variants.some((v) => !v.kitchens);
                 const price = prices.length === 0
                   ? <span className="text-danger">No variants</span>
                   : Math.min(...prices) === Math.max(...prices)
@@ -144,6 +163,15 @@ export default async function ProductsPage({ searchParams }: PageProps<"/admin/p
                     <td className="hidden px-4 py-3 text-muted md:table-cell">{p.categories?.name}</td>
                     <td className="hidden px-4 py-3 md:table-cell">{p.prep_type === "made_to_order" ? "Made to order" : "Ready stock"}</td>
                     <td className="hidden px-4 py-3 whitespace-nowrap md:table-cell">{price}</td>
+                    <td className="hidden px-4 py-3 md:table-cell">
+                      {p.prep_type !== "made_to_order" ? (
+                        <span className="text-muted">—</span>
+                      ) : needsKitchen ? (
+                        <Badge tone="warn">Choose kitchen</Badge>
+                      ) : (
+                        kitchenNames.join(", ")
+                      )}
+                    </td>
                     <td className="px-4 py-3">
                       {p.archived_at ? (
                         <Badge>Archived</Badge>

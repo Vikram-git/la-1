@@ -132,6 +132,21 @@ export async function setProductArchived(id: string, archived: boolean) {
   revalidatePath("/admin/products", "layout");
 }
 
+// Which kitchen makes the product: stored on every size, so orders keep it (chef screen, 2026-10-20).
+export async function setProductKitchen(productId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  await assertRole(["admin"]);
+  const raw = text(formData, "kitchen_id");
+  const parsed = z.union([z.literal("").transform(() => null), uuid]).safeParse(raw);
+  if (!parsed.success) return { message: "Choose a kitchen." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("product_variants").update({ kitchen_id: parsed.data }).eq("product_id", productId);
+  if (error) return dbError(error, "kitchen");
+
+  revalidatePath("/admin/products", "layout");
+  return { ok: true, message: "Saved. New orders go to this kitchen; orders already taken keep theirs." };
+}
+
 // ---------------------------------------------------------------------------
 // Variants
 // ---------------------------------------------------------------------------
@@ -172,7 +187,18 @@ export async function createVariant(productId: string, _prev: ActionState, formD
   if (!parsed.success) return zodErrors(parsed.error);
 
   const supabase = await createClient();
-  const { error } = await supabase.from("product_variants").insert({ ...parsed.data, product_id: productId });
+  // A new size goes to the same kitchen as the product's other sizes.
+  const { data: sibling } = await supabase
+    .from("product_variants")
+    .select("kitchen_id")
+    .eq("product_id", productId)
+    .is("archived_at", null)
+    .not("kitchen_id", "is", null)
+    .limit(1)
+    .maybeSingle();
+  const { error } = await supabase
+    .from("product_variants")
+    .insert({ ...parsed.data, product_id: productId, kitchen_id: sibling?.kitchen_id ?? null });
   if (error) return dbError(error, "variant");
 
   revalidatePath("/admin/products", "layout");

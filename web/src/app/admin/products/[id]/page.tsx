@@ -9,9 +9,11 @@ import { ProductForm } from "../product-form";
 import { NewVariantForm, VariantRow } from "../variant-forms";
 import { ArchiveProductButton } from "./archive-button";
 import { ProductPhoto } from "./photo-card";
+import { KitchenCard } from "./kitchen-card";
 import {
   createVariant,
   setProductArchived,
+  setProductKitchen,
   setVariantArchived,
   updateProduct,
   updateVariant,
@@ -27,7 +29,7 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
   if (!z.uuid().safeParse(id).success) notFound();
 
   const supabase = await createClient();
-  const [{ data: product }, { data: categories }, { data: variants }] = await Promise.all([
+  const [{ data: product }, { data: categories }, { data: variants }, { data: kitchens }] = await Promise.all([
     supabase.from("products").select("*").eq("id", id).maybeSingle(),
     supabase.from("categories").select("id, name, is_active").order("sort_order").order("name"),
     supabase
@@ -37,9 +39,12 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
       .order("archived_at", { nullsFirst: true })
       .order("sort_order")
       .order("created_at"),
+    supabase.from("kitchens").select("id, name").eq("is_active", true).order("sort_order"),
   ]);
   if (!product) notFound();
 
+  const activeKitchens = [...new Set((variants ?? []).filter((v) => !v.archived_at).map((v) => v.kitchen_id))];
+  const currentKitchen = activeKitchens.length > 1 ? "mixed" : (activeKitchens[0] ?? null);
 
   return (
     <>
@@ -57,7 +62,7 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
       <div className="flex flex-col gap-6">
         {created === "1" && (
           <Alert tone="ok" title="Product created">
-            Now add at least one variant with a price, and a photo.
+            Now add at least one variant with a price, then choose the kitchen and add a photo.
           </Alert>
         )}
 
@@ -65,6 +70,20 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
           <h2 className="mb-4 text-lg font-semibold">Photo</h2>
           <ProductPhoto productId={product.id} name={product.name} url={product.image_url} canEdit={isAdmin && !product.archived_at} />
         </Card>
+
+        {product.prep_type === "made_to_order" && (
+          <Card>
+            <h2 className="mb-1 text-lg font-semibold">Kitchen</h2>
+            <p className="mb-4 text-sm text-muted">The kitchen that makes this product. Its orders show on that kitchen&apos;s chef screen.</p>
+            <KitchenCard
+              kitchens={kitchens ?? []}
+              current={currentKitchen}
+              canEdit={isAdmin && !product.archived_at && (variants ?? []).length > 0}
+              action={setProductKitchen.bind(null, product.id)}
+            />
+            {(variants ?? []).length === 0 && <p className="mt-2 text-sm text-muted">Add a size first.</p>}
+          </Card>
+        )}
 
         <Card>
           <h2 className="mb-4 text-lg font-semibold">Variants and prices</h2>

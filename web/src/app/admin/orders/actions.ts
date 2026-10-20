@@ -494,6 +494,7 @@ const customCakeSchema = z.object({
   internalNotes: optionalText(1000),
   confirm: z.boolean(),
   overrideReason: optionalText(300),
+  kitchenId: z.uuid().optional(),
   ...fulfilmentSchema,
 });
 
@@ -530,6 +531,12 @@ export async function createCustomCakeOrderAction(input: CustomCakeOrderInput): 
     p_advance_reference: d.advanceReference,
   });
   if (error) return rpcError(error);
+
+  // The kitchen that makes the cake (chef screen); the order stands even if this step fails.
+  if (d.kitchenId) {
+    const { data: cake } = await supabase.from("custom_cakes").select("order_item_id").eq("order_id", order.id).maybeSingle();
+    if (cake) await supabase.rpc("set_item_kitchen", { p_item_id: cake.order_item_id, p_kitchen_id: d.kitchenId });
+  }
 
   revalidatePath("/admin", "layout");
   return { ok: true, orderId: order.id };
@@ -592,6 +599,27 @@ export async function recordCustomerMessageAction(input: z.input<typeof messageS
   if (!parsed.success) return { message: "Unknown message." };
   const supabase = await createClient();
   const { error } = await supabase.rpc("record_customer_message", { p_order_id: parsed.data.orderId, p_kind: parsed.data.kind });
+  if (error) return rpcError(error);
+  revalidatePath(`/admin/orders/${parsed.data.orderId}`);
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// Kitchen per item (chef screen, 2026-10-20)
+// ---------------------------------------------------------------------------
+
+const itemKitchenSchema = z.object({
+  orderId: z.uuid(),
+  itemId: z.uuid(),
+  kitchenId: z.uuid().nullable(),
+});
+
+export async function setItemKitchenAction(input: z.input<typeof itemKitchenSchema>): Promise<Result> {
+  await assertRole(["admin", "counter"]);
+  const parsed = itemKitchenSchema.safeParse(input);
+  if (!parsed.success) return { message: "Choose a kitchen." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_item_kitchen", { p_item_id: parsed.data.itemId, p_kitchen_id: parsed.data.kitchenId });
   if (error) return rpcError(error);
   revalidatePath(`/admin/orders/${parsed.data.orderId}`);
   return { ok: true };

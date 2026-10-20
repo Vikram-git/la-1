@@ -1,0 +1,74 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { cakeRows, groupChefWork, itemTotals, kitchenTab, tabRange, type ChefRow } from "./kitchen.ts";
+
+function row(over: Partial<ChefRow>): ChefRow {
+  return {
+    order_id: "o1",
+    reference: "B-1001",
+    status: "confirmed",
+    due_at: "2026-10-20T06:30:00Z",
+    is_immediate: false,
+    fulfilment: "collect",
+    item_id: "i1",
+    line_no: 1,
+    product_name: "Truffle cake",
+    variant_name: "1 kg",
+    quantity: 1,
+    is_veg: true,
+    is_eggless: false,
+    notes: null,
+    kitchen_id: "k1",
+    kitchen_name: "Kitchen 1",
+    image_url: null,
+    cake: null,
+    ...over,
+  };
+}
+
+test("tabs: unknown values mean today; ranges in business days", () => {
+  assert.equal(kitchenTab("x"), "today");
+  assert.equal(kitchenTab("later"), "later");
+  assert.deepEqual(tabRange("today", "2026-10-20"), { from: "2026-10-20", to: "2026-10-20" });
+  assert.deepEqual(tabRange("tomorrow", "2026-10-31"), { from: "2026-11-01", to: "2026-11-01" });
+  assert.deepEqual(tabRange("later", "2026-10-20"), { from: "2026-10-22", to: "2026-11-04" });
+});
+
+test("rows group into orders; packed and cancelled go last", () => {
+  const orders = groupChefWork([
+    row({ order_id: "c", reference: "B-3", status: "cancelled", due_at: "2026-10-20T04:00:00Z", item_id: "c1" }),
+    row({ order_id: "a", reference: "B-1", item_id: "a1" }),
+    row({ order_id: "a", reference: "B-1", item_id: "a2", line_no: 2, product_name: "Bread", kitchen_id: "k2" }),
+    row({ order_id: "r", reference: "B-2", status: "ready", due_at: "2026-10-20T05:00:00Z", item_id: "r1" }),
+  ]);
+  assert.deepEqual(orders.map((o) => o.reference), ["B-1", "B-2", "B-3"]);
+  assert.equal(orders[0].lines.length, 2);
+});
+
+test("kitchen filter keeps lines with no kitchen", () => {
+  const orders = groupChefWork(
+    [row({ item_id: "a1" }), row({ item_id: "a2", kitchen_id: "k2" }), row({ item_id: "a3", kitchen_id: null, kitchen_name: null })],
+    "k1",
+  );
+  assert.deepEqual(orders[0].lines.map((l) => l.id), ["a1", "a3"]);
+});
+
+test("totals skip packed, cancelled and custom cakes", () => {
+  const orders = groupChefWork([
+    row({ order_id: "a", item_id: "a1", quantity: 2 }),
+    row({ order_id: "b", item_id: "b1", quantity: 3 }),
+    row({ order_id: "c", item_id: "c1", quantity: 5, status: "ready" }),
+    row({ order_id: "d", item_id: "d1", quantity: 1, product_name: "Custom cake", cake: { flavour: "Vanilla" } }),
+  ]);
+  assert.deepEqual(itemTotals(orders), [{ name: "Truffle cake", size: "1 kg", quantity: 5 }]);
+});
+
+test("cake details read in order, empty ones left out", () => {
+  const rows = cakeRows({ flavour: "Red velvet", weight_kg: "1.50", tiers: 2, message: "Happy birthday", theme: " ", has_cupcakes: true });
+  assert.deepEqual(rows, [
+    { label: "Flavour", value: "Red velvet" },
+    { label: "Weight", value: "1.5 kg · 2 tiers" },
+    { label: "Message on cake", value: "“Happy birthday”" },
+    { label: "Extras", value: "Cupcakes" },
+  ]);
+});

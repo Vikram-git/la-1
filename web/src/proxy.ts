@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PROTECTED_PREFIXES = ["/admin", "/print"];
+const PROTECTED_PREFIXES = ["/admin", "/print", "/kitchen"];
 
 // Refreshes the Supabase session cookie on every request and sends signed-out
 // visitors to /login. Role checks happen in the admin layout and pages.

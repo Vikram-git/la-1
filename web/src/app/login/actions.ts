@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { HOME_PATH } from "@/lib/auth";
+import { homeFor } from "@/lib/auth";
 import type { ActionState } from "@/components/form-status";
 
 const schema = z.object({
@@ -12,9 +12,10 @@ const schema = z.object({
   next: z.string().optional(),
 });
 
-// Only allow redirects back into the staff area.
-function safeNext(next: string | undefined) {
-  return next && /^\/(admin|print)(\/|$)/.test(next) ? next : null;
+// Only allow redirects back into the staff area; chefs only into the kitchen screen.
+function safeNext(next: string | undefined, role: string) {
+  const area = role === "chef" ? /^\/kitchen(\/|$)/ : /^\/(admin|print|kitchen)(\/|$)/;
+  return next && area.test(next) ? next : null;
 }
 
 export async function signIn(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -42,13 +43,7 @@ export async function signIn(_prev: ActionState, formData: FormData): Promise<Ac
     await supabase.auth.signOut();
     return { message: "This account does not have active staff access. Ask an admin." };
   }
-  // The kitchen screen is gone (2026-10-09), so chef logins have nowhere to go.
-  if (profile.role === "chef") {
-    await supabase.auth.signOut();
-    return { message: "Chef logins no longer have access. Ask an admin for a counter staff login." };
-  }
-
-  redirect(safeNext(parsed.data.next) ?? HOME_PATH);
+  redirect(safeNext(parsed.data.next, profile.role) ?? homeFor(profile.role));
 }
 
 export async function signOut() {
