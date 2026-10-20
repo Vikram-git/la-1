@@ -10,6 +10,7 @@ import {
   ChartLine,
   ChefHat,
   ChevronDown,
+  Images,
   LayoutDashboard,
   LogOut,
   Megaphone,
@@ -41,6 +42,7 @@ const ICONS: Record<NavIcon, LucideIcon> = {
   offers: Megaphone,
   reviews: Star,
   kitchen: ChefHat,
+  gallery: Images,
 };
 
 type Counts = { pending: number; reviews: number; attention: number };

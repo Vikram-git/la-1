@@ -1127,6 +1127,8 @@ button {
 .gi-4 { grid-column: span 2; height: 280px; }
 .gi-5 { height: 280px; }
 .gi-6 { height: 280px; }
+/* Photos added by the bakery: any number of them, so fill the gaps the wide tiles leave. */
+.gallery-grid.gallery-live { grid-auto-flow: dense; }
 
 /* ---------- Testimonials ---------- */
 #testimonials {

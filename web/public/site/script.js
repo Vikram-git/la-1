@@ -490,8 +490,26 @@ document.addEventListener('DOMContentLoaded', () => {
         return card;
     }
 
+    // Gallery photos added by the bakery replace the built-in ones (the layout pattern repeats every six).
+    function galleryItem(photo, index) {
+        const item = el('div', `gallery-item gi-${(index % 6) + 1}`);
+        const img = el('img');
+        img.src = photo.image_url;
+        img.alt = photo.caption || 'La Patisserie creation';
+        img.loading = 'lazy';
+        img.decoding = 'async';
+        item.appendChild(img);
+        if (photo.caption) {
+            const hover = el('div', 'gallery-hover');
+            hover.appendChild(el('span', null, photo.caption));
+            item.appendChild(hover);
+        }
+        fadeIn(img);
+        return item;
+    }
+
     async function loadContent() {
-        let content = { offers: [], reviews: [] };
+        let content = { offers: [], reviews: [], gallery: [] };
         try {
             const res = await fetch('/api/site/content');
             if (res.ok) content = await res.json();
@@ -503,6 +521,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (offersSection && offersGrid && content.offers && content.offers.length) {
             content.offers.forEach(o => offersGrid.appendChild(offerCard(o)));
             offersSection.hidden = false;
+        }
+        const galleryGrid = document.querySelector('#gallery .gallery-grid');
+        if (galleryGrid && content.gallery && content.gallery.length) {
+            galleryGrid.replaceChildren(...content.gallery.map(galleryItem));
+            galleryGrid.classList.add('gallery-live');
         }
         const reviewsList = document.getElementById('reviewsList');
         const track = document.getElementById('testimonialsTrack');
@@ -807,12 +830,13 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.style.overflow = '';
     }
 
-    document.querySelectorAll('.gallery-item').forEach(item => {
-        item.addEventListener('click', () => {
-            const img = item.querySelector('img');
-            const caption = item.querySelector('.gallery-hover span')?.textContent;
-            if (img) openLightbox(img.src, caption);
-        });
+    // Delegated, so gallery photos loaded from the bakery open too.
+    document.addEventListener('click', (e) => {
+        const item = e.target.closest && e.target.closest('.gallery-item');
+        if (!item) return;
+        const img = item.querySelector('img');
+        const caption = item.querySelector('.gallery-hover span')?.textContent;
+        if (img) openLightbox(img.src, caption);
     });
 
     if (lightboxClose) lightboxClose.addEventListener('click', closeLightbox);

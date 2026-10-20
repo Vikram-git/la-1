@@ -6,7 +6,7 @@ type Role = Exclude<Enums<"staff_role">, "chef">;
 
 export type NavIcon =
   | "dashboard" | "orders" | "calendar" | "products" | "customers" | "analytics"
-  | "staff" | "settings" | "bell" | "offers" | "reviews" | "kitchen";
+  | "staff" | "settings" | "bell" | "offers" | "reviews" | "kitchen" | "gallery";
 
 export type NavItem = {
   href: string;
@@ -34,6 +34,7 @@ const SECTIONS: NavSection[] = [
       { href: "/kitchen", label: "Chef screen", icon: "kitchen", roles: BOTH },
       { href: "/admin/notifications", label: "Notifications", icon: "bell", roles: BOTH, badge: "attention" },
       { href: "/admin/offers", label: "Offers & Banners", icon: "offers", roles: ADMIN },
+      { href: "/admin/gallery", label: "Gallery", icon: "gallery", roles: ADMIN },
       { href: "/admin/reviews", label: "Reviews", icon: "reviews", roles: ADMIN, badge: "reviews" },
       { href: "/admin/reports", label: "Analytics", icon: "analytics", roles: ADMIN },
       { href: "/admin/staff", label: "Staff", icon: "staff", roles: ADMIN },

@@ -301,6 +301,31 @@ export type Database = {
           },
         ]
       }
+      gallery_photos: {
+        Row: {
+          id: string
+          image_url: string
+          caption: string | null
+          is_active: boolean
+          sort_order: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          image_url: string
+          caption?: string | null
+          is_active?: boolean
+          sort_order?: number
+        }
+        Update: {
+          image_url?: string
+          caption?: string | null
+          is_active?: boolean
+          sort_order?: number
+        }
+        Relationships: []
+      }
       offers: {
         Row: {
           id: string

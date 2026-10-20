@@ -420,3 +420,12 @@ Migration `20261020000100_chef_screen.sql` (**applied live 2026-10-20**); checks
 - **Setting kitchens:** Products → product → **Kitchen** (one choice for all its sizes; new sizes copy it; the list shows a Kitchen column and warns about made-to-order products without one). New custom cake form → **Made in** (default the first kitchen). Order page → a **Kitchen** picker on every made-to-order line until the order is packed or closed (`public.set_item_kitchen`, admin and counter, logged "Kitchen changed"). Staff page: Chef role with kitchen ticks, and kitchen renaming.
 - Admin and counter staff have **Chef screen** in the sidebar to see what chefs see (all kitchens).
 - Three test orders B-1025–B-1027 (internal note `DEMO DATA`) were added to try the screen; `remove_demo_data.sql` deletes them.
+
+## 25. Website gallery managed by admins (owner, 2026-10-20)
+
+Migrations `20261020000200_gallery.sql` and `20261020000300_product_photo_cleanup.sql` (**both applied live 2026-10-20**); checks `supabase/tests/gallery_logic.sql` 6/6; `web/src/lib/gallery.ts` (unit-tested).
+
+- **Admin → Gallery** (`/admin/gallery`, admins only): **Add photos** (up to 20 at once; JPEG/PNG/WebP up to 5 MB; uploaded straight to the public `product-photos` bucket under `gallery/`), then per photo a caption, an order number (lower first) and **Show**; Delete removes the row and the file.
+- **Website:** `website_content()` now returns `gallery` (shown photos, up to 60). The Gallery section ("Sweet Moments") replaces its six built-in photos with these as soon as at least one is shown; the tile pattern repeats every six with `grid-auto-flow: dense`; captions show on hover and in the lightbox (now a delegated click handler). Like offers, changes reach the website within 5 minutes (CDN cache on `/api/site/content`).
+- **Fixed:** removing a file from `product-photos` silently did nothing, because Storage needs the admin to be able to select the object first. The new "Admins read product photos" policy fixes deleted gallery photos and replaced offer photos (older replaced offer photos may still be in `offers/` as orphans).
+- Clicked through on the live database (two photos added, shown on the website, lightbox opened, then deleted with their files).
