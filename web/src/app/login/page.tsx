@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getStaff, homeFor } from "@/lib/auth";
 import Image from "next/image";
+import Link from "next/link";
 import { Brand, ScriptText } from "@/components/ui";
 import { LoginForm } from "./login-form";
 
@@ -35,7 +36,9 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
           <div className="rounded-2xl border border-line bg-surface p-6 shadow-[0_8px_30px_-16px_rgba(176,58,94,0.28)]">
             <LoginForm next={typeof next === "string" ? next : undefined} />
           </div>
-          <p className="mt-6 text-center text-xs text-muted">Forgot your password? Ask an admin to reset it.</p>
+          <p className="mt-6 text-center text-sm">
+            <Link href="/forgot-password" className="font-medium text-brand hover:underline">Forgot password?</Link>
+          </p>
           <ScriptText className="mt-8 block text-center text-3xl">Baked with Love, Always ♥</ScriptText>
         </div>
       </div>

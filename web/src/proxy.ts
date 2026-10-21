@@ -1,11 +1,16 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { strayResetLink } from "@/lib/password-reset";
 
 const PROTECTED_PREFIXES = ["/admin", "/print", "/kitchen"];
 
 // Refreshes the Supabase session cookie on every request and sends signed-out
 // visitors to /login. Role checks happen in the admin layout and pages.
 export async function proxy(request: NextRequest) {
+  // A password-reset link that Supabase sent to the home page (its Site URL) instead of /auth/callback.
+  const resetLink = strayResetLink(request.nextUrl.pathname, request.nextUrl.searchParams);
+  if (resetLink) return NextResponse.redirect(new URL(resetLink, request.url));
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
