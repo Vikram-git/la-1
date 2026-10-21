@@ -3,18 +3,9 @@ import { redirect } from "next/navigation";
 import { getStaff, homeFor } from "@/lib/auth";
 import Image from "next/image";
 import { Brand, ScriptText } from "@/components/ui";
-import { LoginForm, type DemoLogin } from "./login-form";
+import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = { title: "Staff sign in" };
-
-// Demo logins appear as "fill" buttons only while their DEMO_* variables are set (owner's choice: including production).
-// Unset the variables to turn this off.
-function demoLogins(): DemoLogin[] {
-  const accounts = [
-    { label: "Demo admin", email: process.env.DEMO_ADMIN_EMAIL, password: process.env.DEMO_ADMIN_PASSWORD },
-  ];
-  return accounts.filter((a): a is DemoLogin => Boolean(a.email && a.password));
-}
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const staff = await getStaff();
@@ -42,7 +33,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
             <p className="mt-1 text-sm text-muted">Admins, counter staff and chefs.</p>
           </div>
           <div className="rounded-2xl border border-line bg-surface p-6 shadow-[0_8px_30px_-16px_rgba(176,58,94,0.28)]">
-            <LoginForm next={typeof next === "string" ? next : undefined} demoLogins={demoLogins()} />
+            <LoginForm next={typeof next === "string" ? next : undefined} />
           </div>
           <p className="mt-6 text-center text-xs text-muted">Forgot your password? Ask an admin to reset it.</p>
           <ScriptText className="mt-8 block text-center text-3xl">Baked with Love, Always ♥</ScriptText>

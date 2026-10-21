@@ -446,3 +446,9 @@ Migrations `20261020000200_gallery.sql` and `20261020000300_product_photo_cleanu
 - Migration `20261021000100_cake_photos_five.sql`: `custom_cakes.photo_path` → `photo_paths text[]` (0–5, in the order added; old single photos copied over), `set_custom_cake_photo` → `set_custom_cake_photos(order, paths[])` (sets the whole list; refuses more than 5, duplicates, and paths outside the order's folder). `chef_work` returns `cake.photo_paths`; the chefs' storage policy checks the list.
 - New custom cake form: pick several photos at once (up to 5), previews with Remove. Order page cake card: photo grid, Remove on each, "Add photos (n of 5)" until full; removed files are deleted from Storage (`setCustomCakePhotosAction`). Print cake sheet prints all photos (2 per row on A4/A5, stacked on 80 mm). Chef screen: one photo as before, several in a row that scrolls sideways.
 - Checked by `photos_logic.sql` S4–S5 and `chef_screen_logic.sql` H5/H6.
+
+## 29. Demo data removed from the live site (owner, 2026-10-21)
+
+- Ran `supabase/seed/remove_demo_data.sql` on the live project: the 18 demo orders (B-1001–B-1015, B-1025–B-1027) with their items, payments, bills and timeline, their customers, the 15 demo products and the now-empty demo categories (Cakes, Breads, Cookies). Bill and credit-note numbering restarts at 00001.
+- Kept on the owner's instruction: test orders B-1016–B-1021 and B-1028 (not marked as demo), so order numbers continue from B-1029. Kept: the owner's products (Faluda ×2), categories Pastries, Savouries and "cake tub", kitchens, gallery, and all staff logins (`*@auri.test` are still the only logins; create real ones on Staff, then remove these).
+- The "Demo logins" fill buttons on /login are removed from the code (they let anyone sign in as admin). The `DEMO_*` variables on Vercel no longer do anything and can be deleted in the dashboard.
