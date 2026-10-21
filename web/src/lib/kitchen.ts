@@ -1,24 +1,58 @@
-// The chef screen (2026-10-20): rows from public.chef_work grouped into orders. No amounts reach it.
+// The chef screen (2026-10-20): rows from public.chef_work grouped into orders. Everything about an order
+// except money: no prices, totals or payments reach it.
 import type { Database } from "./database.types";
 import { addDays } from "./time.ts";
 
 export type ChefRow = Database["public"]["Functions"]["chef_work"]["Returns"][number];
 
-export type KitchenTab = "today" | "tomorrow" | "later";
+// "day" is one date picked on the calendar; it has no chip of its own (the Calendar chip stays lit).
+export type KitchenTab = "today" | "tomorrow" | "later" | "calendar" | "day";
 export const KITCHEN_TABS: { key: KitchenTab; label: string }[] = [
   { key: "today", label: "Today" },
   { key: "tomorrow", label: "Tomorrow" },
   { key: "later", label: "Next 2 weeks" },
+  { key: "calendar", label: "Calendar" },
 ];
 
 export function kitchenTab(value: unknown): KitchenTab {
-  return value === "tomorrow" || value === "later" ? value : "today";
+  return value === "tomorrow" || value === "later" || value === "calendar" || value === "day" ? value : "today";
+}
+
+// A calendar day from the URL ("YYYY-MM-DD"), or today when it is missing or not a real date.
+export function kitchenDay(value: unknown, todayKey: string): string {
+  return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value) && addDays(value, 0) === value ? value : todayKey;
+}
+
+// A calendar month from the URL ("YYYY-MM"), or this month.
+export function kitchenMonth(value: unknown, todayKey: string): string {
+  return typeof value === "string" && /^\d{4}-(0[1-9]|1[0-2])$/.test(value) ? value : todayKey.slice(0, 7);
+}
+
+// The month grid: whole weeks, Monday to Sunday, 6 rows = 42 days (chef_work allows up to 62).
+export const CALENDAR_DAYS = 42;
+export function monthGridStart(month: string): string {
+  const first = `${month}-01`;
+  return addDays(first, -((new Date(`${first}T00:00:00Z`).getUTCDay() + 6) % 7));
+}
+
+export function shiftMonth(month: string, by: number): string {
+  const d = new Date(`${month}-01T00:00:00Z`);
+  d.setUTCMonth(d.getUTCMonth() + by);
+  return d.toISOString().slice(0, 7);
 }
 
 // Business-time date range [from, to] (inclusive) for a tab.
-export function tabRange(tab: KitchenTab, todayKey: string): { from: string; to: string } {
+export function tabRange(tab: KitchenTab, todayKey: string, pick: { day?: string; month?: string } = {}): { from: string; to: string } {
   if (tab === "tomorrow") return { from: addDays(todayKey, 1), to: addDays(todayKey, 1) };
   if (tab === "later") return { from: addDays(todayKey, 2), to: addDays(todayKey, 15) };
+  if (tab === "day") {
+    const day = pick.day ?? todayKey;
+    return { from: day, to: day };
+  }
+  if (tab === "calendar") {
+    const start = monthGridStart(pick.month ?? todayKey.slice(0, 7));
+    return { from: start, to: addDays(start, CALENDAR_DAYS - 1) };
+  }
   return { from: todayKey, to: todayKey };
 }
 
@@ -62,6 +96,12 @@ export type ChefOrder = {
   dueAt: string;
   isImmediate: boolean;
   fulfilment: ChefRow["fulfilment"];
+  source: ChefRow["source"];
+  customerName: string | null;
+  customerPhone: string | null;
+  customerNotes: string | null;
+  setupAddress: string | null;
+  setupNote: string | null;
   lines: ChefLine[];
 };
 
@@ -80,6 +120,12 @@ export function groupChefWork(rows: ChefRow[], kitchenId: string | null = null):
         dueAt: r.due_at,
         isImmediate: r.is_immediate,
         fulfilment: r.fulfilment,
+        source: r.source,
+        customerName: r.customer_name,
+        customerPhone: r.customer_phone,
+        customerNotes: r.customer_notes,
+        setupAddress: r.setup_address,
+        setupNote: r.setup_note,
         lines: [],
       };
       orders.set(r.order_id, o);
@@ -139,4 +185,20 @@ export function cakeRows(c: CakeInfo): { label: string; value: string }[] {
   add("Extras", extras);
   add("Instructions", c.instructions);
   return rows;
+}
+
+// Per-day counts for the calendar: open orders, custom cakes and set-ups (packed and cancelled left out).
+export type DaySummary = { orders: number; cakes: number; setups: number };
+export function summariseByDay(orders: ChefOrder[], dayOf: (o: ChefOrder) => string): Map<string, DaySummary> {
+  const days = new Map<string, DaySummary>();
+  for (const o of orders) {
+    if (o.status === "cancelled" || o.status === "ready") continue;
+    const key = dayOf(o);
+    const d = days.get(key) ?? { orders: 0, cakes: 0, setups: 0 };
+    d.orders += 1;
+    d.cakes += o.lines.filter((l) => l.cake).length;
+    if (o.fulfilment === "setup") d.setups += 1;
+    days.set(key, d);
+  }
+  return days;
 }

@@ -108,9 +108,13 @@ insert into r(check_name,outcome) values ('H3 chef one sees K1 lines and lines w
      order by w.product_name, w.status::text)
    from public.chef_work(pg_temp.d(0), pg_temp.d(7)) w));
 -- expect: false
-insert into r(check_name,outcome) values ('H4 chef_work carries no amounts, names, phones or notes',
-  (select bool_or(to_jsonb(w)::text ~ '(paise|9000000|Ch Secret|Customer note|Paid 500|price|amount)')
+insert into r(check_name,outcome) values ('H4 chef_work carries no amounts or staff notes',
+  (select bool_or(to_jsonb(w)::text ~ '(paise|1500|Paid 500|price|amount|total|discount|charge)')
    from public.chef_work(pg_temp.d(0), pg_temp.d(30)) w)::text);
+-- expect: Ch Secret Name / 9000000981 / Customer note with email x@y.z
+insert into r(check_name,outcome) values ('H4b chef sees the customer name, phone and notes',
+  (select distinct w.customer_name || ' / ' || w.customer_phone || ' / ' || w.customer_notes
+   from public.chef_work(pg_temp.d(0), pg_temp.d(30)) w where w.customer_name = 'Ch Secret Name'));
 -- expect: Red velvet / 1.50 / Happy birthday / true
 insert into r(check_name,outcome) values ('H5 custom cake details and photo path come through',
   (select (w.cake ->> 'flavour') || ' / ' || (w.cake ->> 'weight_kg') || ' / ' || (w.cake ->> 'message') || ' / ' ||

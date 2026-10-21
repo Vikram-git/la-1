@@ -1338,6 +1338,12 @@ export type Database = {
           kitchen_name: string | null
           image_url: string | null
           cake: Json | null
+          customer_name: string | null
+          customer_phone: string | null
+          customer_notes: string | null
+          setup_address: string | null
+          setup_note: string | null
+          source: Database["public"]["Enums"]["order_source"]
         }[]
       }
       set_item_kitchen: {

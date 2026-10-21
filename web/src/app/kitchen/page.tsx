@@ -5,17 +5,24 @@ import { requireRole } from "@/lib/auth";
 import { signOut } from "@/app/login/actions";
 import { createClient } from "@/lib/supabase/server";
 import { getBusinessTimezone } from "@/lib/settings";
-import { formatDayHeading, formatTime, zonedDayKey } from "@/lib/time";
+import { addDays, formatDayHeading, formatTime, zonedDayKey } from "@/lib/time";
 import { fulfilmentLabel } from "@/lib/orders";
 import {
+  CALENDAR_DAYS,
   KITCHEN_TABS,
   cakeRows,
   groupChefWork,
   itemTotals,
+  kitchenDay,
+  kitchenMonth,
   kitchenTab,
+  monthGridStart,
+  shiftMonth,
+  summariseByDay,
   tabRange,
   type ChefLine,
   type ChefOrder,
+  type DaySummary,
 } from "@/lib/kitchen";
 import { ProductThumb } from "@/components/product-thumb";
 import { Alert, Badge, ChefHat, EmptyState, ScriptText, VegMark, cx } from "@/components/ui";
@@ -23,8 +30,8 @@ import { AutoRefresh } from "./auto-refresh";
 
 export const metadata: Metadata = { title: "Kitchen" };
 
-// The chef screen (owner, 2026-10-20): what to make, per kitchen, with no amounts, payments or customer
-// details. Everything comes from public.chef_work; chefs cannot read orders or prices directly.
+// The chef screen (owner, 2026-10-20): what to make, per kitchen, with everything about the order except
+// money. Everything comes from public.chef_work; chefs cannot read orders or prices directly.
 
 function str(v: string | string[] | undefined) {
   return typeof v === "string" ? v : "";
@@ -36,7 +43,7 @@ function Chip({ href, active, children }: { href: string; active: boolean; child
       href={href}
       aria-current={active ? "page" : undefined}
       className={cx(
-        "shrink-0 whitespace-nowrap rounded-full border px-4 py-2 text-sm font-medium sm:text-base",
+        "shrink-0 whitespace-nowrap rounded-full border px-3 py-2 text-sm font-medium sm:px-4 sm:text-base",
         active ? "border-brand bg-brand-soft text-brand-strong" : "border-line bg-surface hover:border-brand",
       )}
     >
@@ -96,6 +103,34 @@ function CakeNote({ line, photoUrl }: { line: ChefLine; photoUrl: string | null 
   );
 }
 
+const SOURCE_LABEL: Record<ChefOrder["source"], string> = { IN_STORE: "At the counter", CALL: "Phone call", ONLINE: "Website", CUSTOMER: "Customer app" };
+
+// Who the order is for and anything they asked: everything except money.
+function OrderDetails({ order }: { order: ChefOrder }) {
+  const rows: { label: string; value: ReactNode }[] = [];
+  if (order.customerName) rows.push({ label: "Customer", value: order.customerName });
+  if (order.customerPhone) {
+    rows.push({
+      label: "Phone",
+      value: <a href={`tel:${order.customerPhone}`} className="font-semibold text-brand underline-offset-2 hover:underline">{order.customerPhone}</a>,
+    });
+  }
+  rows.push({ label: "Ordered by", value: SOURCE_LABEL[order.source] });
+  if (order.fulfilment === "setup" && order.setupAddress) rows.push({ label: "Set up at", value: order.setupAddress });
+  if (order.setupNote) rows.push({ label: "Set-up note", value: order.setupNote });
+  if (order.customerNotes) rows.push({ label: "Order note", value: order.customerNotes });
+  return (
+    <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 rounded-xl bg-canvas px-3 py-2.5 text-base">
+      {rows.map((r) => (
+        <div key={r.label} className="contents">
+          <dt className="text-muted">{r.label}</dt>
+          <dd className="min-w-0 break-words font-medium whitespace-pre-line">{r.value}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
 function OrderCard({ order, tz, showDay, photos, multiKitchen }: {
   order: ChefOrder;
   tz: string;
@@ -126,6 +161,8 @@ function OrderCard({ order, tz, showDay, photos, multiKitchen }: {
           <OrderStatusBadge status={order.status} />
         </div>
       </header>
+
+      <OrderDetails order={order} />
 
       {closed && (
         <Alert tone="danger" title="This order was cancelled">Stop work on it. Ask the counter what to do with anything already made.</Alert>
@@ -162,6 +199,74 @@ function OrderCard({ order, tz, showDay, photos, multiKitchen }: {
   );
 }
 
+const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+function MonthGrid({ month, today, byDay, dayHref, monthHref }: {
+  month: string;
+  today: string;
+  byDay: Map<string, DaySummary>;
+  dayHref: (day: string) => string;
+  monthHref: (month: string) => string;
+}) {
+  const start = monthGridStart(month);
+  const title = new Intl.DateTimeFormat("en-IN", { timeZone: "UTC", month: "long", year: "numeric" }).format(new Date(`${month}-01T00:00:00Z`));
+  const navClass = "rounded-xl border border-line bg-surface px-3 py-2 text-sm font-medium hover:bg-brand-soft sm:px-4 sm:text-base";
+  return (
+    <section aria-label="Calendar" className="flex flex-col gap-3">
+      <div className="flex items-center justify-between gap-2">
+        <Link href={monthHref(shiftMonth(month, -1))} className={navClass} aria-label="Previous month">
+          ← <span className="hidden sm:inline">Previous</span>
+        </Link>
+        <h2 className="text-lg font-semibold sm:text-xl">{title}</h2>
+        <Link href={monthHref(shiftMonth(month, 1))} className={navClass} aria-label="Next month">
+          <span className="hidden sm:inline">Next</span> →
+        </Link>
+      </div>
+      <div className="grid grid-cols-7 gap-px overflow-hidden rounded-2xl border border-line bg-line">
+        {WEEKDAYS.map((d) => (
+          <div key={d} className="bg-canvas py-2 text-center text-xs font-semibold uppercase text-muted sm:text-sm">
+            <span className="sm:hidden">{d.slice(0, 1)}</span>
+            <span className="hidden sm:inline">{d}</span>
+          </div>
+        ))}
+        {Array.from({ length: CALENDAR_DAYS }, (_, i) => addDays(start, i)).map((day) => {
+          const sum = byDay.get(day);
+          const faded = !day.startsWith(month) || day < today;
+          return (
+            <Link
+              key={day}
+              href={dayHref(day)}
+              aria-label={`${formatDayHeading(day)}: ${sum ? `${sum.orders} order${sum.orders === 1 ? "" : "s"}` : "nothing to make"}`}
+              className={cx(
+                "flex min-h-16 min-w-0 flex-col gap-1 bg-surface p-1.5 hover:bg-brand-soft/50 sm:min-h-28 sm:p-2",
+                faded && "bg-canvas/70 text-muted",
+                day === today && "ring-2 ring-inset ring-brand",
+              )}
+            >
+              <span className={cx("text-sm font-semibold sm:text-base", day === today && "text-brand")}>{Number(day.slice(8))}</span>
+              {sum && (
+                <>
+                  {/* Phones: the order count, and a cake when there is a custom cake. */}
+                  <span className="flex flex-wrap items-center gap-0.5 text-xs font-bold sm:hidden">
+                    <span className="rounded-full bg-brand px-1.5 text-white">{sum.orders}</span>
+                    {sum.cakes > 0 && <span aria-hidden>🎂</span>}
+                  </span>
+                  <span className="hidden flex-col gap-1 text-sm sm:flex">
+                    <span className="font-semibold text-ink">{sum.orders} order{sum.orders === 1 ? "" : "s"}</span>
+                    {sum.cakes > 0 && <span className="rounded bg-note px-1 text-xs font-semibold text-ink">🎂 {sum.cakes} custom cake{sum.cakes === 1 ? "" : "s"}</span>}
+                    {sum.setups > 0 && <span className="rounded bg-danger-soft px-1 text-xs font-semibold text-danger">🚚 {sum.setups} set up</span>}
+                  </span>
+                </>
+              )}
+            </Link>
+          );
+        })}
+      </div>
+      <p className="text-sm text-muted">Tap a day to see what to make. Counts leave out packed and cancelled orders.</p>
+    </section>
+  );
+}
+
 export default async function KitchenPage({ searchParams }: PageProps<"/kitchen">) {
   const staff = await requireRole(["chef", "admin", "counter"]);
   const params = await searchParams;
@@ -169,7 +274,9 @@ export default async function KitchenPage({ searchParams }: PageProps<"/kitchen"
   const tz = await getBusinessTimezone();
   const now = new Date();
   const todayKey = zonedDayKey(now, tz);
-  const range = tabRange(tab, todayKey);
+  const day = kitchenDay(str(params.d), todayKey);
+  const month = kitchenMonth(str(params.m), todayKey);
+  const range = tabRange(tab, todayKey, { day, month });
 
   const supabase = await createClient();
   const [{ data: rows, error }, { data: kitchenRows }, { data: mine }] = await Promise.all([
@@ -193,11 +300,21 @@ export default async function KitchenPage({ searchParams }: PageProps<"/kitchen"
     for (const s of signed ?? []) if (s.path && s.signedUrl) photos.set(s.path, s.signedUrl);
   }
 
+  // Keeps the kitchen filter, and the picked day or month while on that tab.
   const link = (overrides: Record<string, string>) => {
-    const q = new URLSearchParams({ tab, ...(kitchenId ? { k: kitchenId } : {}), ...overrides });
+    const q = new URLSearchParams({
+      tab,
+      ...(kitchenId ? { k: kitchenId } : {}),
+      ...(tab === "day" ? { d: day } : {}),
+      ...(tab === "calendar" ? { m: month } : {}),
+      ...overrides,
+    });
     if (!q.get("k")) q.delete("k");
+    if (q.get("tab") !== "day") q.delete("d");
+    if (q.get("tab") !== "calendar") q.delete("m");
     return `/kitchen?${q}`;
   };
+  const byDay = tab === "calendar" ? summariseByDay(orders, (o) => zonedDayKey(o.dueAt, tz)) : null;
   const heading = staff.role === "chef"
     ? (kitchens.length ? kitchens.map((k) => k.name).join(" + ") : "No kitchen ticked")
     : "Chef screen (all kitchens)";
@@ -244,7 +361,7 @@ export default async function KitchenPage({ searchParams }: PageProps<"/kitchen"
         <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:gap-4">
           <nav aria-label="Days" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
             {KITCHEN_TABS.map((t) => (
-              <Chip key={t.key} href={link({ tab: t.key })} active={tab === t.key}>{t.label}</Chip>
+              <Chip key={t.key} href={link({ tab: t.key })} active={tab === t.key || (tab === "day" && t.key === "calendar")}>{t.label}</Chip>
             ))}
           </nav>
           {kitchens.length > 1 && (
@@ -257,9 +374,26 @@ export default async function KitchenPage({ searchParams }: PageProps<"/kitchen"
           )}
         </div>
 
-        <p className="text-base text-muted">
-          {tab === "later" ? "Next two weeks" : formatDayHeading(range.from)} · {open} order{open === 1 ? "" : "s"} to make
-        </p>
+        {byDay ? (
+          <MonthGrid
+            month={month}
+            today={todayKey}
+            byDay={byDay}
+            dayHref={(d) => link({ tab: "day", d })}
+            monthHref={(m) => link({ tab: "calendar", m })}
+          />
+        ) : (
+          <>
+        <div className="flex flex-wrap items-center gap-3">
+          {tab === "day" && (
+            <Link href={link({ tab: "calendar", m: day.slice(0, 7) })} className="rounded-xl border border-line bg-surface px-3 py-1.5 text-sm font-medium hover:bg-brand-soft">
+              ← Calendar
+            </Link>
+          )}
+          <p className="text-base text-muted">
+            {tab === "later" ? "Next two weeks" : formatDayHeading(range.from)} · {open} order{open === 1 ? "" : "s"} to make
+          </p>
+        </div>
 
         {totals.length > 0 && (
           <section aria-label="Totals" className="rounded-2xl border border-brand/20 bg-brand-soft/50 p-4">
@@ -282,6 +416,8 @@ export default async function KitchenPage({ searchParams }: PageProps<"/kitchen"
               <OrderCard key={o.id} order={o} tz={tz} showDay={tab === "later"} photos={photos} multiKitchen={kitchens.length > 1 && !kitchenId} />
             ))}
           </div>
+        )}
+          </>
         )}
       </main>
       <footer className="px-5 pb-6 text-center">
