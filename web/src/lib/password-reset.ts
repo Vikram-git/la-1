@@ -4,6 +4,17 @@
 export const RESET_PATH = "/reset-password";
 export const CALLBACK_PATH = "/auth/callback";
 
+// The live site. The reset link always points here (or at SITE_URL when set), never at a host taken from
+// the request, so a forged Host header cannot send someone's reset link to another site.
+export const LIVE_ORIGIN = "https://bakery-admin-ten.vercel.app";
+
+// The site the reset link returns to: SITE_URL if set, the dev server when running locally, else the live site.
+export function trustedOrigin(siteUrl: string | undefined, requestHost: string | null, isDev: boolean): string {
+  if (siteUrl && /^https?:\/\/[^/]+$/.test(siteUrl.replace(/\/+$/, ""))) return siteUrl.replace(/\/+$/, "");
+  if (isDev && requestHost && /^(localhost|127\.0\.0\.1)(:\d+)?$/.test(requestHost)) return `http://${requestHost}`;
+  return LIVE_ORIGIN;
+}
+
 // Where Supabase should send the link back to, for this site.
 export function resetRedirectUrl(origin: string): string {
   return `${origin.replace(/\/+$/, "")}${CALLBACK_PATH}`;

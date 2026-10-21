@@ -5,16 +5,15 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getStaff, homeFor } from "@/lib/auth";
-import { resetRedirectUrl } from "@/lib/password-reset";
+import { resetRedirectUrl, trustedOrigin } from "@/lib/password-reset";
 import type { ActionState } from "@/components/form-status";
 
 const emailSchema = z.email("Enter a valid email address.");
 
+// Never built from the request's Host header alone (password-reset poisoning); see trustedOrigin.
 async function siteOrigin() {
   const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
-  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
-  return `${proto}://${host}`;
+  return trustedOrigin(process.env.SITE_URL, h.get("host"), process.env.NODE_ENV !== "production");
 }
 
 // Emails a reset link. Says the same thing whether or not the email has a login, so the page cannot be
