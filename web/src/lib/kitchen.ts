@@ -72,7 +72,7 @@ export type CakeInfo = {
   has_cupcakes?: boolean;
   has_popsicles?: boolean;
   instructions?: string;
-  photo_path?: string;
+  photo_paths?: string[];
 };
 
 export type ChefLine = {

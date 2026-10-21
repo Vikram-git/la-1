@@ -9,7 +9,7 @@ import { zonedLocalToDate } from "@/lib/time";
 import { parseRupeesToPaise } from "@/lib/money";
 import { rpcError, type RpcFailure } from "@/lib/orders";
 import type { PickupAvailability } from "@/lib/capacity";
-import { cakeDetailsSchema, cakeToJson } from "@/lib/custom-cake";
+import { MAX_CAKE_PHOTOS, cakeDetailsSchema, cakeToJson } from "@/lib/custom-cake";
 
 type Result<T = object> = ({ ok: true } & T) | ({ ok?: false } & RpcFailure);
 
@@ -466,7 +466,7 @@ export async function setFulfilmentAction(input: z.input<typeof setFulfilmentSch
 
 // ---------------------------------------------------------------------------
 // Custom cake orders (2026-10-09). The photo is uploaded from the browser straight to Storage
-// (too large for a server action) and then attached with setCustomCakePhotoAction.
+// (too large for a server action) and then attached with setCustomCakePhotosAction.
 // ---------------------------------------------------------------------------
 
 const rupees = (label: string) =>
@@ -565,21 +565,23 @@ export async function updateCustomCakeAction(input: z.input<typeof updateCakeSch
   return { ok: true };
 }
 
-const cakePhotoSchema = z.object({ orderId: z.uuid(), path: z.string().max(300).nullable() });
+const cakePhotosSchema = z.object({
+  orderId: z.uuid(),
+  paths: z.array(z.string().min(1).max(300)).max(MAX_CAKE_PHOTOS, `A custom cake can have up to ${MAX_CAKE_PHOTOS} reference photos.`),
+});
 
-// Attaches (or, with null, removes) the cake photo; the replaced file is deleted from Storage.
-export async function setCustomCakePhotoAction(input: z.input<typeof cakePhotoSchema>): Promise<Result> {
+// Sets the cake's reference photos (the whole list, in order); files dropped from it are deleted from Storage.
+export async function setCustomCakePhotosAction(input: z.input<typeof cakePhotosSchema>): Promise<Result> {
   await assertRole(["admin", "counter"]);
-  const parsed = cakePhotoSchema.safeParse(input);
-  if (!parsed.success) return { message: "Invalid photo." };
-  const { orderId, path } = parsed.data;
+  const parsed = cakePhotosSchema.safeParse(input);
+  if (!parsed.success) return { message: parsed.error.issues[0]?.message ?? "Invalid photos." };
+  const { orderId, paths } = parsed.data;
   const supabase = await createClient();
-  const { data: before } = await supabase.from("custom_cakes").select("photo_path").eq("order_id", orderId).maybeSingle();
-  const { error } = await supabase.rpc("set_custom_cake_photo", { p_order_id: orderId, p_photo_path: path });
+  const { data: before } = await supabase.from("custom_cakes").select("photo_paths").eq("order_id", orderId).maybeSingle();
+  const { error } = await supabase.rpc("set_custom_cake_photos", { p_order_id: orderId, p_photo_paths: paths });
   if (error) return rpcError(error);
-  if (before?.photo_path && before.photo_path !== path) {
-    await supabase.storage.from("custom-cake-photos").remove([before.photo_path]);
-  }
+  const dropped = (before?.photo_paths ?? []).filter((p) => !paths.includes(p));
+  if (dropped.length) await supabase.storage.from("custom-cake-photos").remove(dropped);
   await afterChange(orderId);
   return { ok: true };
 }

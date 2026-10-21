@@ -59,7 +59,7 @@ const eventLabel: Record<string, string> = {
   item_kitchen_changed: "Kitchen changed",
   custom_cake_created: "Custom cake ordered",
   custom_cake_changed: "Custom cake changed",
-  custom_cake_photo: "Cake photo changed",
+  custom_cake_photo: "Cake photos changed",
   customer_message: "WhatsApp message opened",
 };
 
@@ -120,12 +120,14 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
   const kitchenName = new Map((kitchens ?? []).map((k) => [k.id, k.name]));
   const canRouteKitchen = !["ready", "completed", "cancelled", "rejected"].includes(order.status);
 
-  // Custom cake (2026-10-09): its details, and a short-lived link to the private reference photo.
+  // Custom cake (2026-10-09): its details, and short-lived links to the private reference photos (up to 5).
   const { data: cake } = await supabase.from("custom_cakes").select("*").eq("order_id", id).maybeSingle();
   const cakeLine = cake ? (items ?? []).find((i) => i.id === cake.order_item_id) : undefined;
-  const photoUrl = cake?.photo_path
-    ? (await supabase.storage.from("custom-cake-photos").createSignedUrl(cake.photo_path, 3600)).data?.signedUrl ?? null
-    : null;
+  const cakePaths = cake?.photo_paths ?? [];
+  const signedCake = cakePaths.length
+    ? new Map(((await supabase.storage.from("custom-cake-photos").createSignedUrls(cakePaths, 3600)).data ?? []).map((s) => [s.path, s.signedUrl]))
+    : new Map<string | null, string>();
+  const cakePhotos = cakePaths.map((path) => ({ path, url: signedCake.get(path) ?? null }));
 
   // WhatsApp messages for the customer (2026-10-19). The review link points at this site's reviews section.
   const requestHeaders = await headers();
@@ -229,8 +231,8 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
           </Alert>
         )}
         {photo === "failed" && (
-          <Alert tone="warn" title="The reference photo was not saved">
-            The order was created. Add the photo again on the custom cake card below.
+          <Alert tone="warn" title="A reference photo was not saved">
+            The order was created. Add the missing photos again on the custom cake card below.
           </Alert>
         )}
         {cake && (
@@ -240,7 +242,7 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
             version={order.version ?? 0}
             cake={cake}
             pricePaise={cakeLine?.unit_price_paise ?? 0}
-            photoUrl={photoUrl}
+            photos={cakePhotos}
             canEdit={["draft", "pending_confirmation", "confirmed", "preparing"].includes(order.status)}
             canChangePhoto={!closed}
           />

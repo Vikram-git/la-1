@@ -31,9 +31,9 @@ export default async function CakeSheetPage({ params, searchParams }: PageProps<
     supabase.from("custom_cakes").select("*").eq("order_id", id).maybeSingle(),
   ]);
   if (!order || !cake) notFound();
-  const photoUrl = cake.photo_path
-    ? (await supabase.storage.from("custom-cake-photos").createSignedUrl(cake.photo_path, 600)).data?.signedUrl ?? null
-    : null;
+  const photoUrls = cake.photo_paths.length
+    ? ((await supabase.storage.from("custom-cake-photos").createSignedUrls(cake.photo_paths, 600)).data ?? []).flatMap((s) => (s.signedUrl ? [s.signedUrl] : []))
+    : [];
   const narrow = size === "80mm";
 
   const rows: [string, string | null][] = [
@@ -97,9 +97,18 @@ export default async function CakeSheetPage({ params, searchParams }: PageProps<
             ))}
         </dl>
 
-        {photoUrl && (
-          // eslint-disable-next-line @next/next/no-img-element -- short-lived signed URL from private storage
-          <img src={photoUrl} alt="Customer's reference photo" className={narrow ? "mt-2 w-full" : "mt-6 max-h-[110mm] w-auto"} />
+        {photoUrls.length > 0 && (
+          <div className={narrow ? "mt-2 flex flex-col gap-1" : photoUrls.length > 1 ? "mt-6 grid grid-cols-2 gap-3" : "mt-6"}>
+            {photoUrls.map((url, i) => (
+              // eslint-disable-next-line @next/next/no-img-element -- short-lived signed URL from private storage
+              <img
+                key={url}
+                src={url}
+                alt={`Customer's reference photo ${i + 1}`}
+                className={narrow ? "w-full" : photoUrls.length > 1 ? "max-h-[75mm] w-full object-contain" : "max-h-[110mm] w-auto"}
+              />
+            ))}
+          </div>
         )}
 
         <footer className={narrow ? "mt-2 border-t border-dashed border-black pt-1" : "mt-6 border-t border-black pt-2 text-sm"}>

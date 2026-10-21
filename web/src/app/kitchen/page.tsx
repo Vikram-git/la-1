@@ -74,7 +74,7 @@ function FulfilmentTag({ fulfilment }: { fulfilment: ChefOrder["fulfilment"] }) 
   );
 }
 
-function CakeNote({ line, photoUrl }: { line: ChefLine; photoUrl: string | null }) {
+function CakeNote({ line, photoUrls }: { line: ChefLine; photoUrls: string[] }) {
   const rows = cakeRows(line.cake ?? {});
   return (
     <div className="rounded-sm border border-note-line bg-note p-4">
@@ -82,12 +82,23 @@ function CakeNote({ line, photoUrl }: { line: ChefLine; photoUrl: string | null 
         <p className="font-display text-lg font-semibold">🎂 Custom cake · {line.size}</p>
         {line.cake?.is_eggless && <Badge tone="ok">Eggless</Badge>}
       </div>
-      <div className="mt-3 flex flex-col gap-4 sm:flex-row">
-        {photoUrl && (
-          <a href={photoUrl} target="_blank" rel="noreferrer" className="shrink-0" title="Open the reference photo">
+      <div className={cx("mt-3 flex flex-col gap-4", photoUrls.length === 1 && "sm:flex-row")}>
+        {photoUrls.length === 1 && (
+          <a href={photoUrls[0]} target="_blank" rel="noreferrer" className="shrink-0" title="Open the reference photo">
             {/* eslint-disable-next-line @next/next/no-img-element -- signed, short-lived URL */}
-            <img src={photoUrl} alt="Reference photo" className="h-56 w-full rounded-lg border border-note-line bg-surface object-cover sm:h-40 sm:w-40" />
+            <img src={photoUrls[0]} alt="Reference photo" className="h-56 w-full rounded-lg border border-note-line bg-surface object-cover sm:h-40 sm:w-40" />
           </a>
+        )}
+        {/* Several photos: a row that scrolls sideways; tap one to open it full size. */}
+        {photoUrls.length > 1 && (
+          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+            {photoUrls.map((url, i) => (
+              <a key={url} href={url} target="_blank" rel="noreferrer" className="shrink-0" title={`Open reference photo ${i + 1}`}>
+                {/* eslint-disable-next-line @next/next/no-img-element -- signed, short-lived URL */}
+                <img src={url} alt={`Reference photo ${i + 1}`} className="size-32 rounded-lg border border-note-line bg-surface object-cover sm:size-36" />
+              </a>
+            ))}
+          </div>
         )}
         <dl className="grid min-w-0 flex-1 grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-base">
           {rows.map((r) => (
@@ -172,7 +183,7 @@ function OrderCard({ order, tz, showDay, photos, multiKitchen }: {
         {order.lines.map((l) =>
           l.cake ? (
             <li key={l.id}>
-              <CakeNote line={l} photoUrl={l.cake.photo_path ? (photos.get(l.cake.photo_path) ?? null) : null} />
+              <CakeNote line={l} photoUrls={(l.cake.photo_paths ?? []).flatMap((p) => (photos.has(p) ? [photos.get(p)!] : []))} />
               {!l.kitchenId && <p className="mt-1 text-sm font-medium text-warn">No kitchen set yet — check with the counter who makes it.</p>}
             </li>
           ) : (
@@ -293,7 +304,7 @@ export default async function KitchenPage({ searchParams }: PageProps<"/kitchen"
   const open = orders.filter((o) => o.status !== "cancelled" && o.status !== "ready").length;
 
   // Reference photos of custom cakes: short-lived signed links (storage lets a chef open only cakes on this screen).
-  const photoPaths = [...new Set(orders.flatMap((o) => o.lines.flatMap((l) => (l.cake?.photo_path ? [l.cake.photo_path] : []))))];
+  const photoPaths = tab === "calendar" ? [] : [...new Set(orders.flatMap((o) => o.lines.flatMap((l) => l.cake?.photo_paths ?? [])))];
   const photos = new Map<string, string>();
   if (photoPaths.length) {
     const { data: signed } = await supabase.storage.from("custom-cake-photos").createSignedUrls(photoPaths, 3600);

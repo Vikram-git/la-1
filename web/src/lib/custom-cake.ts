@@ -96,6 +96,9 @@ export function cakePhotoProblem(file: { type: string; size: number }): string |
   return null;
 }
 
+// Reference photos per custom cake (owner, 2026-10-21; was 1). The database checks it too.
+export const MAX_CAKE_PHOTOS = 5;
+
 export function photoExtension(type: string): string {
   return type === "image/png" ? "png" : type === "image/webp" ? "webp" : "jpg";
 }

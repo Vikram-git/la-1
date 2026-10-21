@@ -78,7 +78,7 @@ begin
     '{"flavour": "Red velvet", "weight_kg": 1.5, "tiers": 2, "message": "Happy birthday", "setup_charge_paise": 50000}',
     p_confirm => true);
   insert into ctx values ('C', o.id::text);
-  perform public.set_custom_cake_photo(o.id, o.id || '/ref.jpg');
+  perform public.set_custom_cake_photos(o.id, array[o.id || '/ref.jpg']);
   -- D: confirmed cake then cancelled.
   o := public.create_order(gen_random_uuid(), 'CALL', jsonb_build_array(pg_temp.line('cake', 1)),
     'Ch Four', '9000000984', pg_temp.day(2), p_confirm => true);
@@ -118,7 +118,7 @@ insert into r(check_name,outcome) values ('H4b chef sees the customer name, phon
 -- expect: Red velvet / 1.50 / Happy birthday / true
 insert into r(check_name,outcome) values ('H5 custom cake details and photo path come through',
   (select (w.cake ->> 'flavour') || ' / ' || (w.cake ->> 'weight_kg') || ' / ' || (w.cake ->> 'message') || ' / ' ||
-          ((w.cake ->> 'photo_path') like '%/ref.jpg')::text
+          ((w.cake -> 'photo_paths' ->> 0) like '%/ref.jpg')::text
    from public.chef_work(pg_temp.d(0), pg_temp.d(7)) w where w.cake is not null));
 -- expect: 1
 insert into r(check_name,outcome) values ('H6 chef reads the photo of a cake on their screen, not others',

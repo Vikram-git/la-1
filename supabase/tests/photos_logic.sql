@@ -38,19 +38,31 @@ begin
     (((now() at time zone 'Asia/Kolkata')::date + 3) + time '12:00') at time zone 'Asia/Kolkata', 100000,
     '{"flavour": "Vanilla", "weight_kg": 1}');
   insert into ctx values ('O', o.id::text);
-  begin perform public.set_custom_cake_photo(o.id, 'someone-else/x.jpg');
+  begin perform public.set_custom_cake_photos(o.id, array['someone-else/x.jpg']);
     insert into r(check_name,outcome) values ('S3 a cake photo must sit under its order', 'ALLOWED');
   -- expect: The photo is not stored under this order.
   exception when others then insert into r(check_name,outcome) values ('S3 a cake photo must sit under its order', sqlerrm); end;
 
-  perform public.set_custom_cake_photo(o.id, o.id || '/ref.jpg');
+  perform public.set_custom_cake_photos(o.id, array[o.id || '/ref.jpg']);
   -- expect: true
   insert into r(check_name,outcome) values ('S4 counter staff add a cake photo',
-    ((select photo_path from public.custom_cakes where order_id = o.id) = o.id || '/ref.jpg')::text);
-  perform public.set_custom_cake_photo(o.id, null);
-  -- expect: NULL
-  insert into r(check_name,outcome) values ('S5 the cake photo can be removed',
-    coalesce((select photo_path from public.custom_cakes where order_id = o.id), 'NULL'));
+    ((select photo_paths from public.custom_cakes where order_id = o.id) = array[o.id || '/ref.jpg'])::text);
+  perform public.set_custom_cake_photos(o.id, array(select o.id || '/' || g || '.jpg' from generate_series(1, 5) g));
+  -- expect: 5
+  insert into r(check_name,outcome) values ('S4b up to 5 cake photos',
+    (select cardinality(photo_paths) from public.custom_cakes where order_id = o.id)::text);
+  begin perform public.set_custom_cake_photos(o.id, array(select o.id || '/' || g || '.jpg' from generate_series(1, 6) g));
+    insert into r(check_name,outcome) values ('S4c a sixth photo is refused', 'ALLOWED');
+  -- expect: A custom cake can have up to 5 reference photos.
+  exception when others then insert into r(check_name,outcome) values ('S4c a sixth photo is refused', sqlerrm); end;
+  begin perform public.set_custom_cake_photos(o.id, array[o.id || '/1.jpg', o.id || '/1.jpg']);
+    insert into r(check_name,outcome) values ('S4d the same photo twice is refused', 'ALLOWED');
+  -- expect: The same photo is listed twice.
+  exception when others then insert into r(check_name,outcome) values ('S4d the same photo twice is refused', sqlerrm); end;
+  perform public.set_custom_cake_photos(o.id, '{}');
+  -- expect: 0
+  insert into r(check_name,outcome) values ('S5 the cake photos can be removed',
+    (select cardinality(photo_paths) from public.custom_cakes where order_id = o.id)::text);
 end $$;
 
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000fa1","role":"authenticated"}', true);

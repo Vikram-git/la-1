@@ -554,7 +554,7 @@ export type Database = {
           model: string | null
           order_id: string
           order_item_id: string
-          photo_path: string | null
+          photo_paths: string[]
           setup_charge_item_id: string | null
           setup_charge_paise: number
           theme: string | null
@@ -1313,8 +1313,8 @@ export type Database = {
         Args: { p_image_url: string | null; p_product_id: string }
         Returns: undefined
       }
-      set_custom_cake_photo: {
-        Args: { p_order_id: string; p_photo_path: string | null }
+      set_custom_cake_photos: {
+        Args: { p_order_id: string; p_photo_paths: string[] }
         Returns: undefined
       }
       chef_work: {

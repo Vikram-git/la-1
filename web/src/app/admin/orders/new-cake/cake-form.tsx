@@ -8,11 +8,11 @@ import { FulfilmentFields, type FulfilmentValue } from "@/components/fulfilment-
 import { CustomerWarning } from "@/components/customer-warning";
 import { OverridePrompt } from "@/components/override-prompt";
 import { PickupWindows } from "@/components/pickup-windows";
-import { cakePhotoProblem } from "@/lib/custom-cake";
+import { MAX_CAKE_PHOTOS, cakePhotoProblem } from "@/lib/custom-cake";
 import { formatPaise, parseRupeesToPaise } from "@/lib/money";
 import { paymentMethodLabel, sourceLabel, type PaymentMethod } from "@/lib/orders";
 import { uploadPhoto } from "@/lib/photo-upload";
-import { createCustomCakeOrderAction, setCustomCakePhotoAction } from "../actions";
+import { createCustomCakeOrderAction, setCustomCakePhotosAction } from "../actions";
 
 type Source = "IN_STORE" | "CALL" | "CUSTOMER";
 const SOURCES: { value: Source; icon: string }[] = [
@@ -42,8 +42,8 @@ export function CakeOrderForm({
   const [cake, setCake] = useState<CakeFormValue>(EMPTY_CAKE);
   // The kitchen that makes the cake; it shows on that kitchen's chef screen.
   const [kitchenId, setKitchenId] = useState(kitchens[0]?.id ?? "");
-  const [photo, setPhoto] = useState<File | null>(null);
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  // Up to 5 reference photos, uploaded once the order exists.
+  const [photos, setPhotos] = useState<{ file: File; preview: string }[]>([]);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [price, setPrice] = useState("");
   const [advance, setAdvance] = useState("");
@@ -64,20 +64,19 @@ export function CakeOrderForm({
   const totalPaise = pricePaise + chargesPaise;
   const isSetup = fulfil.fulfilment === "setup";
 
-  function choosePhoto(file: File | null) {
+  function addPhotos(files: File[]) {
     setPhotoError(null);
-    if (photoPreview) URL.revokeObjectURL(photoPreview);
-    if (file) {
-      const problem = cakePhotoProblem(file);
-      if (problem) {
-        setPhoto(null);
-        setPhotoPreview(null);
-        setPhotoError(problem);
-        return;
-      }
-    }
-    setPhoto(file);
-    setPhotoPreview(file ? URL.createObjectURL(file) : null);
+    const problem = files.map(cakePhotoProblem).find(Boolean);
+    if (problem) return setPhotoError(problem);
+    const room = MAX_CAKE_PHOTOS - photos.length;
+    if (files.length > room) setPhotoError(`Up to ${MAX_CAKE_PHOTOS} photos: ${files.length - room} not added.`);
+    setPhotos([...photos, ...files.slice(0, room).map((file) => ({ file, preview: URL.createObjectURL(file) }))]);
+  }
+
+  function removePhoto(index: number) {
+    setPhotoError(null);
+    URL.revokeObjectURL(photos[index].preview);
+    setPhotos(photos.filter((_, i) => i !== index));
   }
 
   function submit(overrideReason?: string) {
@@ -112,16 +111,17 @@ export function CakeOrderForm({
         setError({ message: result.message ?? "Could not save the order.", kind: result.kind });
         return;
       }
-      // The order exists; a photo that fails to upload can be added from the order page.
+      // The order exists; photos that fail to upload can be added from the order page.
       let photoFailed = false;
-      if (photo) {
-        const uploaded = await uploadPhoto("custom-cake-photos", result.orderId, photo);
-        if ("path" in uploaded) {
-          const attached = await setCustomCakePhotoAction({ orderId: result.orderId, path: uploaded.path }).catch(() => ({ ok: false }));
-          photoFailed = !attached.ok;
-        } else {
-          photoFailed = true;
-        }
+      const paths: string[] = [];
+      for (const { file } of photos) {
+        const uploaded = await uploadPhoto("custom-cake-photos", result.orderId, file);
+        if ("path" in uploaded) paths.push(uploaded.path);
+        else photoFailed = true;
+      }
+      if (paths.length) {
+        const attached = await setCustomCakePhotosAction({ orderId: result.orderId, paths }).catch(() => ({ ok: false }));
+        if (!attached.ok) photoFailed = true;
       }
       router.push(`/admin/orders/${result.orderId}?created=1${photoFailed ? "&photo=failed" : ""}`);
     });
@@ -146,15 +146,34 @@ export function CakeOrderForm({
               </Select>
             </Field>
           )}
-          <Field label="Reference photo (optional)" htmlFor="cake-photo" hint="JPEG, PNG or WebP, up to 5 MB." error={photoError ?? undefined}>
-            <Input id="cake-photo" type="file" accept="image/jpeg,image/png,image/webp" onChange={(e) => choosePhoto(e.target.files?.[0] ?? null)} />
+          <Field
+            label={`Reference photos (optional, up to ${MAX_CAKE_PHOTOS})`}
+            htmlFor="cake-photo"
+            hint={`JPEG, PNG or WebP, up to 5 MB each. ${photos.length} of ${MAX_CAKE_PHOTOS} added.`}
+            error={photoError ?? undefined}
+          >
+            <Input
+              id="cake-photo"
+              type="file"
+              multiple
+              accept="image/jpeg,image/png,image/webp"
+              disabled={photos.length >= MAX_CAKE_PHOTOS}
+              onChange={(e) => {
+                addPhotos(Array.from(e.target.files ?? []));
+                e.target.value = "";
+              }}
+            />
           </Field>
-          {photoPreview && (
-            <div className="flex items-start gap-3">
-              {/* eslint-disable-next-line @next/next/no-img-element -- a local preview (blob URL) */}
-              <img src={photoPreview} alt="Reference photo preview" className="h-40 w-40 rounded-xl border border-line object-cover" />
-              <Button variant="ghost" onClick={() => choosePhoto(null)}>Remove photo</Button>
-            </div>
+          {photos.length > 0 && (
+            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {photos.map((p, i) => (
+                <li key={p.preview} className="flex flex-col items-start gap-1">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- a local preview (blob URL) */}
+                  <img src={p.preview} alt={`Reference photo ${i + 1}`} className="aspect-square w-full rounded-xl border border-line object-cover" />
+                  <Button variant="ghost" onClick={() => removePhoto(i)}>Remove</Button>
+                </li>
+              ))}
+            </ul>
           )}
         </Card>
 
