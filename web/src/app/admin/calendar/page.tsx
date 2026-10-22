@@ -3,10 +3,10 @@ import Link from "next/link";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getBusinessTimezone } from "@/lib/settings";
-import { OPEN_STATUSES, type OrderStatus } from "@/lib/orders";
+import type { OrderStatus } from "@/lib/orders";
 import type { PickupAvailability } from "@/lib/capacity";
 import { addDays, formatDayHeading, zonedDayKey, zonedDayRange } from "@/lib/time";
-import { PageHeader, Select, cx } from "@/components/ui";
+import { Alert, PageHeader, Select, cx } from "@/components/ui";
 import type { CalendarCake, OrdersByDay } from "./order-row";
 import { AgendaView } from "./agenda-view";
 import { DayView } from "./day-view";
@@ -25,6 +25,11 @@ const VIEWS = ["agenda", "day", "week", "month"] as const;
 type View = (typeof VIEWS)[number];
 const VIEW_LABEL: Record<View, string> = { agenda: "Agenda", day: "Day", week: "Week", month: "Month" };
 const AGENDA_DAYS = 14;
+
+// Owner (2026-10-22): an order goes on the calendar only once it is confirmed. Website requests waiting for
+// confirmation (and drafts) stay off it; a note links to them instead.
+const BOOKED_STATUSES: OrderStatus[] = ["confirmed", "preparing", "ready", "completed"];
+const CLOSED_STATUSES: OrderStatus[] = ["cancelled", "rejected"];
 
 // Monday on or before a day ("YYYY-MM-DD").
 const mondayOf = (day: string) => addDays(day, -((new Date(`${day}T00:00:00Z`).getUTCDay() + 6) % 7));
@@ -66,16 +71,17 @@ export default async function CalendarPage({ searchParams }: PageProps<"/admin/c
     .gte("due_at", start.toISOString())
     .lt("due_at", end.toISOString())
     .order("due_at");
-  if (!showClosed) query = query.in("status", [...OPEN_STATUSES, "completed"] as OrderStatus[]);
+  query = query.in("status", showClosed ? [...BOOKED_STATUSES, ...CLOSED_STATUSES] : BOOKED_STATUSES);
   if (source) query = query.eq("source", source);
   if (fulfil) query = query.eq("fulfilment", fulfil);
 
-  const [{ data: orders }, { data: closures }, availability] = await Promise.all([
+  const [{ data: orders }, { data: closures }, availability, { count: waiting }] = await Promise.all([
     query,
     supabase.from("closures").select("closed_on, reason").gte("closed_on", rangeStart).lt("closed_on", addDays(rangeStart, rangeDays)),
     view === "day"
       ? supabase.rpc("pickup_availability", { p_date: from }).then(({ data, error }) => (error ? null : (data as unknown as PickupAvailability)))
       : null,
+    supabase.from("orders").select("id", { count: "exact", head: true }).eq("status", "pending_confirmation"),
   ]);
   const closureByDay = new Map((closures ?? []).map((c) => [c.closed_on, c.reason]));
 
@@ -113,8 +119,17 @@ export default async function CalendarPage({ searchParams }: PageProps<"/admin/c
     <>
       <PageHeader
         title="Calendar"
-        description={`Orders by pickup or set-up time (${tz}), all sources. Green: collect from store. Red: set up at the customer's place. Pending requests are marked until confirmed.`}
+        description={`Orders by pickup or set-up time (${tz}), all sources. Green: collect from store. Red: set up at the customer's place. Orders appear here once they are confirmed.`}
       />
+
+      {(waiting ?? 0) > 0 && (
+        <div className="mb-4">
+          <Alert title={`${waiting} ${waiting === 1 ? "order is" : "orders are"} waiting for confirmation`}>
+            They go on the calendar (and to the kitchen) once you confirm them.{" "}
+            <Link href="/admin/notifications" className="font-medium underline">Review them</Link>
+          </Alert>
+        </div>
+      )}
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-1 rounded-lg border border-line bg-surface p-1">
