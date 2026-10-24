@@ -24,6 +24,8 @@ import { cloudFormats, whatsappCloudConfig } from "@/lib/whatsapp-cloud";
 import { WhatsAppCard } from "./whatsapp-card";
 import { StickyNote } from "./sticky-note";
 import { QuotationSend } from "./quotation-send";
+import { loadQuotation } from "@/lib/quotation-server";
+import { captionBill } from "@/lib/quotation";
 
 export const metadata: Metadata = { title: "Order" };
 
@@ -162,7 +164,11 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
   };
   const messageContext = { shop: settings?.business_name ?? "La Patisserie", timeZone: tz, reviewUrl: `${proto}://${host}/#testimonials` };
   const messages = availableMessages(messageOrder).map((kind) => ({ kind, text: messageText(kind, messageOrder, messageContext) }));
-  const caption = quotationCaption({ reference: order.reference ?? "", note: whatsappNote }, messageContext.shop);
+  const quotation = await loadQuotation(supabase, id);
+  const caption = quotationCaption(
+    { reference: order.reference ?? "", note: whatsappNote, bill: quotation.ok ? captionBill(quotation.quotation) : null },
+    messageContext.shop,
+  );
   const sentKinds = (events ?? [])
     .filter((e) => e.event_type === "customer_message")
     .map((e) => (e.data as { kind?: MessageKind } | null)?.kind)
@@ -400,7 +406,7 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
           </div>
           <div className="grid gap-6 lg:grid-cols-2">
             <QuotationSend
-              key={`q-${order.version}-${whatsappNote ?? ""}`}
+              key={`q-${order.version}-${balance}-${whatsappNote ?? ""}`}
               orderId={order.id}
               phone={whatsappNumber(order.customer_phone)}
               caption={caption}

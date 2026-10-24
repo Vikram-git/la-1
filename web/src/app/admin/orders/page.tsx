@@ -8,6 +8,7 @@ import { ORDER_LISTS, OPEN_STATUSES, fulfilmentRowClass, statusLabel, type ListK
 import { formatDateTime, zonedDayKey, zonedDayRange } from "@/lib/time";
 import { Alert, ButtonLink, EmptyState, Input, PageHeader, Select, cx } from "@/components/ui";
 import { ContactBadge, FulfilmentBadge, SourceBadge, StatusBadge } from "@/components/order-badges";
+import { LiveRefresh } from "@/components/live-refresh";
 
 export const metadata: Metadata = { title: "Orders" };
 
@@ -105,6 +106,7 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/ord
 
   return (
     <>
+      <LiveRefresh />
       <PageHeader
         title="Orders"
         description={`Due times shown in ${tz}. Green rows are collected from the store; red rows are set up at the customer's place.`}

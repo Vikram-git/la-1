@@ -221,6 +221,34 @@ do $$ begin
   exception when others then insert into r(check_name,outcome) values ('R19 a kitchen login cannot get a second kitchen', sqlerrm); end;
 end $$;
 
+-- Deleting orders (calendar).
+set local role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-000000000dc1');
+do $$ begin
+  begin perform public.delete_order((select v::uuid from ctx where k = 'W'), (select version from public.orders where id = (select v::uuid from ctx where k = 'W')), 'Test');
+    insert into r(check_name,outcome) values ('R19b counter staff cannot delete orders', 'ALLOWED');
+  -- expect: Only an admin can delete orders.
+  exception when others then insert into r(check_name,outcome) values ('R19b counter staff cannot delete orders', sqlerrm); end;
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-000000000da1');
+do $$ begin
+  begin perform public.delete_order((select v::uuid from ctx where k = 'C'), (select version from public.orders where id = (select v::uuid from ctx where k = 'C')), 'Test');
+    insert into r(check_name,outcome) values ('R19c an order with an advance is not deleted', 'ALLOWED');
+  -- expect: This order has payments or a bill, so it cannot be deleted. (has_money)
+  exception when others then
+    declare h text; begin get stacked diagnostics h = pg_exception_hint;
+    insert into r(check_name,outcome) values ('R19c an order with an advance is not deleted', sqlerrm || ' (' || h || ')'); end;
+  end;
+end $$;
+select public.delete_order((select v::uuid from ctx where k = 'W'), (select version from public.orders where id = (select v::uuid from ctx where k = 'W')), 'Customer called it off');
+reset role;
+-- expect: 0 / 0 / 0 / Customer called it off
+insert into r(check_name,outcome) values ('R19d a deleted order is gone with its items and tickets; the audit log keeps it with the reason',
+  (select count(*) from public.orders where id = (select v::uuid from ctx where k = 'W')) || ' / ' ||
+  (select count(*) from public.order_items where order_id = (select v::uuid from ctx where k = 'W')) || ' / ' ||
+  (select count(*) from public.kitchen_tickets where order_id = (select v::uuid from ctx where k = 'W')) || ' / ' ||
+  (select old_data ->> 'closed_reason' from public.audit_events where table_name = 'orders' and action = 'DELETE' and record_id = (select v from ctx where k = 'W')));
+
 -- Deleting staff.
 set local role authenticated;
 select pg_temp.as_user('00000000-0000-0000-0000-000000000dc1');

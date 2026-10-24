@@ -1425,6 +1425,10 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: undefined
       }
+      delete_order: {
+        Args: { p_order_id: string; p_expected_version: number; p_reason: string }
+        Returns: undefined
+      }
       submit_review: {
         Args: { p_name: string; p_rating: number; p_comment: string }
         Returns: undefined

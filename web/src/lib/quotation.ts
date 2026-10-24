@@ -5,6 +5,7 @@ import { z } from "zod";
 import { cakeRows, type CakeInfo } from "./kitchen.ts";
 import { formatPaise } from "./money.ts";
 import { formatDateTime } from "./time.ts";
+import type { CaptionBill } from "./whatsapp.ts";
 
 // The app's palette (globals.css) for the PDF and PNG, which cannot read CSS variables.
 export const QUOTATION_COLOURS = {
@@ -159,6 +160,26 @@ export function withoutPrices(q: Quotation): Quotation {
     mode: "kitchen",
     amounts: null,
     lines: q.lines.map((l) => ({ ...l, unitPricePaise: null, lineTotalPaise: null })),
+  };
+}
+
+// The amounts for the WhatsApp caption; null for the price-free kitchen version. Long item lists end
+// with one "Other items" line so the message stays short.
+const CAPTION_ITEM_LINES = 8;
+export function captionBill(q: Quotation): CaptionBill | null {
+  if (q.mode !== "full" || !q.amounts) return null;
+  const priced = q.lines.filter((l) => (l.lineTotalPaise ?? 0) > 0 || l.kind === "cake" || l.kind === "item");
+  const label = (l: QuotationLine) =>
+    l.kind === "setup" || l.kind === "delivery" ? l.name : `${l.kind === "item" ? `${l.quantity} × ` : ""}${l.name}${l.variant ? ` (${l.variant})` : ""}`;
+  const shown = priced.slice(0, CAPTION_ITEM_LINES).map((l) => ({ label: label(l), paise: l.lineTotalPaise ?? 0 }));
+  const rest = priced.slice(CAPTION_ITEM_LINES);
+  if (rest.length) shown.push({ label: `Other items (${rest.length})`, paise: rest.reduce((s, l) => s + (l.lineTotalPaise ?? 0), 0) });
+  return {
+    lines: shown,
+    discountPaise: q.amounts.discountPaise,
+    totalPaise: q.amounts.totalPaise,
+    advancePaise: q.amounts.advancePaise,
+    balancePaise: q.amounts.balancePaise,
   };
 }
 

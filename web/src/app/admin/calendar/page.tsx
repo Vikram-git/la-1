@@ -12,6 +12,7 @@ import { AgendaView } from "./agenda-view";
 import { DayView } from "./day-view";
 import { MonthView } from "./month-view";
 import { WeekView } from "./week-view";
+import { LiveRefresh } from "@/components/live-refresh";
 
 export const metadata: Metadata = { title: "Calendar" };
 
@@ -46,7 +47,7 @@ const shortDate = (day: string, withYear = false) =>
   );
 
 export default async function CalendarPage({ searchParams }: PageProps<"/admin/calendar">) {
-  await requireRole(["admin", "counter"]);
+  const staff = await requireRole(["admin", "counter"]);
   const params = await searchParams;
   const tz = await getBusinessTimezone();
   const today = zonedDayKey(new Date(), tz);
@@ -129,6 +130,7 @@ export default async function CalendarPage({ searchParams }: PageProps<"/admin/c
 
   return (
     <>
+      <LiveRefresh />
       <PageHeader
         title={`${orderKindLabel[kind]} calendar`}
         description={`${kind === "custom" ? "Custom cake orders, made in Kitchen 1" : "Website, in-store and call orders, made in Kitchen 2"}, by pickup or set-up time (${tz}). Green: collect from store. Red: set up at the customer's place. Orders appear here once they are confirmed.`}
@@ -215,10 +217,10 @@ export default async function CalendarPage({ searchParams }: PageProps<"/admin/c
       )}
       {view === "day" && (
         <DayView day={from} today={today} orders={byDay.get(from) ?? []} closure={closureByDay.get(from)} availability={availability}
-          filtered={Boolean(source || fulfil || showClosed)} tz={tz} />
+          filtered={Boolean(source || fulfil || showClosed)} tz={tz} canDelete={staff.role === "admin"} />
       )}
       {view === "agenda" && (
-        <AgendaView from={from} days={AGENDA_DAYS} today={today} byDay={byDay} closureByDay={closureByDay} tz={tz} />
+        <AgendaView from={from} days={AGENDA_DAYS} today={today} byDay={byDay} closureByDay={closureByDay} tz={tz} canDelete={staff.role === "admin"} />
       )}
       </div>
     </>

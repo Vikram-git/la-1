@@ -5,7 +5,7 @@ import { z } from "zod";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { loadQuotation } from "@/lib/quotation-server";
-import { quotationView } from "@/lib/quotation";
+import { captionBill, quotationView } from "@/lib/quotation";
 import { quotationCaption, whatsappNumber } from "@/lib/whatsapp";
 import { cloudFormats, whatsappCloudConfig } from "@/lib/whatsapp-cloud";
 import { QuotationSheet } from "@/components/quotation-sheet";
@@ -33,7 +33,7 @@ export default async function QuotationPage({ params }: PageProps<"/print/quotat
   }
   const q = result.quotation;
   const caption = quotationCaption(
-    { reference: q.order.reference, note: order?.sticky_note_in_whatsapp ? order.sticky_note : null },
+    { reference: q.order.reference, note: order?.sticky_note_in_whatsapp ? order.sticky_note : null, bill: captionBill(q) },
     q.shop.name,
   );
 

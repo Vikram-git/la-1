@@ -8,6 +8,7 @@ import { formatDateTime } from "@/lib/time";
 import { ButtonLink, Card, EmptyState, PageHeader, ScriptText } from "@/components/ui";
 import { ContactBadge, FulfilmentBadge } from "@/components/order-badges";
 import type { Fulfilment, OrderSource } from "@/lib/orders";
+import { LiveRefresh } from "@/components/live-refresh";
 
 export const metadata: Metadata = { title: "Notifications" };
 
@@ -47,6 +48,7 @@ export default async function NotificationsPage() {
 
   return (
     <>
+      <LiveRefresh />
       <PageHeader title="Notifications" description="Orders to confirm, late pickups and reviews to approve." />
       {nothing ? (
         <Card className="flex flex-col items-center gap-2 px-8 py-14 text-center">

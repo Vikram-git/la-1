@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseQuotation, quotationFileName, quotationView, withoutPrices } from "./quotation.ts";
+import { captionBill, parseQuotation, quotationFileName, quotationView, withoutPrices } from "./quotation.ts";
 
 const base = {
   timezone: "Asia/Kolkata",
@@ -70,6 +70,19 @@ test("withoutPrices turns a full quotation into the kitchen one", () => {
   const v = quotationView(withoutPrices(full));
   assert.equal(v.priced, false);
   assert.doesNotMatch(JSON.stringify(v), /₹/);
+});
+
+test("the WhatsApp bill lists cake, set-up and delivery, then total, advance and balance; none for the kitchen", () => {
+  const full = parseQuotation({ ...base, mode: "full", items: items.map((i, n) => ({ ...i, ...priced[n] })), amounts });
+  assert.deepEqual(captionBill(full), {
+    lines: [
+      { label: "Custom cake (2 kg)", paise: 450000 },
+      { label: "Set-up charge", paise: 150000 },
+      { label: "Delivery charge", paise: 30000 },
+    ],
+    discountPaise: 0, totalPaise: 630000, advancePaise: 200000, balancePaise: 430000,
+  });
+  assert.equal(captionBill(withoutPrices(full)), null);
 });
 
 test("a full quotation without amounts is refused rather than shown as free", () => {

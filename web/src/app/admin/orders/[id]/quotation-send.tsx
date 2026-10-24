@@ -20,14 +20,16 @@ export function QuotationSend({
   phone,
   caption: initialCaption,
   cloudFormats = [],
+  defaultFormat,
 }: {
   orderId: string;
   phone: string | null;
   caption: string;
   cloudFormats?: Format[];
+  defaultFormat?: Format;
 }) {
   const router = useRouter();
-  const [format, setFormat] = useState<Format>(cloudFormats[0] ?? "pdf");
+  const [format, setFormat] = useState<Format>(defaultFormat ?? cloudFormats[0] ?? "pdf");
   const [caption, setCaption] = useState(initialCaption);
   const [busy, setBusy] = useState(false);
   const [sending, setSending] = useState(false);

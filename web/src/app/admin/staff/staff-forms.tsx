@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState, useTransition } from "react";
+import { useActionState, useRef, useState, useTransition } from "react";
 import { Alert, Badge, Button, Checkbox, Field, Input, Select } from "@/components/ui";
 import { FormMessage, SubmitButton, type ActionState } from "@/components/form-status";
 import { kitchenListLabel } from "@/lib/orders";
@@ -90,38 +90,6 @@ function RoleAndKitchens({
         </fieldset>
       )}
     </>
-  );
-}
-
-export function NewStaffForm({ kitchens, action, disabledReason }: { kitchens: Kitchen[]; action: SaveAction; disabledReason?: string }) {
-  const [state, formAction] = useActionState(action, {});
-  const ref = useRef<HTMLFormElement>(null);
-  const err = state.fieldErrors ?? {};
-  useEffect(() => {
-    if (state.ok) ref.current?.reset();
-  }, [state]);
-
-  return (
-    <form ref={ref} action={formAction}>
-      <fieldset disabled={Boolean(disabledReason)} className="grid gap-4 md:grid-cols-2">
-        <Field label="Full name" htmlFor="new-staff-name" error={err.full_name}>
-          <Input id="new-staff-name" name="full_name" required maxLength={80} />
-        </Field>
-        <Field label="Email (used to sign in)" htmlFor="new-staff-email" error={err.email}>
-          <Input id="new-staff-email" name="email" type="email" required autoComplete="off" />
-        </Field>
-        <Field label="Temporary password" htmlFor="new-staff-password" error={err.password} hint="At least 10 characters. Share it privately.">
-          <Input id="new-staff-password" name="password" type="password" required minLength={10} autoComplete="new-password" />
-        </Field>
-        <RoleAndKitchens kitchens={kitchens} defaultRole="counter" defaultKitchenIds={[]} errors={err} prefix="new-staff" />
-      </fieldset>
-      <div className="mt-5 flex flex-wrap items-center gap-4">
-        <SubmitButton pendingText="Creating…" disabled={Boolean(disabledReason)}>
-          Create staff login
-        </SubmitButton>
-        {disabledReason ? <p className="text-sm text-warn">{disabledReason}</p> : <FormMessage state={state} />}
-      </div>
-    </form>
   );
 }
 

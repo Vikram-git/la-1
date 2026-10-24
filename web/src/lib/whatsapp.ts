@@ -83,9 +83,30 @@ function withNote(text: string, note: string | null | undefined): string {
   return n ? `${text}\n\nNote: ${n}` : text;
 }
 
+// The bill written under the quotation caption (owner, 2026-10-24): each charge (cake, items, set-up,
+// delivery), then total, advance and balance. Amounts in paise.
+export type CaptionBill = {
+  lines: { label: string; paise: number }[];
+  discountPaise: number;
+  totalPaise: number;
+  advancePaise: number;
+  balancePaise: number;
+};
+
+function billText(b: CaptionBill): string {
+  return [
+    ...b.lines.map((l) => `${l.label}: ${rupees(l.paise)}`),
+    b.discountPaise > 0 ? `Discount: −${rupees(b.discountPaise)}` : null,
+    `*Total: ${rupees(b.totalPaise)}*`,
+    `Advance paid: ${rupees(b.advancePaise)}`,
+    b.balancePaise < 0 ? `Refund due: ${rupees(-b.balancePaise)}` : b.balancePaise > 0 ? `*Balance to pay: ${rupees(b.balancePaise)}*` : "Fully paid ✅",
+  ].filter(Boolean).join("\n");
+}
+
 // The caption sent with the quotation file. Staff can edit it before sending.
-export function quotationCaption(o: { reference: string; note?: string | null }, shop: string): string {
-  return withNote(`${GREETING}\nPlease find attached the quotation for your order ${o.reference}.\n\n— ${shop}`, o.note);
+export function quotationCaption(o: { reference: string; note?: string | null; bill?: CaptionBill | null }, shop: string): string {
+  const bill = o.bill ? `\n\n${billText(o.bill)}` : "";
+  return withNote(`${GREETING}\nPlease find attached the quotation for your order ${o.reference}.${bill}\n\n— ${shop}`, o.note);
 }
 
 function baseText(kind: MessageKind, o: MessageOrder, ctx: MessageContext): string {

@@ -63,3 +63,16 @@ test("the quotation caption: greeting, one line, shop sign-off, note if chosen; 
   );
   assert.match(quotationCaption({ reference: "B-1042", note: "Bring the stand back" }, "La Patisserie"), /\n\nNote: Bring the stand back$/);
 });
+
+test("the quotation caption carries the bill: each charge, total, advance and balance", () => {
+  const bill = {
+    lines: [{ label: "Custom cake", paise: 250000 }, { label: "Set-up charges", paise: 50000 }, { label: "Delivery charges", paise: 20000 }],
+    discountPaise: 0, totalPaise: 320000, advancePaise: 100000, balancePaise: 220000,
+  };
+  assert.equal(
+    quotationCaption({ reference: "B-1042", bill }, "La Patisserie"),
+    "Hello Sir / Madam!\nPlease find attached the quotation for your order B-1042.\n\n" +
+      "Custom cake: ₹2,500\nSet-up charges: ₹500\nDelivery charges: ₹200\n*Total: ₹3,200*\nAdvance paid: ₹1,000\n*Balance to pay: ₹2,200*\n\n— La Patisserie",
+  );
+  assert.match(quotationCaption({ reference: "B-1", bill: { ...bill, advancePaise: 320000, balancePaise: 0 } }, "S"), /Advance paid: ₹3,200\nFully paid ✅/);
+});

@@ -3,6 +3,7 @@ import { fulfilmentRowClass, type Fulfilment, type OrderSource, type OrderStatus
 import { formatTime } from "@/lib/time";
 import { cx } from "@/components/ui";
 import { ContactBadge, FulfilmentBadge, StatusBadge } from "@/components/order-badges";
+import { DeleteOrderButton } from "./delete-order";
 
 // Columns selected from order_summaries by the calendar page.
 export type CalendarOrder = {
@@ -66,7 +67,7 @@ function CakeDetails({ cake, fulfilment, setupAddress }: { cake: CalendarCake; f
   );
 }
 
-export function OrderList({ orders, tz }: { orders: CalendarOrder[]; tz: string }) {
+export function OrderList({ orders, tz, canDelete = false }: { orders: CalendarOrder[]; tz: string; canDelete?: boolean }) {
   return (
     <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
       {orders.map((o) => (
@@ -85,6 +86,7 @@ export function OrderList({ orders, tz }: { orders: CalendarOrder[]; tz: string 
             {o.fulfilment && <FulfilmentBadge fulfilment={o.fulfilment} />}
             {o.source && <ContactBadge source={o.source} phone={o.customer_phone} />}
             {o.status && <StatusBadge status={o.status} />}
+            {canDelete && o.id && <DeleteOrderButton orderId={o.id} reference={o.reference ?? ""} />}
         </li>
       ))}
     </ul>

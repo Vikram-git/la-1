@@ -3,8 +3,8 @@ import { requireRole } from "@/lib/auth";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { env } from "@/lib/env";
 import { Alert, Card, PageHeader } from "@/components/ui";
-import { createStaff, deleteStaff, resetStaffPassword, updateKitchen, updateStaff } from "./actions";
-import { KitchenForm, NewStaffForm, StaffRow, type StaffMember } from "./staff-forms";
+import { deleteStaff, resetStaffPassword, updateKitchen, updateStaff } from "./actions";
+import { KitchenForm, StaffRow, type StaffMember } from "./staff-forms";
 
 export const metadata: Metadata = { title: "Staff" };
 
@@ -44,7 +44,7 @@ export default async function StaffPage() {
       <div className="flex flex-col gap-6">
         {!env.supabaseSecretKey && (
           <Alert title="Staff logins are read-only">
-            To create logins and reset passwords, add <code className="font-mono">SUPABASE_SECRET_KEY</code> to{" "}
+            To reset passwords and delete logins, add <code className="font-mono">SUPABASE_SECRET_KEY</code> to{" "}
             <code className="font-mono">web/.env.local</code> (Supabase dashboard → Project Settings → API Keys) and restart the app.
           </Alert>
         )}
@@ -53,11 +53,6 @@ export default async function StaffPage() {
             {chefsWithoutKitchen.map((c) => c.full_name).join(", ")} see no orders. Edit them and choose their kitchen.
           </Alert>
         )}
-
-        <Card>
-          <h2 className="mb-4 text-lg font-semibold">Add staff member</h2>
-          <NewStaffForm kitchens={kitchens ?? []} action={createStaff} disabledReason={env.supabaseSecretKey ? undefined : "Needs SUPABASE_SECRET_KEY."} />
-        </Card>
 
         <Card>
           <h2 className="mb-4 text-lg font-semibold">Staff ({members.length})</h2>

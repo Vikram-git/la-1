@@ -9,6 +9,7 @@ import { addDays, formatDateTime, zonedDayKey, zonedDayRange } from "@/lib/time"
 import { Badge, ButtonLink, Card, PageHeader, cx } from "@/components/ui";
 import { ContactBadge, FulfilmentBadge, StatusBadge } from "@/components/order-badges";
 import { netCollected } from "@/lib/home";
+import { LiveRefresh } from "@/components/live-refresh";
 
 export const metadata: Metadata = { title: "Home" };
 
@@ -67,6 +68,7 @@ export default async function AdminHome() {
 
   return (
     <>
+      <LiveRefresh />
       <PageHeader
         title={`Hello, ${staff.fullName.split(" ")[0]}`}
         description={`Today is ${formatDateTime(new Date(), tz).split(",")[0]}. “Due today” counts pickups, not orders created today.`}

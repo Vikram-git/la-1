@@ -181,8 +181,30 @@ p = await page("/admin/staff", counter.cookie);
 check("counter kept out of staff page", p.status !== 200 || (p.body.includes("NEXT_REDIRECT") && !p.body.includes("kitchen1@auri.test")), `${p.status} ${p.location ?? ""}`);
 r = await act("cancelOrderAction", `/admin/orders/${web.id}`, { orderId: web.id, version: web.version, reason: "E2E test" }, counter.cookie);
 check("counter cannot cancel", r.ok !== true);
-r = await act("cancelOrderAction", `/admin/orders/${web.id}`, { orderId: web.id, version: web.version, reason: "E2E test order, not real" }, admin.cookie);
-check("admin cancels website test order", r.ok === true, JSON.stringify(r));
+p = await page("/admin/staff", admin.cookie);
+check("staff page has no Add staff member form", p.status === 200 && !p.body.includes("Add staff member") && p.body.includes("Staff ("), `status ${p.status}`);
+
+// --- WhatsApp quotation text carries the bill; cake sheet sends a PNG ----------------------------
+p = await page(`/admin/orders/${cakeId}`, admin.cookie);
+check("quotation message lists set-up, delivery, total, advance and balance",
+  ["Set-up charges: ₹500", "Delivery charges: ₹200", "Total: ₹3,200", "Advance paid: ₹1,000", "Balance to pay: ₹2,200"].every((t) => p.body.includes(t)), `status ${p.status}`);
+p = await page(`/print/cake/${cakeId}`, counter.cookie);
+check("cake sheet shows the bill and sends the quotation, image first",
+  p.status === 200 && p.body.includes("Send the quotation to the customer") && p.body.includes("Balance to pay") && /checked=""[^>]*value="png"|value="png"[^>]*checked/.test(p.body), `status ${p.status}`);
+
+// --- Delete from the calendar ----------------------------------------------------------------------
+p = await page(`/admin/calendar?from=${later}`, admin.cookie);
+check("admin calendar rows have Delete", p.body.includes(`Delete order ${web.reference}`), `status ${p.status}`);
+p = await page(`/admin/calendar?from=${later}`, counter.cookie);
+check("counter calendar has no Delete", p.status === 200 && !p.body.includes("Delete order"), `status ${p.status}`);
+r = await act("deleteOrderAction", "/admin/calendar", { orderId: web.id, reason: "E2E test" }, counter.cookie);
+check("counter cannot delete orders", r.ok !== true);
+r = await act("deleteOrderAction", "/admin/calendar", { orderId: web.id, reason: "E2E test order, not real" }, admin.cookie);
+const webGone = !(await admin.sb.from("orders").select("id").eq("id", web.id).maybeSingle()).data;
+check("admin deletes an order with no payments: it is gone", r.ok === true && r.outcome === "deleted" && webGone, JSON.stringify(r));
+r = await act("deleteOrderAction", "/admin/calendar?kind=custom", { orderId: cakeId, reason: "E2E test order, not real" }, admin.cookie);
+const cakeAfter = (await admin.sb.from("orders").select("status").eq("id", cakeId).maybeSingle()).data;
+check("an order with an advance is cancelled instead, money kept", r.ok === true && r.outcome === "cancelled" && cakeAfter?.status === "cancelled", JSON.stringify(r));
 
 console.log(results.join("\n"));
 const failed = results.filter((x) => x.startsWith("FAIL")).length;

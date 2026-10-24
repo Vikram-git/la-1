@@ -50,16 +50,6 @@ function withKitchenRule<T extends { role: string; kitchen_ids: string[] }>(sche
   });
 }
 
-const createSchema = withKitchenRule(
-  z.object({
-    full_name: z.string().min(1, "Enter the staff member's name.").max(80),
-    email: z.email("Enter a valid email address."),
-    password,
-    role: roleSchema,
-    kitchen_ids: z.array(z.uuid()),
-  }),
-);
-
 const updateSchema = withKitchenRule(
   z.object({
     full_name: z.string().min(1, "Enter the staff member's name.").max(80),
@@ -73,48 +63,6 @@ const updateSchema = withKitchenRule(
 function kitchenIds(formData: FormData) {
   if (text(formData, "role") !== "chef") return [];
   return formData.getAll("kitchen_ids").filter((v): v is string => typeof v === "string" && v !== "");
-}
-
-export async function createStaff(_prev: ActionState, formData: FormData): Promise<ActionState> {
-  await assertRole(["admin"]);
-  if (!env.supabaseSecretKey) return NO_SECRET_KEY;
-
-  const parsed = createSchema.safeParse({
-    full_name: text(formData, "full_name"),
-    email: text(formData, "email").toLowerCase(),
-    password: formData.get("password"),
-    role: text(formData, "role"),
-    kitchen_ids: kitchenIds(formData),
-  });
-  if (!parsed.success) return zodErrors(parsed.error);
-  const { full_name, email, role, kitchen_ids } = parsed.data;
-
-  const admin = createAdminClient();
-  const { data: created, error: authError } = await admin.auth.admin.createUser({
-    email,
-    password: parsed.data.password,
-    email_confirm: true,
-  });
-  if (authError || !created.user) {
-    const exists = authError?.code === "email_exists" || /already/i.test(authError?.message ?? "");
-    return { message: exists ? "A login with that email already exists." : `Could not create the login. ${authError?.message ?? ""}` };
-  }
-
-  // Write the profile as the signed-in admin so the audit log records who did it.
-  const supabase = await createClient();
-  const userId = created.user.id;
-  const { error: profileError } = await supabase.from("staff_profiles").insert({ user_id: userId, full_name, role });
-  const { error: kitchenError } = profileError || kitchen_ids.length === 0
-    ? { error: null }
-    : await supabase.from("staff_kitchens").insert(kitchen_ids.map((kitchen_id) => ({ user_id: userId, kitchen_id })));
-  if (profileError || kitchenError) {
-    // Do not leave a login without a complete staff profile.
-    await admin.auth.admin.deleteUser(userId);
-    return dbError((profileError ?? kitchenError)!, "staff member");
-  }
-
-  revalidatePath("/admin/staff");
-  return { ok: true, message: `Created a login for ${full_name}. Share the password with them privately.` };
 }
 
 export async function updateStaff(userId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {

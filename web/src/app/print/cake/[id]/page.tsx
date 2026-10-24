@@ -8,11 +8,18 @@ import { cakeExtras } from "@/lib/custom-cake";
 import { formatPaise } from "@/lib/money";
 import { sourceLabel } from "@/lib/orders";
 import { formatDateTime } from "@/lib/time";
+import { loadQuotation } from "@/lib/quotation-server";
+import { captionBill } from "@/lib/quotation";
+import { quotationCaption, whatsappNumber } from "@/lib/whatsapp";
+import { cloudFormats, whatsappCloudConfig } from "@/lib/whatsapp-cloud";
+import { Card, cx } from "@/components/ui";
+import { QuotationSend } from "@/app/admin/orders/[id]/quotation-send";
 import { PrintControls } from "../../print-controls";
 
 export const metadata: Metadata = { title: "Cake sheet" };
 
 // The custom cake's details for whoever bakes and decorates it (owner, 2026-10-09). The id is the order's.
+// Below it (not printed), the quotation goes to the customer on WhatsApp, as an image by default (2026-10-24).
 export default async function CakeSheetPage({ params, searchParams }: PageProps<"/print/cake/[id]">) {
   await requireRole(["admin", "counter"]);
   const { id } = await params;
@@ -22,19 +29,26 @@ export default async function CakeSheetPage({ params, searchParams }: PageProps<
   const tz = await getBusinessTimezone();
 
   const supabase = await createClient();
-  const [{ data: order }, { data: cake }] = await Promise.all([
+  const [{ data: order }, { data: cake }, { data: note }, quotation] = await Promise.all([
     supabase
       .from("order_summaries")
       .select("reference, source, status, customer_name, customer_phone, due_at, fulfilment, setup_address, setup_note, total_paise, balance_paise")
       .eq("id", id)
       .maybeSingle(),
     supabase.from("custom_cakes").select("*").eq("order_id", id).maybeSingle(),
+    supabase.from("orders").select("sticky_note, sticky_note_in_whatsapp").eq("id", id).maybeSingle(),
+    loadQuotation(supabase, id),
   ]);
   if (!order || !cake) notFound();
   const photoUrls = cake.photo_paths.length
     ? ((await supabase.storage.from("custom-cake-photos").createSignedUrls(cake.photo_paths, 600)).data ?? []).flatMap((s) => (s.signedUrl ? [s.signedUrl] : []))
     : [];
   const narrow = size === "80mm";
+  const bill = quotation.ok ? captionBill(quotation.quotation) : null;
+  const caption = quotationCaption(
+    { reference: order.reference ?? "", note: note?.sticky_note_in_whatsapp ? note.sticky_note : null, bill },
+    quotation.ok ? quotation.quotation.shop.name : "La Patisserie",
+  );
 
   const rows: [string, string | null][] = [
     ["Flavour", cake.flavour],
@@ -112,9 +126,38 @@ export default async function CakeSheetPage({ params, searchParams }: PageProps<
         )}
 
         <footer className={narrow ? "mt-2 border-t border-dashed border-black pt-1" : "mt-6 border-t border-black pt-2 text-sm"}>
-          Price {formatPaise(order.total_paise ?? 0)} · {(order.balance_paise ?? 0) > 0 ? `Balance due ${formatPaise(order.balance_paise ?? 0)}` : "Paid"}
+          {bill ? (
+            <dl className={narrow ? "" : "grid grid-cols-[auto_auto] justify-end gap-x-6 gap-y-0.5"}>
+              {[
+                ...bill.lines.map((l) => [l.label, formatPaise(l.paise)] as const),
+                ...(bill.discountPaise > 0 ? [["Discount", `−${formatPaise(bill.discountPaise)}`] as const] : []),
+                ["Total", formatPaise(bill.totalPaise)] as const,
+                ["Advance paid", formatPaise(bill.advancePaise)] as const,
+                [bill.balancePaise < 0 ? "Refund due" : "Balance to pay", formatPaise(Math.abs(bill.balancePaise))] as const,
+              ].map(([k, v]) => (
+                <div key={k} className={narrow ? "flex justify-between gap-2" : "contents"}>
+                  <dt className={k === "Total" || k === "Balance to pay" ? "font-bold" : ""}>{k}</dt>
+                  <dd className={cx("text-right tabular-nums", (k === "Total" || k === "Balance to pay") && "font-bold")}>{v}</dd>
+                </div>
+              ))}
+            </dl>
+          ) : (
+            <>Price {formatPaise(order.total_paise ?? 0)} · {(order.balance_paise ?? 0) > 0 ? `Balance due ${formatPaise(order.balance_paise ?? 0)}` : "Paid"}</>
+          )}
         </footer>
       </article>
+      {quotation.ok && (
+        <Card className="mx-auto mt-6 max-w-3xl print:hidden">
+          <h2 className="mb-3 text-lg font-semibold">Send the quotation to the customer</h2>
+          <QuotationSend
+            orderId={id}
+            phone={whatsappNumber(order.customer_phone)}
+            caption={caption}
+            cloudFormats={cloudFormats(whatsappCloudConfig())}
+            defaultFormat="png"
+          />
+        </Card>
+      )}
     </div>
   );
 }

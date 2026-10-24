@@ -5,7 +5,7 @@ import { OrderList, plural, type CalendarOrder } from "./order-row";
 
 // One day, grouped by that date's pickup windows (weekday windows or a festival override),
 // with bakery-wide window and category usage from pickup_availability.
-export function DayView({ day, today, orders, closure, availability, filtered, tz }: {
+export function DayView({ day, today, orders, closure, availability, filtered, tz, canDelete = false }: {
   day: string;
   today: string;
   orders: CalendarOrder[];
@@ -13,6 +13,7 @@ export function DayView({ day, today, orders, closure, availability, filtered, t
   availability: PickupAvailability | null;
   filtered: boolean;
   tz: string;
+  canDelete?: boolean;
 }) {
   const windows = availability?.windows ?? [];
   const localTime = (o: CalendarOrder) => (o.due_at ? dateToZonedLocal(new Date(o.due_at), tz).slice(11, 16) : "");
@@ -55,7 +56,7 @@ export function DayView({ day, today, orders, closure, availability, filtered, t
             {windowOrders.length === 0 ? (
               <p className="rounded-lg border border-dashed border-line bg-surface px-4 py-3 text-sm text-muted">Nothing due.</p>
             ) : (
-              <OrderList orders={windowOrders} tz={tz} />
+              <OrderList orders={windowOrders} tz={tz} canDelete={canDelete} />
             )}
           </section>
         );
@@ -67,7 +68,7 @@ export function DayView({ day, today, orders, closure, availability, filtered, t
             {windows.length > 0 ? "Outside pickup windows" : "No pickup windows set for this day"}
             <span className="text-xs font-normal text-muted">{plural(outside.length, "order")}</span>
           </h3>
-          <OrderList orders={outside} tz={tz} />
+          <OrderList orders={outside} tz={tz} canDelete={canDelete} />
         </section>
       )}
 
