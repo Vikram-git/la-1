@@ -1415,8 +1415,9 @@ export type Database = {
           p_format: string
           p_channel: string
           p_status: string
-          p_file_path: string
+          p_file_path: string | null
           p_caption?: string | null
+          p_message_id?: string | null
         }
         Returns: string
       }

@@ -20,6 +20,7 @@ import { BillPanel, DiscountForm } from "./billing-panel";
 import { EditItems } from "./edit-items";
 import { loadCatalogue } from "@/lib/catalogue";
 import { MESSAGE_LABEL, availableMessages, messageText, quotationCaption, whatsappNumber, type MessageKind } from "@/lib/whatsapp";
+import { cloudFormats, whatsappCloudConfig } from "@/lib/whatsapp-cloud";
 import { WhatsAppCard } from "./whatsapp-card";
 import { StickyNote } from "./sticky-note";
 import { QuotationSend } from "./quotation-send";
@@ -398,17 +399,25 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
             <ButtonLink href={`/print/quotation/${order.id}`} variant="secondary" className="py-1.5!">Open quotation</ButtonLink>
           </div>
           <div className="grid gap-6 lg:grid-cols-2">
-            <QuotationSend key={`q-${order.version}-${whatsappNote ?? ""}`} orderId={order.id} phone={whatsappNumber(order.customer_phone)} caption={caption} />
+            <QuotationSend
+              key={`q-${order.version}-${whatsappNote ?? ""}`}
+              orderId={order.id}
+              phone={whatsappNumber(order.customer_phone)}
+              caption={caption}
+              cloudFormats={cloudFormats(whatsappCloudConfig())}
+            />
             <div>
               <h3 className="mb-2 text-sm font-semibold text-muted">Sent</h3>
               {quotationSends && quotationSends.length > 0 ? (
                 <ul className="flex flex-col gap-2 text-sm">
                   {quotationSends.map((s) => (
                     <li key={s.id} className="rounded-xl border border-line px-3 py-2">
-                      <p className="font-medium">Quotation sent on {formatDateTime(s.sent_at, tz)} by {who(s.sent_by)}</p>
+                      <p className="font-medium">
+                        {s.status === "failed" ? "WhatsApp did not send the quotation" : "Quotation sent"} on {formatDateTime(s.sent_at, tz)} by {who(s.sent_by)}
+                      </p>
                       <p className="text-xs text-muted">
                         {s.format === "pdf" ? "PDF" : "Image (PNG)"} · {QUOTATION_CHANNEL[s.channel] ?? s.channel}
-                        {s.status === "failed" && <span className="text-danger"> · failed</span>}
+                        {s.status === "failed" && <span className="text-danger"> · failed, send it again</span>}
                       </p>
                     </li>
                   ))}

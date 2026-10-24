@@ -184,6 +184,32 @@ begin
   exception when others then insert into r(check_name,outcome) values ('R18 kitchens cannot send quotations', sqlerrm); end;
 end $$;
 
+-- Sent by the server through WhatsApp Business (Cloud API).
+select pg_temp.as_user('00000000-0000-0000-0000-000000000dc1');
+do $$
+declare oid uuid := (select v::uuid from ctx where k = 'C');
+begin
+  perform public.record_quotation_send(oid, 'pdf', 'cloud_api', 'sent', oid || '/q1.pdf', 'template', 'wamid.TEST1');
+  perform public.record_quotation_send(oid, 'pdf', 'cloud_api', 'failed', null, 'template');
+  begin perform public.record_quotation_send(oid, 'pdf', 'cloud_api', 'sent', oid || '/q1.pdf', 'template');
+    insert into r(check_name,outcome) values ('R18b a server send needs WhatsApp''s message id', 'ALLOWED');
+  -- expect: WhatsApp did not return a message id.
+  exception when others then insert into r(check_name,outcome) values ('R18b a server send needs WhatsApp''s message id', sqlerrm); end;
+  begin perform public.record_quotation_send(oid, 'pdf', 'share_sheet', 'failed', null);
+    insert into r(check_name,outcome) values ('R18c only a server send can be logged as failed', 'ALLOWED');
+  -- expect: Unknown way of sending.
+  exception when others then insert into r(check_name,outcome) values ('R18c only a server send can be logged as failed', sqlerrm); end;
+  begin perform public.record_quotation_send(oid, 'pdf', 'cloud_api', 'sent', null, 'template', 'wamid.TEST2');
+    insert into r(check_name,outcome) values ('R18d a server send needs the stored file', 'ALLOWED');
+  -- expect: The quotation file was not found. Prepare it again.
+  exception when others then insert into r(check_name,outcome) values ('R18d a server send needs the stored file', sqlerrm); end;
+end $$;
+-- expect: sent wamid.TEST1 / failed / 2
+insert into r(check_name,outcome) values ('R18e server sends are logged with the message id; a failure is logged but is not a timeline event',
+  (select status || ' ' || message_id from public.quotation_sends where channel = 'cloud_api' and status = 'sent') || ' / ' ||
+  (select string_agg(status, ',') from public.quotation_sends where channel = 'cloud_api' and status = 'failed' and file_path is null) || ' / ' ||
+  (select count(*) from public.order_events where event_type = 'quotation_sent'));
+
 -- A chef login belongs to one kitchen.
 reset role;
 do $$ begin

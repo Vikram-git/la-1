@@ -4,24 +4,52 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Alert, Textarea, cx } from "@/components/ui";
 import { whatsappLink } from "@/lib/whatsapp";
-import { recordQuotationSendAction } from "../actions";
+import { recordQuotationSendAction, sendQuotationNowAction } from "../actions";
 
 type Format = "pdf" | "png";
 type Prepared = { file: File; path: string; format: Format };
 
-// "Send quotation on WhatsApp" (2026-10-24). No WhatsApp Cloud API is set up, so the file goes from this
-// device: phones get the share sheet with the file attached (pick WhatsApp, then the chat); computers
-// download the file and open the customer's WhatsApp chat with the message filled in, to attach it there.
-// Two taps on purpose: browsers allow sharing or opening a tab only straight after a tap, and the file is
-// made fresh on the server first.
-export function QuotationSend({ orderId, phone, caption: initialCaption }: { orderId: string; phone: string | null; caption: string }) {
+// "Send quotation on WhatsApp" (2026-10-24). With WhatsApp Business (Cloud API) set up for the chosen
+// format, one tap and the server sends it (Meta's approved template text goes with the file, not the caption).
+// Otherwise, or as a backup, the file goes from this device: phones get the share sheet with the file
+// attached (pick WhatsApp, then the chat); computers download the file and open the customer's WhatsApp
+// chat with the message filled in, to attach it there. Two taps on purpose: browsers allow sharing or
+// opening a tab only straight after a tap, and the file is made fresh on the server first.
+export function QuotationSend({
+  orderId,
+  phone,
+  caption: initialCaption,
+  cloudFormats = [],
+}: {
+  orderId: string;
+  phone: string | null;
+  caption: string;
+  cloudFormats?: Format[];
+}) {
   const router = useRouter();
-  const [format, setFormat] = useState<Format>("pdf");
+  const [format, setFormat] = useState<Format>(cloudFormats[0] ?? "pdf");
   const [caption, setCaption] = useState(initialCaption);
   const [busy, setBusy] = useState(false);
+  const [sending, setSending] = useState(false);
   const [prepared, setPrepared] = useState<Prepared | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
+  const cloud = Boolean(phone) && cloudFormats.includes(format);
+
+  async function sendNow() {
+    setSending(true);
+    setError(null);
+    setDone(null);
+    setPrepared(null);
+    const r = await sendQuotationNowAction({ orderId, format }).catch(() => null);
+    setSending(false);
+    if (r?.ok) {
+      setDone(`Sent to the customer on WhatsApp (${format === "pdf" ? "PDF" : "image"}).`);
+    } else {
+      setError(r?.message ?? "Could not send on WhatsApp. Check the connection and try again.");
+    }
+    router.refresh();
+  }
 
   async function prepare() {
     setBusy(true);
@@ -116,6 +144,22 @@ export function QuotationSend({ orderId, phone, caption: initialCaption }: { ord
           </label>
         ))}
       </fieldset>
+      {cloud && (
+        <div className="flex flex-col gap-2 rounded-xl border border-line bg-brand-soft/40 p-3">
+          <button
+            type="button"
+            onClick={sendNow}
+            disabled={sending || busy}
+            className="inline-flex items-center justify-center gap-2 self-start rounded-xl bg-[#1f9d55] px-4 py-2 text-sm font-medium text-white shadow-sm shadow-[#1f9d55]/25 transition-colors hover:bg-[#14713c] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {sending ? "Sending on WhatsApp…" : "Send on WhatsApp now"}
+          </button>
+          <p className="text-xs text-muted">
+            Sent straight to the customer from the bakery&rsquo;s WhatsApp Business number, with the approved quotation message. No need to open WhatsApp.
+          </p>
+        </div>
+      )}
+      {cloud && <p className="text-sm font-medium text-muted">Or send it from this device</p>}
       <Textarea
         aria-label="Message sent with the quotation"
         rows={Math.min(10, caption.split("\n").length + 1)}
@@ -136,10 +180,15 @@ export function QuotationSend({ orderId, phone, caption: initialCaption }: { ord
           <button
             type="button"
             onClick={prepare}
-            disabled={busy || !caption.trim()}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#1f9d55] px-4 py-2 text-sm font-medium text-white shadow-sm shadow-[#1f9d55]/25 transition-colors hover:bg-[#14713c] disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={busy || sending || !caption.trim()}
+            className={cx(
+              "inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60",
+              cloud
+                ? "border border-line bg-surface text-ink hover:bg-brand-soft"
+                : "bg-[#1f9d55] text-white shadow-sm shadow-[#1f9d55]/25 hover:bg-[#14713c]",
+            )}
           >
-            {busy ? `Preparing ${format === "pdf" ? "PDF" : "image"}…` : "Send quotation on WhatsApp"}
+            {busy ? `Preparing ${format === "pdf" ? "PDF" : "image"}…` : cloud ? "Share from this device" : "Send quotation on WhatsApp"}
           </button>
         )}
         <p className="text-xs text-muted">

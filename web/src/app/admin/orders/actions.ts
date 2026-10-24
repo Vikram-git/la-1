@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { z } from "zod";
 import { assertRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -10,6 +11,7 @@ import { parseRupeesToPaise } from "@/lib/money";
 import { rpcError, type RpcFailure } from "@/lib/orders";
 import type { PickupAvailability } from "@/lib/capacity";
 import { MAX_CAKE_PHOTOS, cakeDetailsSchema, cakeToJson } from "@/lib/custom-cake";
+import { cloudFormats, whatsappCloudConfig } from "@/lib/whatsapp-cloud";
 
 type Result<T = object> = ({ ok: true } & T) | ({ ok?: false } & RpcFailure);
 
@@ -83,6 +85,7 @@ export async function createOrderAction(input: CreateOrderInput): Promise<Result
   if (error) return rpcError(error);
 
   revalidatePath("/admin", "layout");
+  if (order.status === "confirmed") await autoSendQuotation(order.id);
   return { ok: true, orderId: order.id };
 }
 
@@ -98,6 +101,19 @@ async function afterChange(orderId: string) {
   revalidatePath(`/admin/orders/${orderId}`);
 }
 
+// With WHATSAPP_AUTO_SEND_ON_CONFIRM=true, a confirmed order's quotation PDF goes to the customer on
+// WhatsApp after the response, so confirming stays quick. The outcome, sent or failed, is in the order's
+// quotation log; an order without a phone number is skipped.
+async function autoSendQuotation(orderId: string) {
+  if (!whatsappCloudConfig()?.autoSendOnConfirm) return;
+  const supabase = await createClient();
+  after(async () => {
+    const { sendQuotationFromServer } = await import("@/lib/quotation-send");
+    const r = await sendQuotationFromServer(supabase, orderId, "pdf");
+    if (!r.ok) console.warn("automatic quotation not sent", orderId, r.message);
+  });
+}
+
 export async function confirmOrderAction(input: z.input<typeof transitionSchema>): Promise<Result> {
   await assertRole(["admin", "counter"]);
   const parsed = transitionSchema.safeParse(input);
@@ -110,6 +126,7 @@ export async function confirmOrderAction(input: z.input<typeof transitionSchema>
   });
   if (error) return rpcError(error);
   await afterChange(parsed.data.orderId);
+  await autoSendQuotation(parsed.data.orderId);
   return { ok: true };
 }
 
@@ -532,6 +549,7 @@ export async function createCustomCakeOrderAction(input: CustomCakeOrderInput): 
   if (error) return rpcError(error);
 
   revalidatePath("/admin", "layout");
+  if (order.status === "confirmed") await autoSendQuotation(order.id);
   return { ok: true, orderId: order.id };
 }
 
@@ -647,4 +665,19 @@ export async function recordQuotationSendAction(input: z.input<typeof quotationS
   if (error) return rpcError(error);
   revalidatePath(`/admin/orders/${orderId}`);
   return { ok: true };
+}
+
+// One tap: the server makes the file and sends it on WhatsApp Business itself (2026-10-24).
+const quotationCloudSchema = z.object({ orderId: z.uuid(), format: z.enum(["pdf", "png"]) });
+
+export async function sendQuotationNowAction(input: z.input<typeof quotationCloudSchema>): Promise<Result> {
+  await assertRole(["admin", "counter"]);
+  const parsed = quotationCloudSchema.safeParse(input);
+  if (!parsed.success) return { message: "Invalid request." };
+  const { orderId, format } = parsed.data;
+  if (!cloudFormats(whatsappCloudConfig()).includes(format)) return { message: "Automatic WhatsApp sending is not set up." };
+  const { sendQuotationFromServer } = await import("@/lib/quotation-send");
+  const r = await sendQuotationFromServer(await createClient(), orderId, format);
+  revalidatePath(`/admin/orders/${orderId}`);
+  return r.ok ? { ok: true } : { message: r.message };
 }

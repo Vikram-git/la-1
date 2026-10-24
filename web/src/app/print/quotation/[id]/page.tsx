@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { loadQuotation } from "@/lib/quotation-server";
 import { quotationView } from "@/lib/quotation";
 import { quotationCaption, whatsappNumber } from "@/lib/whatsapp";
+import { cloudFormats, whatsappCloudConfig } from "@/lib/whatsapp-cloud";
 import { QuotationSheet } from "@/components/quotation-sheet";
 import { Alert, Card } from "@/components/ui";
 import { PrintButton } from "../../print-button";
@@ -47,7 +48,7 @@ export default async function QuotationPage({ params }: PageProps<"/print/quotat
         <QuotationSheet view={quotationView(q)} />
         <Card className="print:hidden lg:sticky lg:top-6">
           <h2 className="mb-3 text-lg font-semibold">Send to the customer</h2>
-          <QuotationSend orderId={id} phone={whatsappNumber(order?.customer_phone ?? null)} caption={caption} />
+          <QuotationSend orderId={id} phone={whatsappNumber(order?.customer_phone ?? null)} caption={caption} cloudFormats={cloudFormats(whatsappCloudConfig())} />
         </Card>
       </div>
     </div>
