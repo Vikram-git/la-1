@@ -2,16 +2,17 @@
 -- payments, bills and timelines are consistent. Replaces demo_data.sql there, which needs the retired
 -- kitchen tickets and the old @auri.test logins. Times are relative to when it runs (business time zone).
 --
--- Marked like demo_data.sql, so supabase/seed/remove_demo_data.sql finds it:
---   products: description starts with 'Demo product'; orders: internal_notes = 'DEMO DATA' or counter
---   sales named 'Demo walk-in'.
+-- Orders are marked like demo_data.sql (internal_notes = 'DEMO DATA', counter sales named 'Demo walk-in').
+-- Products are the shop's starting catalogue, so their descriptions are what customers read on the website:
+-- no marker. Their photos are in supabase/seed/product-photos (credits: web/public/site/photo-credits.html);
+-- upload them to the product-photos bucket as an admin and set them with set_product_image.
 --
 -- Needs the staff logins demo-admin@lapatisserie.test and counter@auri.test, and kitchens
 -- K1 and K2. Run as a superuser (Supabase SQL editor or MCP execute_sql). Refuses to run twice.
 begin;
 
 do $$ begin
-  if exists (select 1 from public.products where description like 'Demo product%') then
+  if exists (select 1 from public.orders where internal_notes = 'DEMO DATA') then
     raise exception 'Demo data is already loaded. Run remove_demo_data.sql first.';
   end if;
   if not exists (select 1 from auth.users where email = 'demo-admin@lapatisserie.test')
@@ -32,6 +33,8 @@ insert into seed values ('tz', private.business_timezone());
 update public.business_settings
 set business_name = 'La Patisserie', phone = '+91 98848 82516', email = 'lapatisseriemadras@gmail.com',
     address = '7, Water Canal Rd, Venkateswara Nagar, Korattur, Chennai, Tamil Nadu 600076';
+-- The hours printed on the website.
+update public.business_hours set opens_at = '10:00', closes_at = '20:00', is_closed = false;
 
 -- ---------------------------------------------------------------------------
 -- Catalogue
@@ -47,7 +50,7 @@ on conflict (name) do nothing;
 create function pg_temp.product(p_cat text, p_name text, p_prep text, p_egg boolean, p_allergens text[],
   p_hsn text, p_tax integer, p_desc text) returns uuid language sql as $$
   insert into public.products (category_id, name, description, prep_type, is_veg, contains_egg, allergens, hsn_code, tax_rate_bps)
-  select id, p_name, 'Demo product. ' || p_desc, p_prep::public.prep_type, null, p_egg, p_allergens, p_hsn, p_tax
+  select id, p_name, p_desc, p_prep::public.prep_type, null, p_egg, p_allergens, p_hsn, p_tax
   from public.categories where name = p_cat
   returning id
 $$;
@@ -109,7 +112,7 @@ end $$;
 create function pg_temp.item(p_product text, p_variant text, p_qty integer, p_notes text default null) returns jsonb language sql stable as $$
   select jsonb_strip_nulls(jsonb_build_object('variant_id', pv.id, 'quantity', p_qty, 'notes', p_notes))
   from public.product_variants pv join public.products p on p.id = pv.product_id
-  where p.name = p_product and pv.name = p_variant and p.description like 'Demo product%'
+  where p.name = p_product and pv.name = p_variant and p.archived_at is null and pv.archived_at is null
 $$;
 -- p_days after today at p_time, business time zone; "today" times already past move to two hours from now.
 create function pg_temp.at(p_days integer, p_time text) returns timestamptz language sql stable as $$
@@ -255,7 +258,7 @@ insert into public.offers (title, body, button_label, button_link, starts_on, en
 
 -- What was created.
 select
-  (select count(*) from public.products where description like 'Demo product%') as products,
+  (select count(*) from public.products where archived_at is null) as products,
   (select count(*) from public.orders) as orders,
   (select count(*) from public.custom_cakes) as custom_cakes,
   (select string_agg(k.name || ' ' || n, ', ') from (select kitchen_id, count(*) n from public.orders group by kitchen_id) s join public.kitchens k on k.id = s.kitchen_id) as by_kitchen,

@@ -11,7 +11,8 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test": "node --test \"src/**/*.test.ts\"",
     "e2e:orders": "node --env-file=.env.local scripts/e2e/orders-4a.mjs",
-    "e2e:billing": "node --env-file=.env.local scripts/e2e/billing-4b.mjs"
+    "e2e:billing": "node --env-file=.env.local scripts/e2e/billing-4b.mjs",
+    "e2e:workflow": "node --env-file=.env.local scripts/e2e/workflow.mjs"
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.9.0",
