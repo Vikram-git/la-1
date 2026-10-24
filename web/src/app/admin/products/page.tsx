@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatPaise } from "@/lib/money";
 import { websiteMenuStatus } from "@/lib/website";
 import { Alert, Badge, ButtonLink, EmptyState, Input, PageHeader, Select } from "@/components/ui";
+import { DeleteProductButton } from "./delete-product";
 
 export const metadata: Metadata = { title: "Products" };
 
@@ -130,6 +131,7 @@ export default async function ProductsPage({ searchParams }: PageProps<"/admin/p
                 <th scope="col" className="hidden px-4 py-3 font-medium md:table-cell">Kitchen</th>
                 <th scope="col" className="px-4 py-3 font-medium">Status</th>
                 <th scope="col" className="px-4 py-3 font-medium">Website</th>
+                {isAdmin && <th scope="col" className="px-4 py-3 font-medium"><span className="sr-only">Delete</span></th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
@@ -191,6 +193,11 @@ export default async function ProductsPage({ searchParams }: PageProps<"/admin/p
                     <td className="px-4 py-3">
                       {onWebsite ? <Badge tone="ok">On website</Badge> : <Badge tone="warn">Not shown</Badge>}
                     </td>
+                    {isAdmin && (
+                      <td className="px-4 py-3 text-right">
+                        <DeleteProductButton productId={p.id} name={p.name} />
+                      </td>
+                    )}
                   </tr>
                 );
               })}

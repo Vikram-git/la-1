@@ -9,6 +9,7 @@ import { Alert, Badge, Card, EmptyState, PageHeader } from "@/components/ui";
 import { ProductForm } from "../product-form";
 import { NewVariantForm, VariantRow } from "../variant-forms";
 import { ArchiveProductButton } from "./archive-button";
+import { DeleteProductButton } from "../delete-product";
 import { ProductPhoto } from "./photo-card";
 import { KitchenCard } from "./kitchen-card";
 import {
@@ -63,7 +64,14 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
             {product.archived_at && <Badge className="ml-2">Archived</Badge>}
           </>
         }
-        actions={isAdmin && <ArchiveProductButton archived={Boolean(product.archived_at)} action={setProductArchived.bind(null, product.id)} />}
+        actions={
+          isAdmin && (
+            <div className="flex flex-wrap items-start gap-2">
+              <ArchiveProductButton archived={Boolean(product.archived_at)} action={setProductArchived.bind(null, product.id)} />
+              <DeleteProductButton productId={product.id} name={product.name} afterDelete="/admin/products" />
+            </div>
+          )
+        }
       />
 
       <div className="flex flex-col gap-6">

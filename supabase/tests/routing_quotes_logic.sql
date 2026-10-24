@@ -249,6 +249,24 @@ insert into r(check_name,outcome) values ('R19d a deleted order is gone with its
   (select count(*) from public.kitchen_tickets where order_id = (select v::uuid from ctx where k = 'W')) || ' / ' ||
   (select old_data ->> 'closed_reason' from public.audit_events where table_name = 'orders' and action = 'DELETE' and record_id = (select v from ctx where k = 'W')));
 
+-- Deleting products.
+insert into ctx select 'bread_product', id::text from public.products where name = 'T Rq Bread';
+set local role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-000000000dc1');
+do $$ begin
+  begin perform public.delete_product((select v::uuid from ctx where k = 'bread_product'));
+    insert into r(check_name,outcome) values ('R19e counter staff cannot delete products', 'ALLOWED');
+  -- expect: Only an admin can delete products.
+  exception when others then insert into r(check_name,outcome) values ('R19e counter staff cannot delete products', sqlerrm); end;
+end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-000000000da1');
+select public.delete_product((select v::uuid from ctx where k = 'bread_product'));
+reset role;
+-- expect: 0 / 0
+insert into r(check_name,outcome) values ('R19f an admin deletes a product with its sizes',
+  (select count(*) from public.products where id = (select v::uuid from ctx where k = 'bread_product')) || ' / ' ||
+  (select count(*) from public.product_variants where product_id = (select v::uuid from ctx where k = 'bread_product')));
+
 -- Deleting staff.
 set local role authenticated;
 select pg_temp.as_user('00000000-0000-0000-0000-000000000dc1');

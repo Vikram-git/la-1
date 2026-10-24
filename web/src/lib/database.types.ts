@@ -1425,6 +1425,10 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: undefined
       }
+      delete_product: {
+        Args: { p_product_id: string }
+        Returns: undefined
+      }
       delete_order: {
         Args: { p_order_id: string; p_expected_version: number; p_reason: string }
         Returns: undefined

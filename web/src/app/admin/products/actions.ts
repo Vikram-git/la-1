@@ -130,6 +130,20 @@ export async function setProductArchived(id: string, archived: boolean) {
   revalidatePath("/admin/products", "layout");
 }
 
+// Delete for good (owner, 2026-10-24), with its sizes and photo. Old orders keep the name and price.
+export async function deleteProductAction(id: string): Promise<ActionState> {
+  await assertRole(["admin"]);
+  if (!uuid.safeParse(id).success) return { message: "Invalid product." };
+  const supabase = await createClient();
+  const { data: product } = await supabase.from("products").select("image_url").eq("id", id).maybeSingle();
+  const { error } = await supabase.rpc("delete_product", { p_product_id: id });
+  if (error) return { message: error.code === "P0001" ? error.message : dbError(error, "product").message };
+  const path = productPhotoPath(product?.image_url);
+  if (path) await supabase.storage.from("product-photos").remove([path]);
+  revalidatePath("/admin/products", "layout");
+  return { ok: true, message: "Product deleted." };
+}
+
 // Which kitchen makes the product: stored on every size, so orders keep it (chef screen, 2026-10-20).
 export async function setProductKitchen(productId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
   await assertRole(["admin"]);
