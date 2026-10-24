@@ -25,7 +25,8 @@ import {
   type DaySummary,
 } from "@/lib/kitchen";
 import { ProductThumb } from "@/components/product-thumb";
-import { Alert, Badge, ChefHat, EmptyState, ScriptText, VegMark, cx } from "@/components/ui";
+import { Alert, Badge, EmptyState, LogoMark, ScriptText, cx } from "@/components/ui";
+import { kitchenListLabel } from "@/lib/orders";
 import { AutoRefresh } from "./auto-refresh";
 
 export const metadata: Metadata = { title: "Kitchen" };
@@ -175,8 +176,15 @@ function OrderCard({ order, tz, showDay, photos, multiKitchen }: {
 
       <OrderDetails order={order} />
 
-      {closed && (
+      {closed ? (
         <Alert tone="danger" title="This order was cancelled">Stop work on it. Ask the counter what to do with anything already made.</Alert>
+      ) : (
+        <Link
+          href={`/kitchen/quotation/${order.id}`}
+          className="self-start rounded-xl border border-line bg-surface px-3 py-2 text-sm font-medium text-brand hover:bg-brand-soft"
+        >
+          Open quotation (no prices) →
+        </Link>
       )}
 
       <ul className="flex flex-col gap-3">
@@ -184,7 +192,6 @@ function OrderCard({ order, tz, showDay, photos, multiKitchen }: {
           l.cake ? (
             <li key={l.id}>
               <CakeNote line={l} photoUrls={(l.cake.photo_paths ?? []).flatMap((p) => (photos.has(p) ? [photos.get(p)!] : []))} />
-              {!l.kitchenId && <p className="mt-1 text-sm font-medium text-warn">No kitchen set yet — check with the counter who makes it.</p>}
             </li>
           ) : (
             <li key={l.id} className={cx("flex items-start gap-3", closed && "line-through decoration-danger/60")}>
@@ -194,12 +201,12 @@ function OrderCard({ order, tz, showDay, photos, multiKitchen }: {
                   <span className="font-bold tabular-nums">{l.quantity} ×</span> <span className="font-semibold">{l.name}</span>{" "}
                   <span className="text-muted">· {l.size}</span>
                 </p>
-                <div className="mt-1 flex flex-wrap items-center gap-2">
-                  <VegMark isVeg={l.isVeg} />
-                  {l.isEggless && <Badge tone="ok">Eggless</Badge>}
-                  {multiKitchen && l.kitchenName && <Badge>{l.kitchenName}</Badge>}
-                  {!l.kitchenId && <Badge tone="warn">No kitchen set</Badge>}
-                </div>
+                {(l.isEggless || (multiKitchen && l.kitchenName)) && (
+                  <div className="mt-1 flex flex-wrap items-center gap-2">
+                    {l.isEggless && <Badge tone="ok">Eggless</Badge>}
+                    {multiKitchen && l.kitchenName && <Badge>{l.kitchenName}</Badge>}
+                  </div>
+                )}
                 {l.notes && <p className="mt-1 text-base"><span className="text-muted">Note:</span> {l.notes}</p>}
               </div>
             </li>
@@ -292,7 +299,7 @@ export default async function KitchenPage({ searchParams }: PageProps<"/kitchen"
   const supabase = await createClient();
   const [{ data: rows, error }, { data: kitchenRows }, { data: mine }] = await Promise.all([
     supabase.rpc("chef_work", { p_from: range.from, p_to: range.to }),
-    supabase.from("kitchens").select("id, name").eq("is_active", true).order("sort_order"),
+    supabase.from("kitchens").select("id, name, code").eq("is_active", true).order("sort_order"),
     supabase.from("staff_kitchens").select("kitchen_id").eq("user_id", staff.userId),
   ]);
   // Chefs switch between their own kitchens; admins and counter staff (checking the screen) between all.
@@ -327,7 +334,7 @@ export default async function KitchenPage({ searchParams }: PageProps<"/kitchen"
   };
   const byDay = tab === "calendar" ? summariseByDay(orders, (o) => zonedDayKey(o.dueAt, tz)) : null;
   const heading = staff.role === "chef"
-    ? (kitchens.length ? kitchens.map((k) => k.name).join(" + ") : "No kitchen ticked")
+    ? (kitchens.length ? kitchens.map((k) => `${k.name} · ${kitchenListLabel(k.code)}`).join(" + ") : "No kitchen ticked")
     : "Chef screen (all kitchens)";
 
   return (
@@ -335,7 +342,7 @@ export default async function KitchenPage({ searchParams }: PageProps<"/kitchen"
       <header className="sticky top-0 z-10 border-b border-line bg-surface/95 px-4 py-3 backdrop-blur sm:px-6">
         <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-x-4 gap-y-2">
           <div className="flex min-w-0 items-center gap-3">
-            <ChefHat className="size-8 shrink-0 text-brand sm:size-9" />
+            <LogoMark className="size-9 shrink-0 sm:size-10" />
             <div className="min-w-0">
               <p className="font-display text-base leading-none sm:text-lg">La Patisserie <span className="text-sm text-muted">· Kitchen</span></p>
               <h1 className="mt-1 truncate text-lg font-semibold sm:text-xl">{heading}</h1>
@@ -364,7 +371,7 @@ export default async function KitchenPage({ searchParams }: PageProps<"/kitchen"
       <main className="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-4 px-4 py-4 sm:gap-5 sm:px-6 sm:py-5">
         {staff.role === "chef" && kitchens.length === 0 && (
           <Alert tone="warn" title="No kitchen ticked for you">
-            You see only items that have no kitchen yet. Ask an admin to tick your kitchen on the Staff page.
+            You see no orders until an admin ticks your kitchen on the Staff page.
           </Alert>
         )}
         {error && <Alert tone="danger" title="Could not load the kitchen list">{error.message}</Alert>}

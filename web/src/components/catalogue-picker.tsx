@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Badge, Button, Input, VegMark } from "@/components/ui";
+import { Badge, Button, Input } from "@/components/ui";
 import { formatLeadTime, formatPaise } from "@/lib/money";
 import type { CatalogueProduct } from "@/lib/catalogue";
 import { ProductThumb } from "@/components/product-thumb";
@@ -43,7 +43,6 @@ export function CataloguePicker({
             <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-medium">{p.name}</span>
-              <VegMark isVeg={p.isVeg} />
               <span className="text-xs text-muted">{p.category}</span>
               {p.prepType === "ready_stock" && <Badge>Ready stock</Badge>}
             </div>

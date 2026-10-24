@@ -16,7 +16,6 @@ type BillLine = {
   name: string;
   variant: string;
   hsn: string | null;
-  is_veg: boolean;
   quantity: number;
   unit_price_paise: number;
   gross_paise: number;

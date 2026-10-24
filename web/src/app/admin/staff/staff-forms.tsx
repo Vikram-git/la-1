@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
-import { Badge, Button, Checkbox, Field, Input, Select } from "@/components/ui";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
+import { Alert, Badge, Button, Checkbox, Field, Input, Select } from "@/components/ui";
 import { FormMessage, SubmitButton, type ActionState } from "@/components/form-status";
+import { kitchenListLabel } from "@/lib/orders";
 
 type SaveAction = (prev: ActionState, formData: FormData) => Promise<ActionState>;
 type Kitchen = { id: string; code: string; name: string; is_active: boolean };
@@ -63,22 +64,28 @@ function RoleAndKitchens({
       </Field>
       {role === "chef" && (
         <fieldset className="flex flex-col gap-1.5">
-          <legend className="mb-1.5 text-sm font-medium">Kitchens</legend>
+          <legend className="mb-1.5 text-sm font-medium">Kitchen</legend>
           <div className="flex flex-wrap gap-4">
             {kitchens.map((k) => (
-              <Checkbox
-                key={k.id}
-                name="kitchen_ids"
-                value={k.id}
-                label={k.name + (k.is_active ? "" : " (inactive)")}
-                defaultChecked={defaultKitchenIds.includes(k.id)}
-              />
+              <label key={k.id} className="flex items-start gap-2.5 text-sm">
+                <input
+                  type="radio"
+                  name="kitchen_ids"
+                  value={k.id}
+                  defaultChecked={defaultKitchenIds[0] === k.id}
+                  className="mt-0.5 size-4 accent-brand"
+                />
+                <span>
+                  <span className="font-medium">{k.name}{k.is_active ? "" : " (inactive)"}</span>
+                  <span className="block text-xs text-muted">{kitchenListLabel(k.code)}</span>
+                </span>
+              </label>
             ))}
           </div>
           {errors.kitchen_ids ? (
             <p className="text-xs text-danger">{errors.kitchen_ids}</p>
           ) : (
-            <p className="text-xs text-muted">The chef sees orders for the kitchens ticked here.</p>
+            <p className="text-xs text-muted">The chef sees only this kitchen&apos;s orders, never prices.</p>
           )}
         </fieldset>
       )}
@@ -118,18 +125,73 @@ export function NewStaffForm({ kitchens, action, disabledReason }: { kitchens: K
   );
 }
 
+// "Delete" with a confirmation dialog. Not shown for yourself; the last active admin cannot be deleted.
+function DeleteStaff({ member, lastAdmin, action }: { member: StaffMember; lastAdmin: boolean; action: () => Promise<ActionState> }) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  const [pending, startTransition] = useTransition();
+  const [state, setState] = useState<ActionState>({});
+
+  return (
+    <>
+      <Button
+        variant="danger"
+        onClick={() => {
+          setState({});
+          dialog.current?.showModal();
+        }}
+        disabled={lastAdmin}
+        title={lastAdmin ? "At least one active admin is required." : undefined}
+      >
+        Delete
+      </Button>
+      <dialog
+        ref={dialog}
+        aria-labelledby={`del-${member.user_id}`}
+        className="m-auto w-[min(28rem,calc(100vw-2rem))] rounded-2xl border border-line bg-surface p-6 text-ink shadow-xl backdrop:bg-ink/30"
+      >
+        <h3 id={`del-${member.user_id}`} className="font-display text-xl font-semibold">Delete {member.full_name}?</h3>
+        <p className="mt-2 text-sm text-muted">
+          Their login stops working at once and they are signed out everywhere. Orders they took keep their name.
+          This cannot be undone from here.
+        </p>
+        {state.message && !state.ok && <div className="mt-3"><Alert tone="danger">{state.message}</Alert></div>}
+        <div className="mt-5 flex flex-wrap justify-end gap-2">
+          <Button variant="secondary" onClick={() => dialog.current?.close()} disabled={pending} autoFocus>Cancel</Button>
+          <Button
+            variant="danger"
+            disabled={pending}
+            onClick={() =>
+              startTransition(async () => {
+                const r = await action();
+                setState(r);
+                if (r.ok) dialog.current?.close();
+              })
+            }
+          >
+            {pending ? "Deleting…" : "Delete staff member"}
+          </Button>
+        </div>
+      </dialog>
+    </>
+  );
+}
+
 export function StaffRow({
   kitchens,
   member,
   isSelf,
+  lastAdmin,
   saveAction,
   resetAction,
+  deleteAction,
 }: {
   kitchens: Kitchen[];
   member: StaffMember;
   isSelf: boolean;
+  lastAdmin: boolean;
   saveAction: SaveAction;
   resetAction: SaveAction;
+  deleteAction: () => Promise<ActionState>;
 }) {
   const [mode, setMode] = useState<"view" | "edit" | "password">("view");
   const [state, formAction] = useActionState<ActionState, FormData>(async (prev, formData) => {
@@ -157,9 +219,10 @@ export function StaffRow({
           </p>
         </div>
         {mode === "view" && (
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button variant="secondary" onClick={() => setMode("edit")}>Edit</Button>
             <Button variant="ghost" onClick={() => setMode("password")}>Reset password</Button>
+            {!isSelf && <DeleteStaff member={member} lastAdmin={lastAdmin} action={deleteAction} />}
           </div>
         )}
       </div>

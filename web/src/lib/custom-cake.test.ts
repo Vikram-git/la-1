@@ -33,19 +33,29 @@ test("set-up and delivery charges are optional rupees, kept as paise", () => {
   assert.ok(none.success);
   assert.equal(none.data.setupCharge, 0);
   assert.equal(none.data.deliveryCharge, 0);
-  assert.equal(none.data.hasCupcakes, false);
-  const some = cakeDetailsSchema.safeParse({ ...base, setupCharge: "500", deliveryCharge: "1,250.50", hasPopsicles: true, fondant: " Full " });
+  assert.equal(none.data.cupcakeCount, 0);
+  const some = cakeDetailsSchema.safeParse({ ...base, setupCharge: "500", deliveryCharge: "1,250.50", popsicleCount: "6", fondant: " Full " });
   assert.ok(some.success);
   assert.equal(some.data.setupCharge, 50000);
   assert.equal(some.data.deliveryCharge, 125050);
-  assert.equal(some.data.hasPopsicles, true);
+  assert.equal(some.data.popsicleCount, 6);
   assert.equal(some.data.fondant, "Full");
   assert.ok(!cakeDetailsSchema.safeParse({ ...base, setupCharge: "-5" }).success);
   assert.ok(!cakeDetailsSchema.safeParse({ ...base, deliveryCharge: "abc" }).success);
 });
 
-test("extras read as a short list", () => {
-  assert.equal(cakeExtras({ has_cupcakes: true, has_popsicles: true }), "Cupcakes, Popsicles");
-  assert.equal(cakeExtras({ has_cupcakes: false, has_popsicles: true }), "Popsicles");
-  assert.equal(cakeExtras({ has_cupcakes: false, has_popsicles: false }), "");
+test("cupcakes and popsicles are whole numbers from 0 to 999; empty is 0", () => {
+  const base = { flavour: "Vanilla", weightKg: "1", tiers: "1", isEggless: false };
+  assert.equal(cakeDetailsSchema.parse({ ...base, cupcakeCount: "" }).cupcakeCount, 0);
+  assert.equal(cakeDetailsSchema.parse({ ...base, cupcakeCount: "12" }).cupcakeCount, 12);
+  assert.ok(!cakeDetailsSchema.safeParse({ ...base, cupcakeCount: "-1" }).success);
+  assert.ok(!cakeDetailsSchema.safeParse({ ...base, cupcakeCount: "2.5" }).success);
+  assert.ok(!cakeDetailsSchema.safeParse({ ...base, popsicleCount: "1000" }).success);
+});
+
+test("extras read as a short list with counts; old ticks count as 1", () => {
+  assert.equal(cakeExtras({ cupcake_count: 12, popsicle_count: 1, has_cupcakes: true, has_popsicles: true }), "12 cupcakes, 1 popsicle");
+  assert.equal(cakeExtras({ cupcake_count: 0, popsicle_count: 6, has_cupcakes: false, has_popsicles: true }), "6 popsicles");
+  assert.equal(cakeExtras({ cupcake_count: 0, popsicle_count: 0, has_cupcakes: false, has_popsicles: false }), "");
+  assert.equal(cakeExtras({ has_cupcakes: true, has_popsicles: false }), "1 cupcake");
 });

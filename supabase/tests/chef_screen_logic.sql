@@ -102,8 +102,9 @@ insert into r(check_name,outcome) values ('H1 chef reads no prices, products, se
   (select count(*) from public.reviews));
 -- expect: 2
 insert into r(check_name,outcome) values ('H2 chef reads kitchen names', (select count(*) from public.kitchens)::text);
--- expect: Custom cake x1 (no kitchen) confirmed | T Ch Cake x1 (Kitchen 1) cancelled | T Ch Cake x1 (Kitchen 1) confirmed
-insert into r(check_name,outcome) values ('H3 chef one sees K1 lines and lines with no kitchen, confirmed or cancelled',
+-- Since 2026-10-24 the order's kitchen decides: custom cake orders are Kitchen 1, every other order Kitchen 2.
+-- expect: Custom cake x1 (Kitchen 1) confirmed
+insert into r(check_name,outcome) values ('H3 chef one (Kitchen 1) sees only custom cake orders',
   (select string_agg(w.product_name || ' x' || w.quantity || ' (' || coalesce(w.kitchen_name, 'no kitchen') || ') ' || w.status, ' | '
      order by w.product_name, w.status::text)
    from public.chef_work(pg_temp.d(0), pg_temp.d(7)) w));
@@ -111,10 +112,9 @@ insert into r(check_name,outcome) values ('H3 chef one sees K1 lines and lines w
 insert into r(check_name,outcome) values ('H4 chef_work carries no amounts or staff notes',
   (select bool_or(to_jsonb(w)::text ~ '(paise|1500|Paid 500|price|amount|total|discount|charge)')
    from public.chef_work(pg_temp.d(0), pg_temp.d(30)) w)::text);
--- expect: Ch Secret Name / 9000000981 / Customer note with email x@y.z
-insert into r(check_name,outcome) values ('H4b chef sees the customer name, phone and notes',
-  (select distinct w.customer_name || ' / ' || w.customer_phone || ' / ' || w.customer_notes
-   from public.chef_work(pg_temp.d(0), pg_temp.d(30)) w where w.customer_name = 'Ch Secret Name'));
+-- expect: 0
+insert into r(check_name,outcome) values ('H4b chef one sees nothing of the web orders',
+  (select count(*) from public.chef_work(pg_temp.d(0), pg_temp.d(30)) w where w.cake is null)::text);
 -- expect: Red velvet / 1.50 / Happy birthday / true
 insert into r(check_name,outcome) values ('H5 custom cake details and photo path come through',
   (select (w.cake ->> 'flavour') || ' / ' || (w.cake ->> 'weight_kg') || ' / ' || (w.cake ->> 'message') || ' / ' ||
@@ -123,8 +123,8 @@ insert into r(check_name,outcome) values ('H5 custom cake details and photo path
 -- expect: 1
 insert into r(check_name,outcome) values ('H6 chef reads the photo of a cake on their screen, not others',
   (select count(*) from storage.objects where bucket_id = 'custom-cake-photos')::text);
--- expect: 1
-insert into r(check_name,outcome) values ('H7 later dates are in a wider range',
+-- expect: 0
+insert into r(check_name,outcome) values ('H7 later web orders stay out of Kitchen 1 too',
   (select count(*) from public.chef_work(pg_temp.d(8), pg_temp.d(30)))::text);
 do $$ begin
   begin perform public.chef_work(pg_temp.d(0), pg_temp.d(100));
@@ -139,10 +139,18 @@ end $$;
 
 -- Chef Two (Kitchen 2).
 select pg_temp.as_user('00000000-0000-0000-0000-000000000cf2');
--- expect: T Ch Bread x3 (Kitchen 2) | Custom cake x1 (no kitchen)
-insert into r(check_name,outcome) values ('H10 chef two sees K2 lines and lines with no kitchen',
-  (select string_agg(w.product_name || ' x' || w.quantity || ' (' || coalesce(w.kitchen_name, 'no kitchen') || ')', ' | ' order by w.due_at)
+-- expect: T Ch Bread x3 (Kitchen 2) | T Ch Cake x1 (Kitchen 2) | T Ch Cake x1 (Kitchen 2)
+insert into r(check_name,outcome) values ('H10 chef two (Kitchen 2) sees every web order line, no custom cake',
+  (select string_agg(w.product_name || ' x' || w.quantity || ' (' || coalesce(w.kitchen_name, 'no kitchen') || ')', ' | '
+     order by w.product_name, w.status::text)
    from public.chef_work(pg_temp.d(0), pg_temp.d(7)) w));
+-- expect: Ch Secret Name / 9000000981 / Customer note with email x@y.z
+insert into r(check_name,outcome) values ('H10b chef sees the customer name, phone and notes',
+  (select distinct w.customer_name || ' / ' || w.customer_phone || ' / ' || w.customer_notes
+   from public.chef_work(pg_temp.d(0), pg_temp.d(30)) w where w.customer_name = 'Ch Secret Name'));
+-- expect: 1
+insert into r(check_name,outcome) values ('H10c later dates are in a wider range',
+  (select count(*) from public.chef_work(pg_temp.d(8), pg_temp.d(30)))::text);
 
 -- Counter staff route the custom cake to Kitchen 2.
 select pg_temp.as_user('00000000-0000-0000-0000-000000000cc1');
@@ -169,15 +177,15 @@ begin
     (select count(*) from public.chef_work(pg_temp.d(0), pg_temp.d(7)))::text);
 end $$;
 
--- Chef One no longer sees the cake or its photo; Chef Two does.
+-- A line's kitchen no longer moves an order: the custom cake order stays with Kitchen 1, photo too.
 select pg_temp.as_user('00000000-0000-0000-0000-000000000cf1');
--- expect: 0 / 0
-insert into r(check_name,outcome) values ('H15 a routed cake leaves the other kitchen, photo too',
+-- expect: 1 / 1
+insert into r(check_name,outcome) values ('H15 a custom cake order stays in Kitchen 1 whatever its line says, photo too',
   (select count(*) from public.chef_work(pg_temp.d(0), pg_temp.d(7)) w where w.cake is not null) || ' / ' ||
   (select count(*) from storage.objects where bucket_id = 'custom-cake-photos'));
 select pg_temp.as_user('00000000-0000-0000-0000-000000000cf2');
--- expect: 1
-insert into r(check_name,outcome) values ('H16 the chef of that kitchen sees it',
+-- expect: 0
+insert into r(check_name,outcome) values ('H16 Kitchen 2 never sees it',
   (select count(*) from public.chef_work(pg_temp.d(0), pg_temp.d(7)) w where w.cake is not null)::text);
 
 -- An inactive chef sees nothing.

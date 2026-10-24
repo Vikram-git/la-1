@@ -13,9 +13,9 @@ export const MESSAGE_LABEL: Record<MessageKind, string> = {
   thanks: "Thank you + review",
 };
 
+// No customer name: every message greets "Sir / Madam" (owner, 2026-10-24).
 export type MessageOrder = {
   reference: string;
-  customerName: string | null;
   status: Enums<"order_status">;
   fulfilment: Enums<"fulfilment_type">;
   setupAddress: string | null;
@@ -23,7 +23,11 @@ export type MessageOrder = {
   totalPaise: number;
   balancePaise: number;
   items: { name: string; quantity: number }[];
+  // The order's sticky note when "Include in WhatsApp message" is on, else null.
+  note?: string | null;
 };
+
+export const GREETING = "Hello Sir / Madam!";
 
 export type MessageContext = { shop: string; timeZone: string; reviewUrl: string };
 
@@ -71,7 +75,21 @@ function itemLines(items: MessageOrder["items"]): string {
 }
 
 export function messageText(kind: MessageKind, o: MessageOrder, ctx: MessageContext): string {
-  const hello = `Hello${o.customerName ? ` ${o.customerName.trim().split(/\s+/)[0]}` : ""}!`;
+  return withNote(baseText(kind, o, ctx), o.note);
+}
+
+function withNote(text: string, note: string | null | undefined): string {
+  const n = note?.trim();
+  return n ? `${text}\n\nNote: ${n}` : text;
+}
+
+// The caption sent with the quotation file. Staff can edit it before sending.
+export function quotationCaption(o: { reference: string; note?: string | null }, shop: string): string {
+  return withNote(`${GREETING}\nPlease find attached the quotation for your order ${o.reference}.\n\n— ${shop}`, o.note);
+}
+
+function baseText(kind: MessageKind, o: MessageOrder, ctx: MessageContext): string {
+  const hello = GREETING;
   const when = o.dueAt ? formatDateTime(o.dueAt, ctx.timeZone) : null;
   const setup = o.fulfilment === "setup";
   const where = setup ? `Set-up at ${o.setupAddress ?? "your place"}` : `Pickup at ${ctx.shop}`;

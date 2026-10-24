@@ -27,7 +27,6 @@ function row(over: Partial<ChefRow>): ChefRow {
     product_name: "Truffle cake",
     variant_name: "1 kg",
     quantity: 1,
-    is_veg: true,
     is_eggless: false,
     notes: null,
     kitchen_id: "k1",
@@ -63,12 +62,12 @@ test("rows group into orders; packed and cancelled go last", () => {
   assert.equal(orders[0].lines.length, 2);
 });
 
-test("kitchen filter keeps lines with no kitchen", () => {
+test("kitchen filter keeps only that kitchen's orders", () => {
   const orders = groupChefWork(
-    [row({ item_id: "a1" }), row({ item_id: "a2", kitchen_id: "k2" }), row({ item_id: "a3", kitchen_id: null, kitchen_name: null })],
+    [row({ order_id: "a", item_id: "a1" }), row({ order_id: "b", item_id: "b1", kitchen_id: "k2" })],
     "k1",
   );
-  assert.deepEqual(orders[0].lines.map((l) => l.id), ["a1", "a3"]);
+  assert.deepEqual(orders.map((o) => o.id), ["a"]);
 });
 
 test("totals skip packed, cancelled and custom cakes", () => {
@@ -82,13 +81,15 @@ test("totals skip packed, cancelled and custom cakes", () => {
 });
 
 test("cake details read in order, empty ones left out", () => {
-  const rows = cakeRows({ flavour: "Red velvet", weight_kg: "1.50", tiers: 2, message: "Happy birthday", theme: " ", has_cupcakes: true });
+  const rows = cakeRows({ flavour: "Red velvet", weight_kg: "1.50", tiers: 2, message: "Happy birthday", theme: " ", cupcake_count: 12, popsicle_count: 0 });
   assert.deepEqual(rows, [
     { label: "Flavour", value: "Red velvet" },
     { label: "Weight", value: "1.5 kg · 2 tiers" },
     { label: "Message on cake", value: "“Happy birthday”" },
-    { label: "Extras", value: "Cupcakes" },
+    { label: "Cupcakes", value: "12" },
   ]);
+  // A cake saved before the counts has only the tick: shown as 1.
+  assert.deepEqual(cakeRows({ flavour: "X", has_popsicles: true }).at(-1), { label: "Popsicles", value: "1" });
 });
 
 test("calendar: month grid starts on a Monday and covers 6 weeks; bad dates fall back", () => {

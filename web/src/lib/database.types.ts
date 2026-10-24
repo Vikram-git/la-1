@@ -547,6 +547,8 @@ export type Database = {
           fondant: string | null
           has_cupcakes: boolean
           has_popsicles: boolean
+          cupcake_count: number
+          popsicle_count: number
           id: string
           instructions: string | null
           is_eggless: boolean
@@ -693,7 +695,7 @@ export type Database = {
           contains_egg: boolean
           id: string
           is_eggless: boolean
-          is_veg: boolean
+          is_veg: boolean | null
           lead_time_minutes: number
           line_no: number
           notes: string | null
@@ -824,7 +826,7 @@ export type Database = {
           hsn_code: string | null
           id: string
           is_eggless: boolean
-          is_veg: boolean
+          is_veg: boolean | null
           kitchen_id: string | null
           lead_time_minutes: number
           line_no: number
@@ -894,6 +896,10 @@ export type Database = {
           handed_over_by: string | null
           collected_by: string | null
           credit_reason: string | null
+          // 2026-10-24: Kitchen 1 (custom cake orders) or Kitchen 2 (every other order); sticky note.
+          kitchen_id: string | null
+          sticky_note: string | null
+          sticky_note_in_whatsapp: boolean
         }
         Insert: never
         Update: never
@@ -993,7 +999,7 @@ export type Database = {
           id: string
           image_url: string | null
           is_available: boolean
-          is_veg: boolean
+          is_veg: boolean | null // food type removed 2026-10-24; old rows keep it, new rows have null
           name: string
           prep_type: Database["public"]["Enums"]["prep_type"]
           tax_rate_bps: number
@@ -1010,7 +1016,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_available?: boolean
-          is_veg?: boolean
+          is_veg?: boolean | null
           name: string
           prep_type?: Database["public"]["Enums"]["prep_type"]
           tax_rate_bps?: number
@@ -1027,7 +1033,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_available?: boolean
-          is_veg?: boolean
+          is_veg?: boolean | null
           name?: string
           prep_type?: Database["public"]["Enums"]["prep_type"]
           tax_rate_bps?: number
@@ -1076,9 +1082,36 @@ export type Database = {
           },
         ]
       }
+      quotation_sends: {
+        Row: {
+          caption: string | null
+          channel: string
+          file_path: string | null
+          format: string
+          id: string
+          message_id: string | null
+          order_id: string
+          sent_at: string
+          sent_by: string | null
+          status: string
+        }
+        Insert: never
+        Update: never
+        Relationships: [
+          {
+            foreignKeyName: "quotation_sends_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       staff_profiles: {
         Row: {
           created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
           full_name: string
           is_active: boolean
           role: Database["public"]["Enums"]["staff_role"]
@@ -1135,6 +1168,9 @@ export type Database = {
           kitchen_ids: string[] | null
           paid_paise: number | null
           refunded_paise: number | null
+          kitchen_id: string | null
+          sticky_note: string | null
+          sticky_note_in_whatsapp: boolean | null
         }
         Relationships: [
           {
@@ -1331,7 +1367,6 @@ export type Database = {
           product_name: string
           variant_name: string
           quantity: number
-          is_veg: boolean
           is_eggless: boolean
           notes: string | null
           kitchen_id: string | null
@@ -1364,6 +1399,29 @@ export type Database = {
       }
       record_customer_message: {
         Args: { p_order_id: string; p_kind: string }
+        Returns: undefined
+      }
+      order_quotation: {
+        Args: { p_order_id: string }
+        Returns: Json
+      }
+      set_sticky_note: {
+        Args: { p_order_id: string; p_note: string | null; p_in_whatsapp: boolean }
+        Returns: undefined
+      }
+      record_quotation_send: {
+        Args: {
+          p_order_id: string
+          p_format: string
+          p_channel: string
+          p_status: string
+          p_file_path: string
+          p_caption?: string | null
+        }
+        Returns: string
+      }
+      delete_staff: {
+        Args: { p_user_id: string }
         Returns: undefined
       }
       submit_review: {

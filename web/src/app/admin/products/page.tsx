@@ -5,7 +5,7 @@ import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { formatPaise } from "@/lib/money";
 import { websiteMenuStatus } from "@/lib/website";
-import { Alert, Badge, ButtonLink, EmptyState, Input, PageHeader, Select, VegMark } from "@/components/ui";
+import { Alert, Badge, ButtonLink, EmptyState, Input, PageHeader, Select } from "@/components/ui";
 
 export const metadata: Metadata = { title: "Products" };
 
@@ -24,7 +24,7 @@ export default async function ProductsPage({ searchParams }: PageProps<"/admin/p
   let query = supabase
     .from("products")
     .select(
-      "id, name, image_url, prep_type, is_veg, contains_egg, is_available, archived_at, categories(name, is_active), product_variants(id, price_paise, is_eggless, is_available, archived_at, kitchens(name))",
+      "id, name, image_url, prep_type, contains_egg, is_available, archived_at, categories(name, is_active), product_variants(id, price_paise, is_eggless, is_available, archived_at, kitchens(name))",
     )
     .order("name");
   if (q) query = query.ilike("name", `%${q.replace(/[%_]/g, "\\$&")}%`);
@@ -160,7 +160,6 @@ export default async function ProductsPage({ searchParams }: PageProps<"/admin/p
                         {p.name}
                       </Link>
                       <div className="mt-1 flex flex-wrap items-center gap-2">
-                        <VegMark isVeg={p.is_veg} />
                         {p.contains_egg && <Badge>Contains egg</Badge>}
                         {hasEggless && <Badge tone="ok">Eggless option</Badge>}
                       </div>

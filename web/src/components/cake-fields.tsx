@@ -11,13 +11,11 @@ export type CakeFormValue = {
   model: string;
   fondant: string;
   cream: string;
-  filling: string;
-  toppings: string;
   message: string;
   isEggless: boolean;
   instructions: string;
-  hasCupcakes: boolean;
-  hasPopsicles: boolean;
+  cupcakeCount: string; // whole number, "" or 0 = none
+  popsicleCount: string;
   setupCharge: string; // rupees
   deliveryCharge: string; // rupees
 };
@@ -31,13 +29,11 @@ export const EMPTY_CAKE: CakeFormValue = {
   model: "",
   fondant: "",
   cream: "",
-  filling: "",
-  toppings: "",
   message: "",
   isEggless: false,
   instructions: "",
-  hasCupcakes: false,
-  hasPopsicles: false,
+  cupcakeCount: "0",
+  popsicleCount: "0",
   setupCharge: "",
   deliveryCharge: "",
 };
@@ -62,6 +58,20 @@ export function CakeFields({
         maxLength={max}
         placeholder={placeholder}
         autoComplete="off"
+      />
+    </Field>
+  );
+  const count = (key: "cupcakeCount" | "popsicleCount", label: string) => (
+    <Field label={label} htmlFor={id(key)} hint="0 = not included">
+      <Input
+        id={id(key)}
+        type="number"
+        inputMode="numeric"
+        min={0}
+        max={999}
+        step={1}
+        value={value[key]}
+        onChange={(e) => onChange({ ...value, [key]: e.target.value })}
       />
     </Field>
   );
@@ -112,13 +122,13 @@ export function CakeFields({
       {text("model", "Model", 200, "e.g. Doll cake, number 5")}
       {text("fondant", "Fondant", 80, "e.g. Full fondant, semi fondant")}
       {text("cream", "Cream", 80, "e.g. Whipped, buttercream")}
-      {text("filling", "Filling", 80, "e.g. Ganache")}
-      {text("toppings", "Toppings", 200, "e.g. Sprinkles, fresh fruit")}
+      <div className="grid grid-cols-2 gap-3">
+        {count("cupcakeCount", "Cupcakes")}
+        {count("popsicleCount", "Popsicles")}
+      </div>
       <div className="sm:col-span-2">{text("message", "Message on the cake", 120, "e.g. Happy 5th Birthday Anu")}</div>
-      <div className="flex flex-wrap gap-x-6 gap-y-2 sm:col-span-2">
+      <div className="sm:col-span-2">
         <Checkbox label="Eggless" checked={value.isEggless} onChange={(e) => onChange({ ...value, isEggless: e.target.checked })} />
-        <Checkbox label="Cupcakes" checked={value.hasCupcakes} onChange={(e) => onChange({ ...value, hasCupcakes: e.target.checked })} />
-        <Checkbox label="Popsicles" checked={value.hasPopsicles} onChange={(e) => onChange({ ...value, hasPopsicles: e.target.checked })} />
       </div>
       <div className="sm:col-span-2">
         <Field label="Special instructions" htmlFor={id("instructions")}>

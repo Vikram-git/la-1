@@ -494,7 +494,6 @@ const customCakeSchema = z.object({
   internalNotes: optionalText(1000),
   confirm: z.boolean(),
   overrideReason: optionalText(300),
-  kitchenId: z.uuid().optional(),
   ...fulfilmentSchema,
 });
 
@@ -531,12 +530,6 @@ export async function createCustomCakeOrderAction(input: CustomCakeOrderInput): 
     p_advance_reference: d.advanceReference,
   });
   if (error) return rpcError(error);
-
-  // The kitchen that makes the cake (chef screen); the order stands even if this step fails.
-  if (d.kitchenId) {
-    const { data: cake } = await supabase.from("custom_cakes").select("order_item_id").eq("order_id", order.id).maybeSingle();
-    if (cake) await supabase.rpc("set_item_kitchen", { p_item_id: cake.order_item_id, p_kitchen_id: d.kitchenId });
-  }
 
   revalidatePath("/admin", "layout");
   return { ok: true, orderId: order.id };
@@ -606,23 +599,52 @@ export async function recordCustomerMessageAction(input: z.input<typeof messageS
   return { ok: true };
 }
 
-// ---------------------------------------------------------------------------
-// Kitchen per item (chef screen, 2026-10-20)
-// ---------------------------------------------------------------------------
-
-const itemKitchenSchema = z.object({
+// Sticky note pinned on the order (2026-10-24). An empty note clears it.
+const stickySchema = z.object({
   orderId: z.uuid(),
-  itemId: z.uuid(),
-  kitchenId: z.uuid().nullable(),
+  note: z.string().max(500, "Keep the sticky note under 500 characters."),
+  inWhatsApp: z.boolean(),
 });
 
-export async function setItemKitchenAction(input: z.input<typeof itemKitchenSchema>): Promise<Result> {
+export async function setStickyNoteAction(input: z.input<typeof stickySchema>): Promise<Result> {
   await assertRole(["admin", "counter"]);
-  const parsed = itemKitchenSchema.safeParse(input);
-  if (!parsed.success) return { message: "Choose a kitchen." };
+  const parsed = stickySchema.safeParse(input);
+  if (!parsed.success) return { message: parsed.error.issues[0]?.message ?? "Check the note." };
   const supabase = await createClient();
-  const { error } = await supabase.rpc("set_item_kitchen", { p_item_id: parsed.data.itemId, p_kitchen_id: parsed.data.kitchenId });
+  const { error } = await supabase.rpc("set_sticky_note", {
+    p_order_id: parsed.data.orderId,
+    p_note: parsed.data.note,
+    p_in_whatsapp: parsed.data.inWhatsApp,
+  });
   if (error) return rpcError(error);
   revalidatePath(`/admin/orders/${parsed.data.orderId}`);
+  return { ok: true };
+}
+
+// A quotation file shared from this device (2026-10-24). The database checks the file belongs to the order.
+const quotationSendSchema = z.object({
+  orderId: z.uuid(),
+  format: z.enum(["pdf", "png"]),
+  channel: z.enum(["share_sheet", "download_and_chat"]),
+  path: z.string().min(1).max(300),
+  caption: z.string().max(2000),
+});
+
+export async function recordQuotationSendAction(input: z.input<typeof quotationSendSchema>): Promise<Result> {
+  await assertRole(["admin", "counter"]);
+  const parsed = quotationSendSchema.safeParse(input);
+  if (!parsed.success) return { message: "The quotation could not be recorded." };
+  const { orderId, format, channel, path, caption } = parsed.data;
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("record_quotation_send", {
+    p_order_id: orderId,
+    p_format: format,
+    p_channel: channel,
+    p_status: channel === "share_sheet" ? "shared" : "downloaded",
+    p_file_path: path,
+    p_caption: caption,
+  });
+  if (error) return rpcError(error);
+  revalidatePath(`/admin/orders/${orderId}`);
   return { ok: true };
 }

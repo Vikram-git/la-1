@@ -3,7 +3,7 @@ import { requireRole } from "@/lib/auth";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { env } from "@/lib/env";
 import { Alert, Card, PageHeader } from "@/components/ui";
-import { createStaff, resetStaffPassword, updateKitchen, updateStaff } from "./actions";
+import { createStaff, deleteStaff, resetStaffPassword, updateKitchen, updateStaff } from "./actions";
 import { KitchenForm, NewStaffForm, StaffRow, type StaffMember } from "./staff-forms";
 
 export const metadata: Metadata = { title: "Staff" };
@@ -19,12 +19,14 @@ export default async function StaffPage() {
   const supabase = await createClient();
 
   const [{ data: profiles }, { data: kitchens }, emails] = await Promise.all([
-    supabase.from("staff_profiles").select("user_id, full_name, role, is_active, staff_kitchens(kitchen_id)").order("full_name"),
+    supabase.from("staff_profiles").select("user_id, full_name, role, is_active, deleted_at, staff_kitchens(kitchen_id)").order("full_name"),
     supabase.from("kitchens").select("id, code, name, is_active").order("sort_order"),
     loadEmails(),
   ]);
 
-  const members: StaffMember[] = (profiles ?? []).map((p) => ({
+  // Deleted staff (2026-10-24) keep their profile for old orders' "taken by"; they are listed apart.
+  const deleted = (profiles ?? []).filter((p) => p.deleted_at);
+  const members: StaffMember[] = (profiles ?? []).filter((p) => !p.deleted_at).map((p) => ({
     user_id: p.user_id,
     full_name: p.full_name,
     role: p.role,
@@ -33,6 +35,7 @@ export default async function StaffPage() {
     kitchen_ids: p.staff_kitchens.map((sk) => sk.kitchen_id),
   }));
   const chefsWithoutKitchen = members.filter((m) => m.is_active && m.role === "chef" && m.kitchen_ids.length === 0);
+  const activeAdmins = members.filter((m) => m.role === "admin" && m.is_active).length;
 
   return (
     <>
@@ -47,7 +50,7 @@ export default async function StaffPage() {
         )}
         {chefsWithoutKitchen.length > 0 && (
           <Alert tone="warn" title="Chefs without a kitchen">
-            {chefsWithoutKitchen.map((c) => c.full_name).join(", ")} see only items that have no kitchen yet. Edit them and tick their kitchens.
+            {chefsWithoutKitchen.map((c) => c.full_name).join(", ")} see no orders. Edit them and choose their kitchen.
           </Alert>
         )}
 
@@ -65,16 +68,30 @@ export default async function StaffPage() {
                 kitchens={kitchens ?? []}
                 member={m}
                 isSelf={m.user_id === me.userId}
+                lastAdmin={m.role === "admin" && m.is_active && activeAdmins <= 1}
                 saveAction={updateStaff.bind(null, m.user_id)}
                 resetAction={resetStaffPassword.bind(null, m.user_id)}
+                deleteAction={deleteStaff.bind(null, m.user_id)}
               />
             ))}
           </ul>
+          {deleted.length > 0 && (
+            <details className="mt-4 text-sm">
+              <summary className="cursor-pointer text-muted">Deleted staff ({deleted.length})</summary>
+              <ul className="mt-2 flex flex-col gap-1 pl-4">
+                {deleted.map((d) => (
+                  <li key={d.user_id} className="text-muted">
+                    {d.full_name} · deleted {new Intl.DateTimeFormat("en-IN", { dateStyle: "medium" }).format(new Date(d.deleted_at!))}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
         </Card>
 
         <Card>
           <h2 className="text-lg font-semibold">Kitchens</h2>
-          <p className="mb-4 mt-1 text-sm text-muted">Rename them to match your bakery. Each product is made in one kitchen (Products → product → Kitchen).</p>
+          <p className="mb-4 mt-1 text-sm text-muted">Rename them to match your bakery. Kitchen 1 makes custom orders and Kitchen 2 web orders; each chef works in one.</p>
           <div className="flex flex-col gap-3">
             {(kitchens ?? []).map((k) => (
               <KitchenForm key={k.id} kitchen={k} action={updateKitchen.bind(null, k.id)} />

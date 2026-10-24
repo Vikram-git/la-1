@@ -26,14 +26,15 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
         </div>
       </div>
 
-      <div className="flex items-center justify-center px-4 py-12">
+      <div className="flex items-center justify-center px-5 py-10 sm:py-16">
         <div className="w-full max-w-sm">
-          <div className="mb-8 flex flex-col items-center text-center">
-            <Brand />
-            <h1 className="mt-8 text-2xl font-semibold">Staff sign in</h1>
-            <p className="mt-1 text-sm text-muted">Admins, counter staff and chefs.</p>
+          <Brand />
+          <div className="mt-10 text-center">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-brand">Staff portal</p>
+            <h1 className="mt-2 text-3xl font-semibold">Welcome back</h1>
+            <p className="mt-2 text-sm text-muted">Sign in to manage orders, production and deliveries.</p>
           </div>
-          <div className="rounded-2xl border border-line bg-surface p-6 shadow-[0_8px_30px_-16px_rgba(176,58,94,0.28)]">
+          <div className="mt-8 rounded-3xl border border-line/90 bg-surface p-6 shadow-[0_1px_2px_rgba(58,42,48,0.04),0_18px_40px_-24px_rgba(185,63,99,0.35)] sm:p-7">
             <LoginForm next={typeof next === "string" ? next : undefined} />
           </div>
           <p className="mt-6 text-center text-sm">

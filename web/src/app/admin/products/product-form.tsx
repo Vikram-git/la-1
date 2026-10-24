@@ -61,13 +61,6 @@ export function ProductForm({
           <Textarea id="description" name="description" defaultValue={product?.description ?? ""} maxLength={2000} />
         </Field>
 
-        <Field label="Food type" htmlFor="food_type" hint="Shown as the veg / non-veg mark.">
-          <Select id="food_type" name="food_type" defaultValue={product && !product.is_veg ? "non_veg" : "veg"}>
-            <option value="veg">Veg</option>
-            <option value="non_veg">Non-veg</option>
-          </Select>
-        </Field>
-
         <Field label="HSN code" htmlFor="hsn_code" error={err.hsn_code} hint="From your accountant. Optional for now.">
           <Input id="hsn_code" name="hsn_code" inputMode="numeric" defaultValue={product?.hsn_code ?? ""} />
         </Field>

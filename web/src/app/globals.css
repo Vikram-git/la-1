@@ -27,12 +27,12 @@
   --color-ok-soft: #e4f5ea;
   --color-info: #3b5bab;
   --color-info-soft: #e8eefb;
-  --color-veg: #1f7a3a;
-  --color-nonveg: #7a3b1f;
   /* Sticky-note yellow (custom cake details, piece 4) and the script accent. */
   --color-note: #fff6c4;
   --color-note-line: #eedf93;
   --color-script: #c0466b;
+  /* Rose gold: "MADRAS" and its thin rules (4.9:1 on white, so it can be small text). */
+  --color-gold: #9a634e;
 }
 
 body {

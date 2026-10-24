@@ -71,6 +71,8 @@ export type CakeInfo = {
   is_eggless?: boolean;
   has_cupcakes?: boolean;
   has_popsicles?: boolean;
+  cupcake_count?: number;
+  popsicle_count?: number;
   instructions?: string;
   photo_paths?: string[];
 };
@@ -80,7 +82,6 @@ export type ChefLine = {
   name: string;
   size: string;
   quantity: number;
-  isVeg: boolean;
   isEggless: boolean;
   notes: string | null;
   kitchenId: string | null;
@@ -106,11 +107,11 @@ export type ChefOrder = {
 };
 
 // Rows arrive sorted by pickup time, order and line; one card per order, cancelled orders last.
+// kitchen_id is the order's kitchen (2026-10-24): custom cake orders Kitchen 1, every other order Kitchen 2.
 export function groupChefWork(rows: ChefRow[], kitchenId: string | null = null): ChefOrder[] {
   const orders = new Map<string, ChefOrder>();
   for (const r of rows) {
-    // A kitchen filter still shows lines nobody has routed yet, so they are never missed.
-    if (kitchenId && r.kitchen_id && r.kitchen_id !== kitchenId) continue;
+    if (kitchenId && r.kitchen_id !== kitchenId) continue;
     let o = orders.get(r.order_id);
     if (!o) {
       o = {
@@ -135,7 +136,6 @@ export function groupChefWork(rows: ChefRow[], kitchenId: string | null = null):
       name: r.product_name,
       size: r.variant_name,
       quantity: r.quantity,
-      isVeg: r.is_veg,
       isEggless: r.is_eggless,
       notes: r.notes,
       kitchenId: r.kitchen_id,
@@ -181,10 +181,17 @@ export function cakeRows(c: CakeInfo): { label: string; value: string }[] {
   add("Filling", c.filling);
   add("Toppings", c.toppings);
   add("Message on cake", c.message ? `“${c.message}”` : null);
-  const extras = [c.has_cupcakes && "Cupcakes", c.has_popsicles && "Popsicles"].filter(Boolean).join(", ");
-  add("Extras", extras);
+  const cupcakes = extraCount(c.cupcake_count, c.has_cupcakes);
+  const popsicles = extraCount(c.popsicle_count, c.has_popsicles);
+  if (cupcakes) add("Cupcakes", String(cupcakes));
+  if (popsicles) add("Popsicles", String(popsicles));
   add("Instructions", c.instructions);
   return rows;
+}
+
+// Cupcakes and popsicles are counts since 2026-10-24 (0 = none); rows from before have only the tick.
+export function extraCount(count: number | null | undefined, ticked: boolean | null | undefined): number {
+  return typeof count === "number" ? count : ticked ? 1 : 0;
 }
 
 // Per-day counts for the calendar: open orders, custom cakes and set-ups (packed and cancelled left out).

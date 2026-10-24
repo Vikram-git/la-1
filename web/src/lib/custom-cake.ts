@@ -23,7 +23,18 @@ const charge = (label: string) =>
       return paise;
     });
 
-// Mirrors private.clean_cake in the database; the database has the final say.
+// How many cupcakes or popsicles come with the cake ("" or 0 = none), owner 2026-10-24.
+const count = (label: string) =>
+  z.coerce
+    .number({ error: `${label}: enter a whole number.` })
+    .int(`${label}: enter a whole number.`)
+    .min(0, `${label}: enter 0 to 999.`)
+    .max(999, `${label}: enter 0 to 999.`)
+    .optional()
+    .default(0);
+
+// Mirrors private.clean_cake in the database; the database has the final say. Filling and toppings left
+// the form on 2026-10-24: values saved before stay on the cake and are still shown.
 export const cakeDetailsSchema = z.object({
   flavour: z
     .string()
@@ -39,13 +50,11 @@ export const cakeDetailsSchema = z.object({
   model: optional(200, "Model"),
   fondant: optional(80, "Fondant"),
   cream: optional(80, "Cream"),
-  filling: optional(80, "Filling"),
-  toppings: optional(200, "Toppings"),
   message: optional(120, "Message"),
   isEggless: z.boolean(),
   instructions: optional(1000, "Instructions"),
-  hasCupcakes: z.boolean().optional().default(false),
-  hasPopsicles: z.boolean().optional().default(false),
+  cupcakeCount: count("Cupcakes"),
+  popsicleCount: count("Popsicles"),
   setupCharge: charge("Set-up charges"),
   deliveryCharge: charge("Delivery charges"),
 });
@@ -64,13 +73,11 @@ export function cakeToJson(c: CakeDetails) {
     model: c.model ?? null,
     fondant: c.fondant ?? null,
     cream: c.cream ?? null,
-    filling: c.filling ?? null,
-    toppings: c.toppings ?? null,
     message: c.message ?? null,
     is_eggless: c.isEggless,
     instructions: c.instructions ?? null,
-    has_cupcakes: c.hasCupcakes,
-    has_popsicles: c.hasPopsicles,
+    cupcake_count: c.cupcakeCount,
+    popsicle_count: c.popsicleCount,
     setup_charge_paise: c.setupCharge,
     delivery_charge_paise: c.deliveryCharge,
   };
@@ -82,9 +89,21 @@ export function cakeSizeName(weightKg: number, tiers: number): string {
   return `${kg} kg${tiers > 1 ? ` · ${tiers} tiers` : ""}`;
 }
 
-// "Cupcakes, popsicles": the extras ticked on a cake, or "" for none.
-export function cakeExtras(c: { has_cupcakes: boolean; has_popsicles: boolean }): string {
-  return [c.has_cupcakes && "Cupcakes", c.has_popsicles && "Popsicles"].filter(Boolean).join(", ");
+type Extras = { cupcake_count?: number | null; popsicle_count?: number | null; has_cupcakes: boolean; has_popsicles: boolean };
+
+// Cupcakes and popsicles with a cake. Counts since 2026-10-24; a cake saved before has only the tick (1).
+export function cakeExtraCounts(c: Extras): { cupcakes: number; popsicles: number } {
+  return {
+    cupcakes: typeof c.cupcake_count === "number" ? c.cupcake_count : c.has_cupcakes ? 1 : 0,
+    popsicles: typeof c.popsicle_count === "number" ? c.popsicle_count : c.has_popsicles ? 1 : 0,
+  };
+}
+
+// "12 cupcakes, 1 popsicle", or "" for none.
+export function cakeExtras(c: Extras): string {
+  const { cupcakes, popsicles } = cakeExtraCounts(c);
+  const part = (n: number, word: string) => (n > 0 ? `${n} ${word}${n === 1 ? "" : "s"}` : null);
+  return [part(cupcakes, "cupcake"), part(popsicles, "popsicle")].filter(Boolean).join(", ");
 }
 
 export const CAKE_PHOTO_MAX_BYTES = 5 * 1024 * 1024;

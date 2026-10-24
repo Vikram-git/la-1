@@ -65,7 +65,6 @@ const productSchema = z.object({
   category_id: uuid,
   description: z.string().max(2000).nullable(),
   prep_type: z.enum(["made_to_order", "ready_stock"]),
-  is_veg: z.boolean(),
   contains_egg: z.boolean(),
   hsn_code: z
     .string()
@@ -87,7 +86,6 @@ function readProduct(formData: FormData) {
     category_id: text(formData, "category_id"),
     description: optionalText(formData, "description"),
     prep_type: text(formData, "prep_type"),
-    is_veg: text(formData, "food_type") !== "non_veg",
     contains_egg: checkbox(formData, "contains_egg"),
     hsn_code: optionalText(formData, "hsn_code"),
     tax_rate_bps: /^\d+(\.\d{1,2})?$/.test(taxText) ? Math.round(taxPercent * 100) : NaN,

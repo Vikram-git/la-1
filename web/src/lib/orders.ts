@@ -53,6 +53,16 @@ export function listKeyForSource(source: OrderSource): ListKey {
   return source === "IN_STORE" ? "in_store" : "online_call";
 }
 
+// Kitchen routing (owner, 2026-10-24; the database sets orders.kitchen_id): custom cake orders are made
+// in Kitchen 1, every other order ("web orders": website and catalogue orders) in Kitchen 2.
+export type OrderKind = "web" | "custom";
+export const KITCHEN_CODE_FOR: Record<OrderKind, string> = { custom: "K1", web: "K2" };
+export const orderKindLabel: Record<OrderKind, string> = { web: "Web orders", custom: "Custom orders" };
+
+export function kitchenListLabel(code: string | null | undefined): string {
+  return code === KITCHEN_CODE_FOR.custom ? orderKindLabel.custom : code === KITCHEN_CODE_FOR.web ? orderKindLabel.web : "Orders";
+}
+
 // Collect from the store (green) or set up at the customer's place (red), owner 2026-10-09. The colour
 // always comes with the words, never on its own.
 export const fulfilmentLabel: Record<Fulfilment, string> = {

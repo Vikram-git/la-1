@@ -3,7 +3,7 @@ import Link from "next/link";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getBusinessTimezone } from "@/lib/settings";
-import type { OrderStatus } from "@/lib/orders";
+import { KITCHEN_CODE_FOR, orderKindLabel, type OrderKind, type OrderStatus } from "@/lib/orders";
 import type { PickupAvailability } from "@/lib/capacity";
 import { addDays, formatDayHeading, zonedDayKey, zonedDayRange } from "@/lib/time";
 import { Alert, PageHeader, Select, cx } from "@/components/ui";
@@ -26,6 +26,13 @@ type View = (typeof VIEWS)[number];
 const VIEW_LABEL: Record<View, string> = { agenda: "Agenda", day: "Day", week: "Week", month: "Month" };
 const AGENDA_DAYS = 14;
 
+// Two calendars (owner, 2026-10-24): web orders (Kitchen 2) in rose, custom orders (Kitchen 1) in gold.
+const KINDS: OrderKind[] = ["web", "custom"];
+const KIND_STYLE: Record<OrderKind, { tab: string; frame: string; dot: string }> = {
+  web: { tab: "border-brand bg-brand text-white", frame: "border-t-brand", dot: "bg-brand" },
+  custom: { tab: "border-gold bg-gold text-white", frame: "border-t-gold", dot: "bg-gold" },
+};
+
 // Owner (2026-10-22): an order goes on the calendar only once it is confirmed. Website requests waiting for
 // confirmation (and drafts) stay off it; a note links to them instead.
 const BOOKED_STATUSES: OrderStatus[] = ["confirmed", "preparing", "ready", "completed"];
@@ -44,6 +51,7 @@ export default async function CalendarPage({ searchParams }: PageProps<"/admin/c
   const tz = await getBusinessTimezone();
   const today = zonedDayKey(new Date(), tz);
 
+  const kind: OrderKind = str(params.kind) === "custom" ? "custom" : "web";
   const view: View = (VIEWS as readonly string[]).includes(str(params.view)) ? (str(params.view) as View) : "agenda";
   const from = isDayKey(str(params.from)) ? str(params.from) : today;
   const source = ["IN_STORE", "CALL", "ONLINE", "CUSTOMER"].includes(str(params.source))
@@ -65,12 +73,16 @@ export default async function CalendarPage({ searchParams }: PageProps<"/admin/c
   const { start, end } = zonedDayRange(rangeStart, tz, rangeDays);
 
   const supabase = await createClient();
+  const { data: customKitchen } = await supabase.from("kitchens").select("id").eq("code", KITCHEN_CODE_FOR.custom).maybeSingle();
   let query = supabase
     .from("order_summaries")
     .select("id, reference, source, status, customer_name, customer_phone, due_at, item_count, fulfilment, setup_address")
     .gte("due_at", start.toISOString())
     .lt("due_at", end.toISOString())
     .order("due_at");
+  // Every order is routed to a kitchen when it is created: Kitchen 1 for custom orders, Kitchen 2 otherwise.
+  if (kind === "custom") query = customKitchen ? query.eq("kitchen_id", customKitchen.id) : query.eq("id", "00000000-0000-0000-0000-000000000000");
+  else if (customKitchen) query = query.or(`kitchen_id.is.null,kitchen_id.neq.${customKitchen.id}`);
   query = query.in("status", showClosed ? [...BOOKED_STATUSES, ...CLOSED_STATUSES] : BOOKED_STATUSES);
   if (source) query = query.eq("source", source);
   if (fulfil) query = query.eq("fulfilment", fulfil);
@@ -100,7 +112,7 @@ export default async function CalendarPage({ searchParams }: PageProps<"/admin/c
   }
 
   const link = (overrides: Record<string, string>) => {
-    const next = new URLSearchParams({ view, from, ...(source ? { source } : {}), ...(fulfil ? { fulfil } : {}), ...(showClosed ? { closed: "1" } : {}), ...overrides });
+    const next = new URLSearchParams({ kind, view, from, ...(source ? { source } : {}), ...(fulfil ? { fulfil } : {}), ...(showClosed ? { closed: "1" } : {}), ...overrides });
     return `/admin/calendar?${next.toString()}`;
   };
   const dayHref = (day: string) => link({ view: "day", from: day });
@@ -118,9 +130,26 @@ export default async function CalendarPage({ searchParams }: PageProps<"/admin/c
   return (
     <>
       <PageHeader
-        title="Calendar"
-        description={`Orders by pickup or set-up time (${tz}), all sources. Green: collect from store. Red: set up at the customer's place. Orders appear here once they are confirmed.`}
+        title={`${orderKindLabel[kind]} calendar`}
+        description={`${kind === "custom" ? "Custom cake orders, made in Kitchen 1" : "Website, in-store and call orders, made in Kitchen 2"}, by pickup or set-up time (${tz}). Green: collect from store. Red: set up at the customer's place. Orders appear here once they are confirmed.`}
       />
+
+      <nav aria-label="Calendars" className="mb-4 flex flex-wrap gap-2">
+        {KINDS.map((k) => (
+          <Link
+            key={k}
+            href={link({ kind: k })}
+            aria-current={kind === k ? "page" : undefined}
+            className={cx(
+              "flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium",
+              kind === k ? KIND_STYLE[k].tab : "border-line bg-surface hover:bg-brand-soft",
+            )}
+          >
+            <span aria-hidden className={cx("size-2.5 rounded-full", kind === k ? "bg-white" : KIND_STYLE[k].dot)} />
+            {orderKindLabel[k]}
+          </Link>
+        ))}
+      </nav>
 
       {(waiting ?? 0) > 0 && (
         <div className="mb-4">
@@ -149,6 +178,7 @@ export default async function CalendarPage({ searchParams }: PageProps<"/admin/c
       </div>
 
       <form className="mb-5 flex flex-wrap items-end gap-3">
+        <input type="hidden" name="kind" value={kind} />
         <input type="hidden" name="view" value={view} />
         <input type="hidden" name="from" value={from} />
         <div>
@@ -176,6 +206,7 @@ export default async function CalendarPage({ searchParams }: PageProps<"/admin/c
         <button type="submit" className="rounded-lg border border-line bg-surface px-3.5 py-2 text-sm font-medium hover:bg-brand-soft">Apply</button>
       </form>
 
+      <div className={cx("rounded-xl border-t-4 pt-3", KIND_STYLE[kind].frame)}>
       {view === "month" && (
         <MonthView gridStart={gridStart} month={from.slice(0, 7)} today={today} byDay={byDay} closureByDay={closureByDay} dayHref={dayHref} />
       )}
@@ -189,6 +220,7 @@ export default async function CalendarPage({ searchParams }: PageProps<"/admin/c
       {view === "agenda" && (
         <AgendaView from={from} days={AGENDA_DAYS} today={today} byDay={byDay} closureByDay={closureByDay} tz={tz} />
       )}
+      </div>
     </>
   );
 }

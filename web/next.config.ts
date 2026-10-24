@@ -6,6 +6,10 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [{ source: "/", destination: "/site/index.html" }];
   },
+  // The quotation PDF and PNG read their fonts from disk at run time.
+  outputFileTracingIncludes: {
+    "/api/orders/\\[id\\]/quotation": ["./assets/fonts/*.woff"],
+  },
   // Let browsers and Vercel's CDN keep the website's files instead of asking again on every visit.
   async headers() {
     return [

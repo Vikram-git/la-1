@@ -9,7 +9,7 @@ import { getBusinessTimezone } from "@/lib/settings";
 import { formatPaise } from "@/lib/money";
 import { ORDER_LISTS, listKeyForSource, paymentMethodLabel, sourceLabel } from "@/lib/orders";
 import { dateToZonedLocal, formatDateTime } from "@/lib/time";
-import { Alert, Badge, Card, PageHeader, VegMark, cx } from "@/components/ui";
+import { Alert, Badge, ButtonLink, Card, PageHeader, cx } from "@/components/ui";
 import { SourceBadge, StatusBadge } from "@/components/order-badges";
 import { NoShowPanel, OrderActions, PaymentForm } from "./order-actions";
 import { FulfilmentPanel } from "./fulfilment-panel";
@@ -19,9 +19,10 @@ import { ProductThumb } from "@/components/product-thumb";
 import { BillPanel, DiscountForm } from "./billing-panel";
 import { EditItems } from "./edit-items";
 import { loadCatalogue } from "@/lib/catalogue";
-import { MESSAGE_LABEL, availableMessages, messageText, whatsappNumber, type MessageKind } from "@/lib/whatsapp";
+import { MESSAGE_LABEL, availableMessages, messageText, quotationCaption, whatsappNumber, type MessageKind } from "@/lib/whatsapp";
 import { WhatsAppCard } from "./whatsapp-card";
-import { ItemKitchen } from "./item-kitchen";
+import { StickyNote } from "./sticky-note";
+import { QuotationSend } from "./quotation-send";
 
 export const metadata: Metadata = { title: "Order" };
 
@@ -61,6 +62,14 @@ const eventLabel: Record<string, string> = {
   custom_cake_changed: "Custom cake changed",
   custom_cake_photo: "Cake photos changed",
   customer_message: "WhatsApp message opened",
+  sticky_note_changed: "Sticky note changed",
+  quotation_sent: "Quotation sent",
+};
+
+const QUOTATION_CHANNEL: Record<string, string> = {
+  share_sheet: "shared from a phone",
+  download_and_chat: "downloaded and WhatsApp opened",
+  cloud_api: "sent by WhatsApp",
 };
 
 // PRD 5F: only orders the customer should have collected can count as a no-show.
@@ -115,10 +124,13 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
     : { data: [] };
   const photoByProduct = new Map((productPhotos ?? []).map((p) => [p.id, p.image_url]));
 
-  // Kitchen per made-to-order item: decides which chef screen shows it (2026-10-20).
-  const { data: kitchens } = await supabase.from("kitchens").select("id, name, is_active").order("sort_order");
-  const kitchenName = new Map((kitchens ?? []).map((k) => [k.id, k.name]));
-  const canRouteKitchen = !["ready", "completed", "cancelled", "rejected"].includes(order.status);
+  // The order's kitchen (2026-10-24): custom orders Kitchen 1, web orders Kitchen 2, set by the database.
+  const [{ data: kitchen }, { data: quotationSends }] = await Promise.all([
+    order.kitchen_id
+      ? supabase.from("kitchens").select("name").eq("id", order.kitchen_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    supabase.from("quotation_sends").select("id, sent_at, sent_by, format, channel, status").eq("order_id", id).order("sent_at", { ascending: false }),
+  ]);
 
   // Custom cake (2026-10-09): its details, and short-lived links to the private reference photos (up to 5).
   const { data: cake } = await supabase.from("custom_cakes").select("*").eq("order_id", id).maybeSingle();
@@ -133,9 +145,10 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
   const requestHeaders = await headers();
   const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "";
   const proto = requestHeaders.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+  const whatsappNote = order.sticky_note_in_whatsapp ? order.sticky_note : null;
   const messageOrder = {
     reference: order.reference ?? "",
-    customerName: order.customer_name,
+    note: whatsappNote,
     status: order.status,
     fulfilment: order.fulfilment ?? "collect",
     setupAddress: order.setup_address,
@@ -148,6 +161,7 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
   };
   const messageContext = { shop: settings?.business_name ?? "La Patisserie", timeZone: tz, reviewUrl: `${proto}://${host}/#testimonials` };
   const messages = availableMessages(messageOrder).map((kind) => ({ kind, text: messageText(kind, messageOrder, messageContext) }));
+  const caption = quotationCaption({ reference: order.reference ?? "", note: whatsappNote }, messageContext.shop);
   const sentKinds = (events ?? [])
     .filter((e) => e.event_type === "customer_message")
     .map((e) => (e.data as { kind?: MessageKind } | null)?.kind)
@@ -168,22 +182,9 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
               </p>
               {removed && <Badge tone="danger" className="mt-1">Removed</Badge>}
               <div className="mt-1 flex flex-wrap items-center gap-2 text-sm">
-                <VegMark isVeg={i.is_veg} />
                 {i.is_eggless ? <Badge tone="ok">Eggless</Badge> : i.contains_egg && <Badge>Contains egg</Badge>}
                 {i.prep_type === "ready_stock" ? <Badge>Ready stock</Badge> : <Badge tone="brand">Made to order</Badge>}
               </div>
-              {i.prep_type === "made_to_order" && !removed && (
-                canRouteKitchen ? (
-                  <ItemKitchen
-                    orderId={id}
-                    itemId={i.id}
-                    kitchenId={i.kitchen_id}
-                    kitchens={(kitchens ?? []).filter((k) => k.is_active || k.id === i.kitchen_id)}
-                  />
-                ) : (
-                  <p className="mt-1 text-sm text-muted">Kitchen: {i.kitchen_id ? (kitchenName.get(i.kitchen_id) ?? "Kitchen") : "not set"}</p>
-                )
-              )}
               {i.notes && <p className="mt-1 text-sm">“{i.notes}”</p>}
             </div>
             </div>
@@ -209,11 +210,13 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
             <span>/</span>
             <SourceBadge source={order.source} />
             <StatusBadge status={order.status} />
+            {kitchen && <Badge tone="info">{kitchen.name} · {cake ? "Custom orders" : "Web orders"}</Badge>}
           </span>
         }
       />
 
       <div className="flex flex-col gap-6">
+        <StickyNote key={`sn-${order.version}-${order.sticky_note ?? ""}`} orderId={order.id} note={order.sticky_note} inWhatsApp={Boolean(order.sticky_note_in_whatsapp)} />
         <FulfilmentBanner
           key={`fb-${order.version}`}
           orderId={order.id}
@@ -385,9 +388,37 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
         {order.customer_phone && (
           <Card>
             <h2 className="mb-3 text-lg font-semibold">Message the customer</h2>
-            <WhatsAppCard key={`w-${order.version}`} orderId={order.id} phone={whatsappNumber(order.customer_phone)} messages={messages} sentKinds={sentKinds} />
+            <WhatsAppCard key={`w-${order.version}-${whatsappNote ?? ""}`} orderId={order.id} phone={whatsappNumber(order.customer_phone)} messages={messages} sentKinds={sentKinds} />
           </Card>
         )}
+
+        <Card>
+          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-3">
+            <h2 className="text-lg font-semibold">Quotation</h2>
+            <ButtonLink href={`/print/quotation/${order.id}`} variant="secondary" className="py-1.5!">Open quotation</ButtonLink>
+          </div>
+          <div className="grid gap-6 lg:grid-cols-2">
+            <QuotationSend key={`q-${order.version}-${whatsappNote ?? ""}`} orderId={order.id} phone={whatsappNumber(order.customer_phone)} caption={caption} />
+            <div>
+              <h3 className="mb-2 text-sm font-semibold text-muted">Sent</h3>
+              {quotationSends && quotationSends.length > 0 ? (
+                <ul className="flex flex-col gap-2 text-sm">
+                  {quotationSends.map((s) => (
+                    <li key={s.id} className="rounded-xl border border-line px-3 py-2">
+                      <p className="font-medium">Quotation sent on {formatDateTime(s.sent_at, tz)} by {who(s.sent_by)}</p>
+                      <p className="text-xs text-muted">
+                        {s.format === "pdf" ? "PDF" : "Image (PNG)"} · {QUOTATION_CHANNEL[s.channel] ?? s.channel}
+                        {s.status === "failed" && <span className="text-danger"> · failed</span>}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-muted">Not sent yet.</p>
+              )}
+            </div>
+          </div>
+        </Card>
 
         <div className="grid gap-6 lg:grid-cols-2">
           {["confirmed", "preparing", "ready", "completed"].includes(order.status) && (
@@ -497,6 +528,15 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
                       </p>
                     )}
                     {e.event_type === "packed" && typeof data.note === "string" && <p className="text-xs">Note: {data.note}</p>}
+                    {e.event_type === "quotation_sent" && typeof data.format === "string" && (
+                      <p className="text-xs">
+                        {data.format === "pdf" ? "PDF" : "Image (PNG)"}
+                        {typeof data.channel === "string" && ` · ${QUOTATION_CHANNEL[data.channel] ?? data.channel}`}
+                      </p>
+                    )}
+                    {e.event_type === "sticky_note_changed" && (
+                      <p className="text-xs">{data.cleared ? "Removed" : data.in_whatsapp ? "Added to WhatsApp messages" : "Not added to WhatsApp messages"}</p>
+                    )}
                     {e.event_type === "customer_message" && typeof data.kind === "string" && data.kind in MESSAGE_LABEL && (
                       <p className="text-xs">{MESSAGE_LABEL[data.kind as MessageKind]}</p>
                     )}

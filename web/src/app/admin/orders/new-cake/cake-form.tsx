@@ -25,12 +25,10 @@ export function CakeOrderForm({
   isAdmin,
   defaultDueLocal,
   minDueLocal,
-  kitchens,
 }: {
   isAdmin: boolean;
   defaultDueLocal: string;
   minDueLocal: string;
-  kitchens: { id: string; name: string }[];
 }) {
   const router = useRouter();
   const [idempotencyKey] = useState(() => crypto.randomUUID());
@@ -40,8 +38,6 @@ export function CakeOrderForm({
   const [dueLocal, setDueLocal] = useState(defaultDueLocal);
   const [fulfil, setFulfil] = useState<FulfilmentValue>({ fulfilment: "collect", address: "", note: "" });
   const [cake, setCake] = useState<CakeFormValue>(EMPTY_CAKE);
-  // The kitchen that makes the cake; it shows on that kitchen's chef screen.
-  const [kitchenId, setKitchenId] = useState(kitchens[0]?.id ?? "");
   // Up to 5 reference photos, uploaded once the order exists.
   const [photos, setPhotos] = useState<{ file: File; preview: string }[]>([]);
   const [photoError, setPhotoError] = useState<string | null>(null);
@@ -102,7 +98,6 @@ export function CakeOrderForm({
           fulfilment: fulfil.fulfilment,
           setupAddress: fulfil.address,
           setupNote: fulfil.note,
-          kitchenId: kitchenId || undefined,
         });
       } catch {
         result = { message: "Not saved, check the connection." };
@@ -136,16 +131,7 @@ export function CakeOrderForm({
         <Card className="flex flex-col gap-4">
           <h2 className="text-lg font-semibold">The cake</h2>
           <CakeFields value={cake} onChange={(v) => { setError(null); setCake(v); }} />
-          {kitchens.length > 0 && (
-            <Field label="Made in" htmlFor="cake-kitchen" hint="The cake shows on this kitchen's chef screen.">
-              <Select id="cake-kitchen" value={kitchenId} onChange={(e) => setKitchenId(e.target.value)}>
-                {kitchens.map((k) => (
-                  <option key={k.id} value={k.id}>{k.name}</option>
-                ))}
-                <option value="">Not set (every chef sees it)</option>
-              </Select>
-            </Field>
-          )}
+          <p className="text-sm text-muted">Custom orders are made in Kitchen 1.</p>
           <Field
             label={`Reference photos (optional, up to ${MAX_CAKE_PHOTOS})`}
             htmlFor="cake-photo"

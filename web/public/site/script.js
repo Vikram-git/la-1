@@ -362,7 +362,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const content = el('div', 'card-content');
         const meta = el('div', 'card-meta');
         meta.appendChild(el('span', 'card-category', product.category));
-        meta.appendChild(el('span', 'card-diet', product.is_veg ? (product.contains_egg ? 'Contains egg' : 'Veg') : 'Non-veg'));
+        meta.appendChild(el('span', 'card-diet', product.contains_egg ? 'Contains egg' : 'Egg-free'));
         content.appendChild(meta);
         content.appendChild(el('h3', 'card-title', product.name));
         if (product.description) content.appendChild(el('p', 'card-desc', product.description));

@@ -38,14 +38,15 @@ export async function updateKitchen(id: string, _prev: ActionState, formData: Fo
 // Staff
 // ---------------------------------------------------------------------------
 
-// Chefs sign in to the kitchen screen (back on 2026-10-20) and see only the kitchens ticked for them.
+// Chefs sign in to the kitchen screen (back on 2026-10-20) and see only their kitchen's orders. One
+// kitchen per chef since 2026-10-24 (Kitchen 1: custom orders, Kitchen 2: web orders); the database agrees.
 const roleSchema = z.enum(["admin", "counter", "chef"], { error: "Choose a role." });
 const password = z.string().min(10, "Use at least 10 characters.").max(72, "Use at most 72 characters.");
 
 function withKitchenRule<T extends { role: string; kitchen_ids: string[] }>(schema: z.ZodType<T>) {
-  return schema.refine((v) => v.role !== "chef" || v.kitchen_ids.length > 0, {
+  return schema.refine((v) => v.role !== "chef" || v.kitchen_ids.length === 1, {
     path: ["kitchen_ids"],
-    message: "Tick at least one kitchen for a chef.",
+    message: "Choose the chef's kitchen.",
   });
 }
 
@@ -147,6 +148,7 @@ export async function updateStaff(userId: string, _prev: ActionState, formData: 
   const wanted = new Set(kitchen_ids);
   const toRemove = [...currentIds].filter((id) => !wanted.has(id));
   const toAdd = [...wanted].filter((id) => !currentIds.has(id));
+  // Remove first: a chef may have only one kitchen at a time.
   if (toRemove.length) {
     const { error: e } = await supabase.from("staff_kitchens").delete().eq("user_id", userId).in("kitchen_id", toRemove);
     if (e) return dbError(e, "kitchen assignment");
@@ -171,6 +173,29 @@ export async function updateStaff(userId: string, _prev: ActionState, formData: 
 
   revalidatePath("/admin/staff");
   return { ok: true, message: `Saved.${note}` };
+}
+
+// Soft delete (2026-10-24): the profile stays so old orders keep the name; the database ends access and
+// every session (not yourself, never the last admin), then the login is locked in Supabase Auth.
+export async function deleteStaff(userId: string): Promise<ActionState> {
+  const me = await assertRole(["admin"]);
+  if (!z.uuid().safeParse(userId).success) return { message: "Staff member not found." };
+  if (userId === me.userId) return { message: "You cannot delete your own login. Ask another admin." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("delete_staff", { p_user_id: userId });
+  if (error) return { message: error.code === "P0001" ? error.message : dbError(error, "staff member").message };
+
+  let note = "";
+  if (env.supabaseSecretKey) {
+    const { error: banError } = await createAdminClient().auth.admin.updateUserById(userId, { ban_duration: "876000h" });
+    if (banError) note = " Access has ended, but the login could not be locked; check Supabase Auth.";
+  } else {
+    note = " Access has ended. Add SUPABASE_SECRET_KEY to also lock the login.";
+  }
+
+  revalidatePath("/admin/staff");
+  return { ok: true, message: `Deleted.${note}` };
 }
 
 export async function resetStaffPassword(userId: string, _prev: ActionState, formData: FormData): Promise<ActionState> {

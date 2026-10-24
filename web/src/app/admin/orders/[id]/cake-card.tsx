@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Alert, Button, ButtonLink, Field, Input, cx } from "@/components/ui";
 import { CakeChargeFields, CakeFields, type CakeFormValue } from "@/components/cake-fields";
-import { MAX_CAKE_PHOTOS, cakeExtras, cakePhotoProblem } from "@/lib/custom-cake";
+import { MAX_CAKE_PHOTOS, cakeExtraCounts, cakePhotoProblem } from "@/lib/custom-cake";
 import { formatPaise, paiseToRupeesInput } from "@/lib/money";
 import { uploadPhoto } from "@/lib/photo-upload";
 import { setCustomCakePhotosAction, updateCustomCakeAction } from "../actions";
@@ -25,6 +25,8 @@ export type CustomCake = {
   instructions: string | null;
   has_cupcakes: boolean;
   has_popsicles: boolean;
+  cupcake_count: number;
+  popsicle_count: number;
   setup_charge_paise: number;
   delivery_charge_paise: number;
 };
@@ -60,13 +62,11 @@ export function CakeCard({
     model: cake.model ?? "",
     fondant: cake.fondant ?? "",
     cream: cake.cream ?? "",
-    filling: cake.filling ?? "",
-    toppings: cake.toppings ?? "",
     message: cake.message ?? "",
     isEggless: cake.is_eggless,
     instructions: cake.instructions ?? "",
-    hasCupcakes: cake.has_cupcakes,
-    hasPopsicles: cake.has_popsicles,
+    cupcakeCount: String(cakeExtraCounts(cake).cupcakes),
+    popsicleCount: String(cakeExtraCounts(cake).popsicles),
     setupCharge: cake.setup_charge_paise ? paiseToRupeesInput(cake.setup_charge_paise) : "",
     deliveryCharge: cake.delivery_charge_paise ? paiseToRupeesInput(cake.delivery_charge_paise) : "",
   }));
@@ -136,9 +136,11 @@ export function CakeCard({
     ["Model", cake.model],
     ["Fondant", cake.fondant],
     ["Cream", cake.cream],
+    // No longer on the form (2026-10-24); shown when an older cake has them.
     ["Filling", cake.filling],
     ["Toppings", cake.toppings],
-    ["Extras", cakeExtras(cake) || null],
+    ["Cupcakes", cakeExtraCounts(cake).cupcakes ? String(cakeExtraCounts(cake).cupcakes) : null],
+    ["Popsicles", cakeExtraCounts(cake).popsicles ? String(cakeExtraCounts(cake).popsicles) : null],
     ["Instructions", cake.instructions],
     ["Set-up charges", cake.setup_charge_paise ? formatPaise(cake.setup_charge_paise) : null],
     ["Delivery charges", cake.delivery_charge_paise ? formatPaise(cake.delivery_charge_paise) : null],

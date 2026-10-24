@@ -156,23 +156,6 @@ export function Badge({
   );
 }
 
-// Indian food mark: square outline with a dot; the text label keeps it readable without colour.
-export function VegMark({ isVeg }: { isVeg: boolean }) {
-  const color = isVeg ? "var(--color-veg)" : "var(--color-nonveg)";
-  return (
-    <span className="inline-flex items-center gap-1 text-xs font-medium" style={{ color }}>
-      <span
-        aria-hidden
-        className="inline-flex size-3.5 items-center justify-center rounded-[2px] border-[1.5px]"
-        style={{ borderColor: color }}
-      >
-        <span className="size-1.5 rounded-full" style={{ background: color }} />
-      </span>
-      {isVeg ? "Veg" : "Non-veg"}
-    </span>
-  );
-}
-
 export function Alert({
   tone = "warn",
   title,
@@ -214,24 +197,59 @@ export function ScriptText({ children, className }: { children: ReactNode; class
   );
 }
 
-// Chef-hat mark used in the logo.
-export function ChefHat({ className }: { className?: string }) {
+// "LP" monogram in a fine double ring, rose-gold gradient. Strokes only (no text), so it renders the
+// same without fonts: the favicon (app/icon.svg) and the quotation file draw the same paths.
+export const LOGO_PATHS = {
+  ring: "M32 3.5a28.5 28.5 0 1 1 0 57a28.5 28.5 0 1 1 0-57",
+  innerRing: "M32 7.5a24.5 24.5 0 1 1 0 49a24.5 24.5 0 1 1 0-49",
+  l: "M21.5 19.5h6M24.5 19.5v24.5h12.5",
+  p: "M30 19.5h7.25a6.25 6.25 0 0 1 0 12.5H33M33 19.5v24.5M30 44h6",
+  sparkle: "M32 11.2l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9z",
+} as const;
+
+export function LogoMark({ className, glow = true }: { className?: string; glow?: boolean }) {
   return (
-    <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden className={className}>
-      <path d="M14 30c-4.4 0-8-3.4-8-7.8 0-4.2 3.3-7.6 7.6-7.8C14.9 9.6 19 6 24 6s9.1 3.6 10.4 8.4c4.3.2 7.6 3.6 7.6 7.8 0 4.4-3.6 7.8-8 7.8" />
-      <path d="M14 26v14h20V26" />
-      <path d="M14 34h20" />
+    <svg
+      viewBox="0 0 64 64"
+      fill="none"
+      aria-hidden
+      className={cx(glow && "drop-shadow-[0_6px_14px_rgba(185,63,99,0.28)]", className)}
+    >
+      <defs>
+        <linearGradient id="lp-rose-gold" x1="8" y1="6" x2="56" y2="58" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#e7b99a" />
+          <stop offset="0.5" stopColor="#c7837a" />
+          <stop offset="1" stopColor="#b93f63" />
+        </linearGradient>
+      </defs>
+      <circle cx="32" cy="32" r="31" fill="#fffafb" />
+      <path d={LOGO_PATHS.ring} stroke="url(#lp-rose-gold)" strokeWidth="1.6" />
+      <path d={LOGO_PATHS.innerRing} stroke="url(#lp-rose-gold)" strokeWidth="0.6" opacity="0.7" />
+      <path d={LOGO_PATHS.l} stroke="url(#lp-rose-gold)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d={LOGO_PATHS.p} stroke="url(#lp-rose-gold)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d={LOGO_PATHS.sparkle} fill="url(#lp-rose-gold)" />
     </svg>
   );
 }
 
-// "La Patisserie" wordmark with the chef hat and tagline.
+// "MADRAS" between two thin rose-gold rules, under the wordmark.
+export function CityLine({ className }: { className?: string }) {
+  return (
+    <span className={cx("flex items-center justify-center gap-3", className)}>
+      <span aria-hidden className="h-px w-8 bg-gradient-to-r from-transparent to-gold" />
+      <span className="text-[10px] font-medium uppercase tracking-[0.42em] text-gold [font-variant:small-caps]">Madras</span>
+      <span aria-hidden className="h-px w-8 bg-gradient-to-l from-transparent to-gold" />
+    </span>
+  );
+}
+
+// "La Patisserie" wordmark with the LP mark and "MADRAS".
 export function Brand({ compact = false, className }: { compact?: boolean; className?: string }) {
   return (
     <div className={cx("flex flex-col items-center text-center", className)}>
-      <ChefHat className={cx("text-brand", compact ? "size-7" : "size-10")} />
-      <span className={cx("font-display font-medium leading-none text-ink", compact ? "mt-1 text-2xl" : "mt-1.5 text-4xl")}>La Patisserie</span>
-      {!compact && <span className="mt-1.5 whitespace-nowrap text-[9px] font-medium uppercase tracking-[0.18em] text-muted">More than cakes, sweeter moments</span>}
+      <LogoMark className={compact ? "size-10" : "size-16"} />
+      <span className={cx("font-display font-medium leading-none text-ink", compact ? "mt-2 text-2xl" : "mt-3 text-4xl")}>La Patisserie</span>
+      <CityLine className={compact ? "mt-1.5" : "mt-2.5"} />
     </div>
   );
 }

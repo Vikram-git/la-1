@@ -13,10 +13,7 @@ export default async function NewCakeOrderPage() {
   const staff = await requireRole(["admin", "counter"]);
   const tz = await getBusinessTimezone();
   const supabase = await createClient();
-  const [{ data: settings }, { data: kitchens }] = await Promise.all([
-    supabase.from("business_settings").select("custom_cake_tax_rate_bps").single(),
-    supabase.from("kitchens").select("id, name").eq("is_active", true).order("sort_order"),
-  ]);
+  const { data: settings } = await supabase.from("business_settings").select("custom_cake_tax_rate_bps").single();
   const tomorrow = addDays(zonedDayKey(new Date(), tz), 1);
 
   return (
@@ -34,7 +31,6 @@ export default async function NewCakeOrderPage() {
         isAdmin={staff.role === "admin"}
         defaultDueLocal={`${tomorrow}T11:00`}
         minDueLocal={dateToZonedLocal(new Date(), tz)}
-        kitchens={kitchens ?? []}
       />
     </>
   );
