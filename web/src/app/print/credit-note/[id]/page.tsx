@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getBusinessTimezone } from "@/lib/settings";
 import { formatPaise } from "@/lib/money";
 import { formatDateTime } from "@/lib/time";
-import { SHOP_ADDRESS, SHOP_NAME } from "@/lib/brand";
+import { SHOP_ADDRESS_LINES, SHOP_NAME } from "@/lib/brand";
 import { CityLine, LogoMark } from "@/components/ui";
 import { PrintControls } from "../../print-controls";
 
@@ -37,7 +37,9 @@ export default async function CreditNotePrintPage({ params, searchParams }: Page
           <h1 className={narrow ? "font-script text-2xl leading-none" : "mt-1 font-script text-4xl leading-none"}>La Patisserie</h1>
           <CityLine className={narrow ? "text-[9px]" : ""} />
           <span className="sr-only">{SHOP_NAME}</span>
-          <p className="mt-1 font-sans">{SHOP_ADDRESS}</p>
+          <address className="mt-1 font-sans not-italic">
+            {SHOP_ADDRESS_LINES.map((line) => <span key={line} className="block">{line}</span>)}
+          </address>
           <p className={narrow ? "mt-2 border-y border-dashed border-black py-1 font-bold" : "mt-6 text-lg font-bold"}>CREDIT NOTE</p>
         </header>
         <dl className="mt-3 flex flex-col gap-0.5">

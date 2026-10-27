@@ -21,7 +21,7 @@ export function AgendaView({ from, days, today, byDay, closureByDay, tz, canDele
           <section key={day} aria-labelledby={`day-${day}`}>
             <h2 id={`day-${day}`} className="mb-2 flex items-baseline gap-2 text-sm font-semibold">
               {formatDayHeading(day)}
-              {day === today && <span className="text-xs font-medium text-brand">Today</span>}
+              {day === today && <span className="text-xs font-medium text-brand-strong">Today</span>}
               {closure && <span className="text-xs font-medium text-danger">Closed: {closure}</span>}
               <span className="text-xs font-normal text-muted">{plural(dayOrders.length, "order")}</span>
             </h2>

@@ -114,8 +114,8 @@ export default async function ProductsPage({ searchParams }: PageProps<"/admin/p
         <EmptyState title={q || categoryId || status !== "active" ? "No products match these filters" : "No products yet"}>
           {isAdmin && !q && !categoryId && status === "active" && (
             <>
-              Start by adding <Link href="/admin/products/categories" className="text-brand underline">categories</Link>, then{" "}
-              <Link href="/admin/products/new" className="text-brand underline">your first product</Link>.
+              Start by adding <Link href="/admin/products/categories" className="text-brand-strong underline">categories</Link>, then{" "}
+              <Link href="/admin/products/new" className="text-brand-strong underline">your first product</Link>.
             </>
           )}
         </EmptyState>
@@ -158,7 +158,7 @@ export default async function ProductsPage({ searchParams }: PageProps<"/admin/p
                       <div className="flex items-start gap-3">
                       <ProductThumb url={p.image_url} name={p.name} size="sm" />
                       <div>
-                      <Link href={`/admin/products/${p.id}`} className="font-medium text-ink hover:text-brand hover:underline">
+                      <Link href={`/admin/products/${p.id}`} className="font-medium text-ink hover:text-brand-strong hover:underline">
                         {p.name}
                       </Link>
                       <div className="mt-1 flex flex-wrap items-center gap-2">

@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 import { requireRole } from "@/lib/auth";
@@ -9,7 +8,7 @@ import { getBusinessTimezone } from "@/lib/settings";
 import { formatPaise } from "@/lib/money";
 import { ORDER_LISTS, listKeyForSource, paymentMethodLabel, sourceLabel } from "@/lib/orders";
 import { dateToZonedLocal, formatDateTime } from "@/lib/time";
-import { Alert, Badge, ButtonLink, Card, PageHeader, cx } from "@/components/ui";
+import { Alert, Badge, Card, PageHeader, cx } from "@/components/ui";
 import { SourceBadge, StatusBadge } from "@/components/order-badges";
 import { NoShowPanel, OrderActions, PaymentForm } from "./order-actions";
 import { FulfilmentPanel } from "./fulfilment-panel";
@@ -19,14 +18,8 @@ import { ProductThumb } from "@/components/product-thumb";
 import { BillPanel, DiscountForm } from "./billing-panel";
 import { EditItems } from "./edit-items";
 import { loadCatalogue } from "@/lib/catalogue";
-import { MESSAGE_LABEL, availableMessages, messageText, quotationCaption, whatsappNumber, type MessageKind } from "@/lib/whatsapp";
-import { cloudFormats, whatsappCloudConfig } from "@/lib/whatsapp-cloud";
-import { WhatsAppCard } from "./whatsapp-card";
+import { MESSAGE_LABEL, type MessageKind } from "@/lib/whatsapp";
 import { StickyNote } from "./sticky-note";
-import { QuotationSend } from "./quotation-send";
-import { loadQuotation } from "@/lib/quotation-server";
-import { captionBill } from "@/lib/quotation";
-import { SHOP_NAME } from "@/lib/brand";
 
 export const metadata: Metadata = { title: "Order" };
 
@@ -129,12 +122,9 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
   const photoByProduct = new Map((productPhotos ?? []).map((p) => [p.id, p.image_url]));
 
   // The order's kitchen (2026-10-24): custom orders Kitchen 1, web orders Kitchen 2, set by the database.
-  const [{ data: kitchen }, { data: quotationSends }] = await Promise.all([
-    order.kitchen_id
-      ? supabase.from("kitchens").select("name").eq("id", order.kitchen_id).maybeSingle()
-      : Promise.resolve({ data: null }),
-    supabase.from("quotation_sends").select("id, sent_at, sent_by, format, channel, status").eq("order_id", id).order("sent_at", { ascending: false }),
-  ]);
+  const { data: kitchen } = order.kitchen_id
+    ? await supabase.from("kitchens").select("name").eq("id", order.kitchen_id).maybeSingle()
+    : { data: null };
 
   // Custom cake (2026-10-09): its details, and short-lived links to the private reference photos (up to 5).
   const { data: cake } = await supabase.from("custom_cakes").select("*").eq("order_id", id).maybeSingle();
@@ -144,36 +134,6 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
     ? new Map(((await supabase.storage.from("custom-cake-photos").createSignedUrls(cakePaths, 3600)).data ?? []).map((s) => [s.path, s.signedUrl]))
     : new Map<string | null, string>();
   const cakePhotos = cakePaths.map((path) => ({ path, url: signedCake.get(path) ?? null }));
-
-  // WhatsApp messages for the customer (2026-10-19). The review link points at this site's reviews section.
-  const requestHeaders = await headers();
-  const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "";
-  const proto = requestHeaders.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
-  const whatsappNote = order.sticky_note_in_whatsapp ? order.sticky_note : null;
-  const messageOrder = {
-    reference: order.reference ?? "",
-    note: whatsappNote,
-    status: order.status,
-    fulfilment: order.fulfilment ?? "collect",
-    setupAddress: order.setup_address,
-    dueAt: order.due_at,
-    totalPaise: order.total_paise ?? 0,
-    balancePaise: balance,
-    items: (items ?? [])
-      .filter((i) => i.quantity > i.cancelled_quantity)
-      .map((i) => ({ name: `${i.product_name} — ${i.variant_name}`, quantity: i.quantity - i.cancelled_quantity })),
-  };
-  const messageContext = { shop: settings?.business_name ?? SHOP_NAME, timeZone: tz, reviewUrl: `${proto}://${host}/#testimonials` };
-  const messages = availableMessages(messageOrder).map((kind) => ({ kind, text: messageText(kind, messageOrder, messageContext) }));
-  const quotation = await loadQuotation(supabase, id);
-  const caption = quotationCaption(
-    { reference: order.reference ?? "", note: whatsappNote, bill: quotation.ok ? captionBill(quotation.quotation) : null },
-    messageContext.shop,
-  );
-  const sentKinds = (events ?? [])
-    .filter((e) => e.event_type === "customer_message")
-    .map((e) => (e.data as { kind?: MessageKind } | null)?.kind)
-    .filter((k): k is MessageKind => Boolean(k));
 
   const itemList = (
     <ul className="divide-y divide-line">
@@ -212,7 +172,7 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
         title={`Order ${order.reference}`}
         description={
           <span className="flex flex-wrap items-center gap-2">
-            <Link href={`/admin/orders?list=${listKeyForSource(order.source)}`} className="text-brand hover:underline">
+            <Link href={`/admin/orders?list=${listKeyForSource(order.source)}`} className="text-brand-strong hover:underline">
               {ORDER_LISTS[listKeyForSource(order.source)].label}
             </Link>
             <span>/</span>
@@ -343,7 +303,7 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
                 <dt className="text-muted">Customer</dt>
                 <dd className="flex flex-wrap items-center gap-2 font-medium">
                   {customer ? (
-                    <Link href={`/admin/customers/${customer.id}`} className="hover:text-brand hover:underline">{order.customer_name ?? "Customer"}</Link>
+                    <Link href={`/admin/customers/${customer.id}`} className="hover:text-brand-strong hover:underline">{order.customer_name ?? "Customer"}</Link>
                   ) : (
                     order.customer_name ?? "Walk-in"
                   )}
@@ -353,7 +313,7 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
                   )}
                 </dd>
                 {order.customer_phone && (
-                  <dd><a href={`tel:${order.customer_phone}`} className="text-brand hover:underline">{order.customer_phone}</a></dd>
+                  <dd><a href={`tel:${order.customer_phone}`} className="text-brand-strong hover:underline">{order.customer_phone}</a></dd>
                 )}
               </div>
               <div>
@@ -391,49 +351,6 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
             </div>
           </Card>
         </div>
-
-        {order.customer_phone && (
-          <Card>
-            <h2 className="mb-3 text-lg font-semibold">Message the customer</h2>
-            <WhatsAppCard key={`w-${order.version}-${whatsappNote ?? ""}`} orderId={order.id} phone={whatsappNumber(order.customer_phone)} messages={messages} sentKinds={sentKinds} />
-          </Card>
-        )}
-
-        <Card>
-          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-3">
-            <h2 className="text-lg font-semibold">Order in msg</h2>
-            <ButtonLink href={`/print/quotation/${order.id}`} variant="secondary" className="py-1.5!">Open Order in msg</ButtonLink>
-          </div>
-          <div className="grid gap-6 lg:grid-cols-2">
-            <QuotationSend
-              key={`q-${order.version}-${balance}-${whatsappNote ?? ""}`}
-              orderId={order.id}
-              phone={whatsappNumber(order.customer_phone)}
-              caption={caption}
-              cloudFormats={cloudFormats(whatsappCloudConfig())}
-            />
-            <div>
-              <h3 className="mb-2 text-sm font-semibold text-muted">Sent</h3>
-              {quotationSends && quotationSends.length > 0 ? (
-                <ul className="flex flex-col gap-2 text-sm">
-                  {quotationSends.map((s) => (
-                    <li key={s.id} className="rounded-xl border border-line px-3 py-2">
-                      <p className="font-medium">
-                        {s.status === "failed" ? "WhatsApp did not send the Order in msg" : "Order in msg sent"} on {formatDateTime(s.sent_at, tz)} by {who(s.sent_by)}
-                      </p>
-                      <p className="text-xs text-muted">
-                        {s.format === "pdf" ? "PDF" : "Image (PNG)"} · {QUOTATION_CHANNEL[s.channel] ?? s.channel}
-                        {s.status === "failed" && <span className="text-danger"> · failed, send it again</span>}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-sm text-muted">Not sent yet.</p>
-              )}
-            </div>
-          </div>
-        </Card>
 
         <div className="grid gap-6 lg:grid-cols-2">
           {["confirmed", "preparing", "ready", "completed"].includes(order.status) && (

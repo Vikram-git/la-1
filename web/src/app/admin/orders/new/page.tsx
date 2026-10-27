@@ -30,13 +30,13 @@ export default async function NewOrderPage({ searchParams }: PageProps<"/admin/o
         title={TITLES[source]}
         description={
           <>
-            <Link href="/admin/orders" className="text-brand hover:underline">Orders</Link> / New · Switch to{" "}
+            <Link href="/admin/orders" className="text-brand-strong hover:underline">Orders</Link> / New · Switch to{" "}
             {(["IN_STORE", "CALL", "CUSTOMER"] as const)
               .filter((s) => s !== source)
               .map((s, i) => (
                 <span key={s}>
                   {i > 0 && " or "}
-                  <Link href={`/admin/orders/new?source=${s}`} className="text-brand hover:underline">{SWITCH_LABEL[s]}</Link>
+                  <Link href={`/admin/orders/new?source=${s}`} className="text-brand-strong hover:underline">{SWITCH_LABEL[s]}</Link>
                 </span>
               ))}
           </>
@@ -44,7 +44,7 @@ export default async function NewOrderPage({ searchParams }: PageProps<"/admin/o
       />
       {catalogue.length === 0 ? (
         <EmptyState title="No products available to order">
-          Add products with at least one available variant in <Link href="/admin/products" className="text-brand underline">Products</Link>.
+          Add products with at least one available variant in <Link href="/admin/products" className="text-brand-strong underline">Products</Link>.
         </EmptyState>
       ) : (
         <OrderEntry

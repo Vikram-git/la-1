@@ -6,11 +6,12 @@
     <meta name="description" content="La Patisserie Madras — handcrafted cakes, pastries and macarons. Where French elegance meets South Indian soul.">
     <title>La Patisserie Madras — Artisan Cakes & Pastries</title>
     <link rel="icon" href="/brand/logo-192.png" type="image/png">
-    <link rel="preload" as="image" href="/brand/drip-background.webp" type="image/webp">
+    <link rel="preload" as="image" href="/brand/drip-background.webp" type="image/webp" media="(min-width: 769px)">
+    <link rel="preload" as="image" href="/brand/drip-background-mobile.webp" type="image/webp" media="(max-width: 768px)">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Mea+Culpa&family=Marcellus&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/site/style.css">
+    <link rel="stylesheet" href="/site/style.css?v=20261028e">
 </head>
 <body>
 
@@ -34,7 +35,7 @@
     <nav id="navbar">
         <div class="nav-container">
             <a href="#hero" class="nav-logo" aria-label="La Patisserie Madras Home">
-                <img src="/brand/logo-round-light.png" alt="La Patisserie Madras" class="nav-logo-img" width="512" height="512">
+                <img src="/brand/logo-round.png" alt="La Patisserie Madras" class="nav-logo-img" width="512" height="512">
             </a>
             <ul class="nav-links" id="navLinks">
                 <li><a href="#hero" class="nav-link active">Home</a></li>
@@ -63,10 +64,9 @@
         </div>
         <div class="hero-content">
             <div class="hero-card">
-                <img src="/brand/logo-round.png" alt="" class="hero-logo" width="512" height="512" fetchpriority="high" decoding="async">
                 <h1 class="hero-title">
-                    <span class="hero-script">La Patisserie</span>
-                    <span class="hero-city"><span class="hero-rule" aria-hidden="true"></span>Madras</span>
+                    <span class="hero-script" data-text="La Patisserie">La Patisserie</span>
+                    <span class="hero-city"><span class="hero-rule" aria-hidden="true"></span><span class="hero-city-name">Madras</span><span class="hero-rule" aria-hidden="true"></span></span>
                 </h1>
                 <div class="hero-actions">
                     <a href="#products" class="btn btn-primary">
@@ -407,6 +407,7 @@
                             <div>
                                 <h4>Get in Touch</h4>
                                 <p><a href="tel:+919884882516">+91 98848 82516</a><br><a href="mailto:lapatisseriemadras@gmail.com">lapatisseriemadras@gmail.com</a></p>
+                                <address class="contact-address"><a href="https://www.google.com/maps?q=La+Patisserie+Madras,+Bharath+Nagar+Extn,+7,+Water+Canal+Rd,+near+ALLIANCE+ORCHID+SPRINGS,+apratment,+Korattur,+Chennai,+Tamil+Nadu+600099&amp;ftid=0x3a526514eea2d4bf:0x8dad3cd69f9d7773" target="_blank" rel="noopener noreferrer">Bharath Nagar Extn, 7, Water Canal Rd, near Alliance Orchid Springs Apartment, Korattur, Chennai, Tamil Nadu 600099</a></address>
                             </div>
                         </div>
                     </div>
@@ -578,6 +579,6 @@
         </svg>
     </button>
 
-    <script src="/site/script.js"></script>
+    <script src="/site/script.js?v=20261028e"></script>
 </body>
 </html>

@@ -76,7 +76,7 @@ export default async function NotificationsPage() {
             >
               {reviewRows.map((r) => (
                 <li key={r.id} className="py-3">
-                  <Link href="/admin/reviews" className="block hover:text-brand">
+                  <Link href="/admin/reviews" className="block hover:text-brand-strong">
                     <span className="font-medium">{r.customer_name}</span>{" "}
                     <span className="text-amber-600" aria-label={`${r.rating} stars`}>{"★".repeat(r.rating)}</span>
                     <span className="mt-0.5 block truncate text-sm text-muted">{r.comment}</span>
@@ -121,7 +121,7 @@ function Section({
 function OrderLine({ order, detail }: { order: Row; tz: string; detail: string }) {
   return (
     <li className="relative flex flex-wrap items-center gap-x-3 gap-y-1 py-3">
-      <Link href={`/admin/orders/${order.id}`} className="font-semibold text-ink after:absolute after:inset-0 hover:text-brand">
+      <Link href={`/admin/orders/${order.id}`} className="font-semibold text-ink after:absolute after:inset-0 hover:text-brand-strong">
         {order.reference}
       </Link>
       <span className="text-sm">{order.customer_name ?? "Walk-in"}</span>

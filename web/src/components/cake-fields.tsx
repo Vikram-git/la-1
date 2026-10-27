@@ -143,6 +143,23 @@ export function CakeFields({
         <Checkbox label="Eggless" checked={value.isEggless} onChange={(e) => onChange({ ...value, isEggless: e.target.checked })} />
       </div>
       <div className="sm:col-span-2">
+        <Checkbox label="Add on" checked={value.hasAddon} onChange={(e) => onChange({ ...value, hasAddon: e.target.checked })} />
+      </div>
+      {value.hasAddon && (
+        <div className="sm:col-span-2">
+          <Field label="Add-on details" htmlFor={id("addon-details")}>
+            <Textarea
+              id={id("addon-details")}
+              value={value.addonDetails}
+              onChange={(e) => onChange({ ...value, addonDetails: e.target.value })}
+              maxLength={500}
+              className="min-h-14"
+              placeholder="e.g. Gold topper, 2 sparklers"
+            />
+          </Field>
+        </div>
+      )}
+      <div className="sm:col-span-2">
         <Field label="Special instructions" htmlFor={id("instructions")}>
           <Textarea
             id={id("instructions")}
@@ -157,7 +174,7 @@ export function CakeFields({
   );
 }
 
-// Set-up and delivery charges and the add-on (rupees, optional): each is its own line on the bill.
+// Set-up, delivery and add-on charges (rupees, optional): each is its own line on the bill.
 export function CakeChargeFields({
   value,
   onChange,
@@ -187,36 +204,19 @@ export function CakeChargeFields({
           placeholder="0"
         />
       </Field>
-      <div className="col-span-full">
-        <Checkbox
-          label="Add on"
-          hint="Toppers, sparklers, extra items: added to the price, advance and balance."
-          checked={value.hasAddon}
-          onChange={(e) => onChange({ ...value, hasAddon: e.target.checked })}
-        />
+      <div className="sm:col-span-2">
+        <Checkbox label="Add on" checked={value.hasAddon} onChange={(e) => onChange({ ...value, hasAddon: e.target.checked })} />
       </div>
       {value.hasAddon && (
-        <>
-          <Field label="Add-on details" htmlFor={`${idPrefix}-addon-details`} className="col-span-full">
-            <Textarea
-              id={`${idPrefix}-addon-details`}
-              value={value.addonDetails}
-              onChange={(e) => onChange({ ...value, addonDetails: e.target.value })}
-              maxLength={500}
-              className="min-h-14"
-              placeholder="e.g. Gold topper, 2 sparklers"
-            />
-          </Field>
-          <Field label="Add-on amount (₹)" htmlFor={`${idPrefix}-addon-charge`}>
-            <Input
-              id={`${idPrefix}-addon-charge`}
-              inputMode="decimal"
-              value={value.addonCharge}
-              onChange={(e) => onChange({ ...value, addonCharge: e.target.value })}
-              placeholder="0"
-            />
-          </Field>
-        </>
+        <Field label="Add-on amount (₹)" htmlFor={`${idPrefix}-addon-charge`}>
+          <Input
+            id={`${idPrefix}-addon-charge`}
+            inputMode="decimal"
+            value={value.addonCharge}
+            onChange={(e) => onChange({ ...value, addonCharge: e.target.value })}
+            placeholder="0"
+          />
+        </Field>
       )}
     </>
   );

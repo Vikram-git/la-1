@@ -42,7 +42,7 @@ export function DiscountForm({
   if (!open) {
     return (
       <div className="flex flex-wrap gap-3 text-sm">
-        <button type="button" className="text-brand hover:underline" onClick={() => setOpen(true)}>
+        <button type="button" className="text-brand-strong hover:underline" onClick={() => setOpen(true)}>
           {currentDiscountPaise > 0 ? "Change discount" : "Add discount"}
         </button>
         {currentDiscountPaise > 0 && (
@@ -149,7 +149,7 @@ export function BillPanel({
                 <p className="font-mono">{c.number} · <span className="text-danger">−{formatPaise(c.totalPaise)}</span></p>
                 <p className="text-xs text-muted">{c.issuedLabel} · {c.reason}</p>
               </div>
-              <a href={`/print/credit-note/${c.id}?size=80mm`} target="_blank" rel="noreferrer" className="text-brand hover:underline">Print</a>
+              <a href={`/print/credit-note/${c.id}?size=80mm`} target="_blank" rel="noreferrer" className="text-brand-strong hover:underline">Print</a>
             </li>
           ))}
         </ul>

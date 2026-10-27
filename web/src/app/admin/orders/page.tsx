@@ -250,7 +250,7 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/ord
                 return (
                   <tr key={o.id} className={cx("hover:bg-canvas/60", fulfilmentRowClass(o.fulfilment))}>
                     <td className="px-4 py-3">
-                      <Link href={`/admin/orders/${o.id}`} className="font-mono font-medium text-ink hover:text-brand hover:underline">
+                      <Link href={`/admin/orders/${o.id}`} className="font-mono font-medium text-ink hover:text-brand-strong hover:underline">
                         {o.reference}
                       </Link>
                       <div className="mt-1 flex flex-wrap gap-1">

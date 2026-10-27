@@ -10,17 +10,17 @@ import { sourceLabel } from "@/lib/orders";
 import { formatDateTime } from "@/lib/time";
 import { loadQuotation } from "@/lib/quotation-server";
 import { captionBill } from "@/lib/quotation";
-import { quotationCaption, whatsappNumber } from "@/lib/whatsapp";
+import { whatsappNumber } from "@/lib/whatsapp";
 import { cloudFormats, whatsappCloudConfig } from "@/lib/whatsapp-cloud";
 import { Card, LogoMark, cx } from "@/components/ui";
-import { CAKE_SHEET_TERMS, SHOP_NAME } from "@/lib/brand";
+import { CAKE_SHEET_TERMS } from "@/lib/brand";
 import { QuotationSend } from "@/app/admin/orders/[id]/quotation-send";
 import { PrintControls } from "../../print-controls";
 
 export const metadata: Metadata = { title: "Cake sheet" };
 
 // The custom cake's details for whoever bakes and decorates it (owner, 2026-10-09). The id is the order's.
-// Below it (not printed), the Order in msg goes to the customer on WhatsApp, as an image by default (2026-10-24).
+// Below it (not printed), the bill file goes to the customer on WhatsApp, as an image by default, with no text (2026-10-28).
 export default async function CakeSheetPage({ params, searchParams }: PageProps<"/print/cake/[id]">) {
   await requireRole(["admin", "counter"]);
   const { id } = await params;
@@ -30,14 +30,13 @@ export default async function CakeSheetPage({ params, searchParams }: PageProps<
   const tz = await getBusinessTimezone();
 
   const supabase = await createClient();
-  const [{ data: order }, { data: cake }, { data: note }, quotation] = await Promise.all([
+  const [{ data: order }, { data: cake }, quotation] = await Promise.all([
     supabase
       .from("order_summaries")
       .select("reference, source, status, customer_name, customer_phone, due_at, fulfilment, setup_address, setup_note, total_paise, balance_paise")
       .eq("id", id)
       .maybeSingle(),
     supabase.from("custom_cakes").select("*").eq("order_id", id).maybeSingle(),
-    supabase.from("orders").select("sticky_note, sticky_note_in_whatsapp").eq("id", id).maybeSingle(),
     loadQuotation(supabase, id),
   ]);
   if (!order || !cake) notFound();
@@ -46,10 +45,6 @@ export default async function CakeSheetPage({ params, searchParams }: PageProps<
     : [];
   const narrow = size === "80mm";
   const bill = quotation.ok ? captionBill(quotation.quotation) : null;
-  const caption = quotationCaption(
-    { reference: order.reference ?? "", note: note?.sticky_note_in_whatsapp ? note.sticky_note : null, bill },
-    quotation.ok ? quotation.quotation.shop.name : SHOP_NAME,
-  );
 
   const rows: [string, string | null][] = [
     ["Flavour", cake.flavour],
@@ -160,13 +155,15 @@ export default async function CakeSheetPage({ params, searchParams }: PageProps<
       </article>
       {quotation.ok && (
         <Card className="mx-auto mt-6 max-w-3xl print:hidden">
-          <h2 className="mb-3 text-lg font-semibold">Send the Order in msg to the customer</h2>
+          <h2 className="mb-1 text-lg font-semibold">Send the bill to the customer on WhatsApp</h2>
+          <p className="mb-3 text-sm text-muted">The bill goes as a file (image or PDF) with the cake details, total, advance and balance. No text message.</p>
           <QuotationSend
             orderId={id}
             phone={whatsappNumber(order.customer_phone)}
-            caption={caption}
+            caption=""
             cloudFormats={cloudFormats(whatsappCloudConfig())}
             defaultFormat="png"
+            fileOnly
           />
         </Card>
       )}

@@ -124,7 +124,7 @@ function OrderDetails({ order }: { order: ChefOrder }) {
   if (order.customerPhone) {
     rows.push({
       label: "Phone",
-      value: <a href={`tel:${order.customerPhone}`} className="font-semibold text-brand underline-offset-2 hover:underline">{order.customerPhone}</a>,
+      value: <a href={`tel:${order.customerPhone}`} className="font-semibold text-brand-strong underline-offset-2 hover:underline">{order.customerPhone}</a>,
     });
   }
   rows.push({ label: "Ordered by", value: SOURCE_LABEL[order.source] });
@@ -181,7 +181,7 @@ function OrderCard({ order, tz, showDay, photos, multiKitchen }: {
       ) : (
         <Link
           href={`/kitchen/quotation/${order.id}`}
-          className="self-start rounded-xl border border-line bg-surface px-3 py-2 text-sm font-medium text-brand hover:bg-brand-soft"
+          className="self-start rounded-xl border border-line bg-surface px-3 py-2 text-sm font-medium text-brand-strong hover:bg-brand-soft"
         >
           Open Order in msg (no prices) →
         </Link>
@@ -261,7 +261,7 @@ function MonthGrid({ month, today, byDay, dayHref, monthHref }: {
                 day === today && "ring-2 ring-inset ring-brand",
               )}
             >
-              <span className={cx("text-sm font-semibold sm:text-base", day === today && "text-brand")}>{Number(day.slice(8))}</span>
+              <span className={cx("text-sm font-semibold sm:text-base", day === today && "text-brand-strong")}>{Number(day.slice(8))}</span>
               {sum && (
                 <>
                   {/* Phones: the order count, and a cake when there is a custom cake. */}

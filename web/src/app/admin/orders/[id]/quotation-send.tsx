@@ -21,16 +21,20 @@ export function QuotationSend({
   caption: initialCaption,
   cloudFormats = [],
   defaultFormat,
+  fileOnly = false,
 }: {
   orderId: string;
   phone: string | null;
   caption: string;
   cloudFormats?: Format[];
   defaultFormat?: Format;
+  // Send just the bill file, with no typed message (cake sheet, 2026-10-28).
+  fileOnly?: boolean;
 }) {
+  const what = fileOnly ? "bill" : "Order in msg";
   const router = useRouter();
   const [format, setFormat] = useState<Format>(defaultFormat ?? cloudFormats[0] ?? "pdf");
-  const [caption, setCaption] = useState(initialCaption);
+  const [caption, setCaption] = useState(fileOnly ? "" : initialCaption);
   const [busy, setBusy] = useState(false);
   const [sending, setSending] = useState(false);
   const [prepared, setPrepared] = useState<Prepared | null>(null);
@@ -66,13 +70,13 @@ export function QuotationSend({
       });
       const data = (await res.json().catch(() => ({}))) as { ok?: boolean; message?: string; url?: string; path?: string; fileName?: string; contentType?: string };
       if (!res.ok || !data.ok || !data.url || !data.path || !data.fileName) {
-        setError(data.message ?? "Could not make the Order in msg file.");
+        setError(data.message ?? `Could not make the ${what} file.`);
         return;
       }
       const blob = await (await fetch(data.url)).blob();
       setPrepared({ file: new File([blob], data.fileName, { type: data.contentType ?? blob.type }), path: data.path, format });
     } catch {
-      setError("Could not make the Order in msg file. Check the connection and try again.");
+      setError(`Could not make the ${what} file. Check the connection and try again.`);
     } finally {
       setBusy(false);
     }
@@ -87,9 +91,9 @@ export function QuotationSend({
     let channel: "share_sheet" | "download_and_chat";
     if (canShareFile(file)) {
       // WhatsApp sometimes drops the text when a file is shared, so the message is also copied.
-      navigator.clipboard?.writeText(caption).catch(() => {});
+      if (caption) navigator.clipboard?.writeText(caption).catch(() => {});
       try {
-        await navigator.share({ files: [file], text: caption });
+        await navigator.share(caption ? { files: [file], text: caption } : { files: [file] });
       } catch (e) {
         if (e instanceof DOMException && e.name === "AbortError") return;
         setError("Sharing did not work on this device. Use the download instead.");
@@ -112,7 +116,7 @@ export function QuotationSend({
     setPrepared(null);
     setDone(
       channel === "share_sheet"
-        ? "Shared. The message was also copied — paste it in WhatsApp if it is missing."
+        ? caption ? "Shared. The message was also copied — paste it in WhatsApp if it is missing." : "Shared."
         : `${file.name} downloaded and WhatsApp opened. Attach the file in the chat, then press send.`,
     );
     if (!r?.ok) setError(r?.message ?? "Sent, but not recorded on the order.");
@@ -162,13 +166,15 @@ export function QuotationSend({
         </div>
       )}
       {cloud && <p className="text-sm font-medium text-muted">Or send it from this device</p>}
-      <Textarea
-        aria-label="Message sent with the Order in msg"
-        rows={Math.min(10, caption.split("\n").length + 1)}
-        value={caption}
-        onChange={(e) => setCaption(e.target.value)}
-        maxLength={2000}
-      />
+      {!fileOnly && (
+        <Textarea
+          aria-label="Message sent with the Order in msg"
+          rows={Math.min(10, caption.split("\n").length + 1)}
+          value={caption}
+          onChange={(e) => setCaption(e.target.value)}
+          maxLength={2000}
+        />
+      )}
       <div className="flex flex-wrap items-center gap-3">
         {prepared ? (
           <button
@@ -182,7 +188,7 @@ export function QuotationSend({
           <button
             type="button"
             onClick={prepare}
-            disabled={busy || sending || !caption.trim()}
+            disabled={busy || sending || (!fileOnly && !caption.trim())}
             className={cx(
               "inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60",
               cloud
@@ -190,7 +196,7 @@ export function QuotationSend({
                 : "bg-[#1f9d55] text-white shadow-sm shadow-[#1f9d55]/25 hover:bg-[#14713c]",
             )}
           >
-            {busy ? `Preparing ${format === "pdf" ? "PDF" : "image"}…` : cloud ? "Share from this device" : "Send Order in msg on WhatsApp"}
+            {busy ? `Preparing ${format === "pdf" ? "PDF" : "image"}…` : cloud ? "Share from this device" : `Send ${what} on WhatsApp`}
           </button>
         )}
         <p className="text-xs text-muted">

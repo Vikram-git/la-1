@@ -21,7 +21,7 @@ export default async function CategoriesPage() {
         title="Categories"
         description={
           <>
-            <Link href="/admin/products" className="text-brand hover:underline">Products</Link> / Categories.
+            <Link href="/admin/products" className="text-brand-strong hover:underline">Products</Link> / Categories.
           </>
         }
       />

@@ -50,7 +50,7 @@ export default async function CustomersPage({ searchParams }: PageProps<"/admin/
                 return (
                   <tr key={c.id}>
                     <td className="px-4 py-3 font-medium">
-                      <Link href={`/admin/customers/${c.id}`} className="hover:text-brand hover:underline">{c.full_name}</Link>
+                      <Link href={`/admin/customers/${c.id}`} className="hover:text-brand-strong hover:underline">{c.full_name}</Link>
                       {(c.is_blocked || c.no_show_count > 0) && (
                         <div className="mt-1 flex flex-wrap gap-1 md:hidden">
                           {c.is_blocked && <Badge tone="danger">Blocked</Badge>}
@@ -58,11 +58,11 @@ export default async function CustomersPage({ searchParams }: PageProps<"/admin/
                         </div>
                       )}
                     </td>
-                    <td className="px-4 py-3"><a href={`tel:${c.phone}`} className="text-brand hover:underline">{c.phone}</a></td>
+                    <td className="px-4 py-3"><a href={`tel:${c.phone}`} className="text-brand-strong hover:underline">{c.phone}</a></td>
                     <td className="px-4 py-3">{c.orders.length}</td>
                     <td className="hidden px-4 py-3 md:table-cell">
                       {latest ? (
-                        <Link href={`/admin/orders/${latest.id}`} className="hover:text-brand hover:underline">
+                        <Link href={`/admin/orders/${latest.id}`} className="hover:text-brand-strong hover:underline">
                           <span className="font-mono">{latest.reference}</span>
                           {latest.due_at && <span className="text-muted"> · {formatDateTime(latest.due_at, tz)}</span>}
                         </Link>

@@ -78,7 +78,7 @@ function TermsButton({ phone }: { phone: string | null }) {
       href={whatsappLink(to, PAYMENT_TERMS)}
       target="_blank"
       rel="noreferrer"
-      className="relative z-10 whitespace-nowrap rounded-full border border-line bg-surface px-3 py-1 text-xs font-medium text-brand hover:bg-brand-soft"
+      className="relative z-10 whitespace-nowrap rounded-full border border-line bg-surface px-3 py-1 text-xs font-medium text-brand-strong hover:bg-brand-soft"
     >
       Terms and Conditions
     </a>

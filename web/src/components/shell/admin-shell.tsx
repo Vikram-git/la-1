@@ -57,7 +57,7 @@ function SidebarContent({ sections, counts, onNavigate }: { sections: NavSection
       <nav aria-label="Admin" className="flex flex-1 flex-col gap-4 px-3">
         {sections.map((section) => (
           <div key={section.title ?? "main"}>
-            {section.title && <p className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-widest text-muted">{section.title}</p>}
+            {section.title && <p className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-widest text-accent-strong">{section.title}</p>}
             <ul className="flex flex-col gap-1">
               {section.items.map((item) => {
                 const Icon = ICONS[item.icon];
@@ -71,7 +71,7 @@ function SidebarContent({ sections, counts, onNavigate }: { sections: NavSection
                       aria-current={active ? "page" : undefined}
                       className={cx(
                         "flex items-center gap-3 rounded-xl px-3 py-2 text-[15px] transition-colors",
-                        active ? "bg-brand font-medium text-white shadow-sm shadow-brand/30" : "text-ink hover:bg-brand-soft",
+                        active ? "bg-linear-to-r from-rose to-brand font-semibold text-white shadow-md shadow-brand/30" : "text-ink hover:bg-brand-soft hover:text-brand-strong",
                       )}
                     >
                       <Icon aria-hidden className="size-5 shrink-0" strokeWidth={1.75} />
@@ -80,7 +80,7 @@ function SidebarContent({ sections, counts, onNavigate }: { sections: NavSection
                         <span
                           className={cx(
                             "min-w-6 rounded-full px-1.5 py-0.5 text-center text-xs font-semibold",
-                            active ? "bg-white text-brand-strong" : "bg-brand text-white",
+                            active ? "bg-white text-brand-strong" : "bg-accent text-white",
                           )}
                         >
                           {badge}
@@ -107,7 +107,7 @@ function UserMenu({ name, roleLabel }: { name: string; roleLabel: string }) {
         aria-label={`Account menu, ${name}`}
         className="flex cursor-pointer list-none items-center gap-2 rounded-full py-1 pl-1 pr-2 hover:bg-brand-soft [&::-webkit-details-marker]:hidden"
       >
-        <span className="flex size-10 items-center justify-center rounded-full bg-brand font-display text-lg text-white">{name.slice(0, 1).toUpperCase()}</span>
+        <span className="flex size-10 items-center justify-center rounded-full bg-linear-to-br from-accent to-accent-strong font-display text-lg text-white">{name.slice(0, 1).toUpperCase()}</span>
         <span className="hidden text-left sm:block">
           <span className="block text-sm font-medium leading-tight">{name}</span>
           <span className="block text-xs text-muted">{roleLabel}</span>
@@ -147,7 +147,8 @@ export function AdminShell({
   return (
     <div className="relative min-h-screen">
       {/* Desktop sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-20 hidden w-64 border-r border-line bg-surface/95 lg:block">
+      <aside className="fixed inset-y-0 left-0 z-20 hidden w-64 border-r border-line bg-linear-to-b from-surface via-surface to-brand-soft/70 lg:block">
+        <span aria-hidden className="absolute inset-x-0 top-0 h-1 bg-linear-to-r from-rose via-brand to-accent" />
         <SidebarContent sections={sections} counts={counts} />
       </aside>
 
@@ -167,7 +168,7 @@ export function AdminShell({
       </dialog>
 
       <div className="lg:pl-64">
-        <header className="sticky top-0 z-10 border-b border-line/70 bg-canvas/90 backdrop-blur">
+        <header className="sticky top-0 z-10 border-b border-line/70 bg-surface/80 backdrop-blur">
           <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 md:px-8">
             <button type="button" aria-label="Open menu" onClick={openMenu} className="rounded-xl p-2 hover:bg-brand-soft lg:hidden">
               <Menu aria-hidden className="size-6" />
@@ -182,7 +183,7 @@ export function AdminShell({
                 type="search"
                 aria-label="Search orders by number, customer name or phone"
                 placeholder="Search orders, customers, phone…"
-                className="w-full rounded-2xl border border-line bg-surface py-2.5 pl-10 pr-4 text-sm placeholder:text-muted/80 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
+                className="w-full rounded-2xl border border-line bg-surface py-2.5 pl-10 pr-4 text-sm placeholder:text-muted/80 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/25"
               />
             </form>
             <div className="ml-auto flex items-center gap-2">
@@ -193,7 +194,7 @@ export function AdminShell({
               >
                 <Bell aria-hidden className="size-6 text-ink" strokeWidth={1.75} />
                 {counts.attention > 0 && (
-                  <span className="absolute right-1 top-1 flex min-w-5 items-center justify-center rounded-full bg-brand px-1 text-[11px] font-semibold text-white">
+                  <span className="absolute right-1 top-1 flex min-w-5 items-center justify-center rounded-full bg-accent px-1 text-[11px] font-semibold text-white">
                     {counts.attention > 99 ? "99+" : counts.attention}
                   </span>
                 )}

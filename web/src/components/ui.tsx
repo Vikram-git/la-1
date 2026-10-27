@@ -7,10 +7,10 @@ export function cx(...classes: (string | false | null | undefined)[]) {
 }
 
 const buttonVariants = {
-  primary: "bg-brand text-white shadow-sm shadow-brand/25 hover:bg-brand-strong disabled:opacity-60",
-  secondary: "bg-surface text-ink border border-line hover:border-brand/40 hover:bg-brand-soft disabled:opacity-60",
+  primary: "bg-linear-to-br from-rose to-brand font-semibold text-white shadow-md shadow-brand/30 hover:from-brand hover:to-brand-strong disabled:opacity-60",
+  secondary: "bg-surface text-accent-strong border border-accent/50 hover:border-accent hover:bg-accent-soft disabled:opacity-60",
   danger: "bg-surface text-danger border border-danger/40 hover:bg-danger-soft disabled:opacity-60",
-  ghost: "text-brand hover:bg-brand-soft disabled:opacity-60",
+  ghost: "text-brand-strong hover:bg-brand-soft disabled:opacity-60",
 };
 
 type ButtonVariant = keyof typeof buttonVariants;
@@ -35,7 +35,7 @@ export function ButtonLink({
 }
 
 const fieldBase =
-  "w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-muted/70 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20 disabled:bg-canvas";
+  "w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-muted/70 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/25 disabled:bg-canvas";
 
 export function Input({ className, ...props }: ComponentProps<"input">) {
   return <input className={cx(fieldBase, className)} {...props} />;
@@ -100,7 +100,7 @@ export function Checkbox({
 export function Card({ className, ...props }: ComponentProps<"section">) {
   return (
     <section
-      className={cx("rounded-2xl border border-line/80 bg-surface p-5 shadow-[0_8px_30px_-16px_rgba(176,58,94,0.28)]", className)}
+      className={cx("rounded-2xl border border-line/80 bg-surface p-5 shadow-[0_10px_30px_-18px_rgba(184,67,95,0.35)]", className)}
       {...props}
     />
   );
@@ -119,6 +119,7 @@ export function PageHeader({
     <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
       <div>
         <h1 className="text-3xl font-semibold">{title}</h1>
+        <span aria-hidden className="mt-2 block h-1 w-14 rounded-full bg-linear-to-r from-rose to-accent" />
         {description && <p className="mt-1 text-sm text-muted">{description}</p>}
       </div>
       {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
@@ -129,6 +130,7 @@ export function PageHeader({
 const badgeTones = {
   neutral: "bg-canvas text-muted border-line",
   brand: "bg-brand-soft text-brand-strong border-brand/20",
+  accent: "bg-accent-soft text-accent-strong border-accent/30",
   info: "bg-info-soft text-info border-info/20",
   ok: "bg-ok-soft text-ok border-ok/20",
   warn: "bg-warn-soft text-warn border-warn/30",
@@ -225,10 +227,13 @@ export function Brand({ compact = false, className }: { compact?: boolean; class
 export function Wordmark({ className }: { className?: string }) {
   return (
     <div className={cx("inline-flex flex-col", className)}>
-      <span className="font-script text-6xl leading-none text-ink sm:text-7xl">La Patisserie</span>
-      <span className="mt-1 flex items-center gap-3">
-        <span aria-hidden className="h-px flex-1 bg-ink" />
-        <span className="font-caps text-sm uppercase tracking-[0.3em] text-ink">Madras</span>
+      <span className="bg-linear-to-r from-chocolate via-brand-strong to-chocolate bg-clip-text px-2 pb-1 font-script text-6xl leading-tight text-transparent sm:text-7xl">
+        La Patisserie
+      </span>
+      <span className="flex items-center justify-center gap-3">
+        <span aria-hidden className="h-px w-12 bg-linear-to-r from-transparent to-accent" />
+        <span className="pl-[0.4em] font-caps text-sm uppercase tracking-[0.4em] text-ink">Madras</span>
+        <span aria-hidden className="h-px w-12 bg-linear-to-l from-transparent to-accent" />
       </span>
     </div>
   );

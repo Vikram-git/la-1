@@ -24,7 +24,7 @@ export function DayView({ day, today, orders, closure, availability, filtered, t
       <div className="flex flex-col gap-1">
         <h2 className="flex items-baseline gap-2 text-sm font-semibold">
           {formatDayHeading(day)}
-          {day === today && <span className="text-xs font-medium text-brand">Today</span>}
+          {day === today && <span className="text-xs font-medium text-brand-strong">Today</span>}
           {closure && <span className="text-xs font-medium text-danger">Closed: {closure}</span>}
           <span className="text-xs font-normal text-muted">{plural(orders.length, "order")}</span>
         </h2>

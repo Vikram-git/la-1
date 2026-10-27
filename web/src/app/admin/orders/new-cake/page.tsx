@@ -19,7 +19,7 @@ export default async function NewCakeOrderPage() {
         title="Customised order"
         description={
           <>
-            <Link href="/admin/orders?list=custom" className="text-brand hover:underline">Orders</Link> / Customised order / New.
+            <Link href="/admin/orders?list=custom" className="text-brand-strong hover:underline">Orders</Link> / Customised order / New.
           </>
         }
       />

@@ -24,7 +24,7 @@ export default async function ForgotPasswordPage({ searchParams }: PageProps<"/f
           <ForgotForm />
         </div>
         <p className="mt-6 text-center text-sm">
-          <Link href="/login" className="font-medium text-brand hover:underline">← Back to sign in</Link>
+          <Link href="/login" className="font-medium text-brand-strong hover:underline">← Back to sign in</Link>
         </p>
         <p className="mt-3 text-center text-xs text-muted">No email arriving? An admin can also set a new password on the Staff page.</p>
       </div>

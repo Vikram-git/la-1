@@ -44,9 +44,9 @@ export default async function CustomerPage({ params }: PageProps<"/admin/custome
         title={customer.full_name}
         description={
           <span className="flex flex-wrap items-center gap-2">
-            <Link href="/admin/customers" className="text-brand hover:underline">Customers</Link>
+            <Link href="/admin/customers" className="text-brand-strong hover:underline">Customers</Link>
             <span>/</span>
-            {customer.phone && <a href={`tel:${customer.phone}`} className="text-brand hover:underline">{customer.phone}</a>}
+            {customer.phone && <a href={`tel:${customer.phone}`} className="text-brand-strong hover:underline">{customer.phone}</a>}
             {customer.is_blocked && <Badge tone="danger">Blocked</Badge>}
             {customer.no_show_count > 0 && (
               <Badge tone="warn">{customer.no_show_count} no-show{customer.no_show_count === 1 ? "" : "s"}</Badge>
@@ -74,7 +74,7 @@ export default async function CustomerPage({ params }: PageProps<"/admin/custome
                 {orders.map((o) => (
                   <li key={o.id} className="flex flex-wrap items-center justify-between gap-3 py-2">
                     <div className="flex flex-wrap items-center gap-2">
-                      <Link href={`/admin/orders/${o.id}`} className="font-mono font-medium hover:text-brand hover:underline">{o.reference}</Link>
+                      <Link href={`/admin/orders/${o.id}`} className="font-mono font-medium hover:text-brand-strong hover:underline">{o.reference}</Link>
                       <SourceBadge source={o.source} />
                       <StatusBadge status={o.status} />
                       {o.no_show_at && <Badge tone="danger">No-show</Badge>}

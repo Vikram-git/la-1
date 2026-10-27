@@ -26,7 +26,7 @@ export function WeekView({ weekStart, today, byDay, closureByDay, tz, dayHref }:
               <Link id={`week-${day}`} href={dayHref(day)} className="flex flex-col border-b border-line bg-canvas px-2 py-1.5 hover:bg-brand-soft/50">
                 <span className="text-xs font-medium uppercase tracking-wider text-muted">
                   {WEEKDAYS[i]} {Number(day.slice(8))}
-                  {day === today && <span className="ml-1 normal-case tracking-normal text-brand">Today</span>}
+                  {day === today && <span className="ml-1 normal-case tracking-normal text-brand-strong">Today</span>}
                 </span>
                 <span className="text-xs text-muted">{plural(dayOrders.length, "order")}</span>
                 {closure && <span className="text-xs text-danger" title={closure}>Closed</span>}

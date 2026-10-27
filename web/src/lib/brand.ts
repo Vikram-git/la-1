@@ -1,10 +1,15 @@
 // La Patisserie Madras brand (owner, 2026-10-28). Pure: imported by unit tests and server renderers.
 export const SHOP_NAME = "La Patisserie Madras";
 
-// The one address shown on the bill and the "Order in msg" file and text.
+// The one address shown on the bill and the "Order in msg" file and text; bills print it line by line.
+export const SHOP_ADDRESS_LINES = [
+  "Bharath Nagar Extn, 7, Water Canal Rd,",
+  "Near Alliance Orchid Springs Apartment,",
+  "Korattur, Chennai,",
+  "Tamil Nadu 600099",
+] as const;
 export const SHOP_ADDRESS =
   "Bharath Nagar Extn, 7, Water Canal Rd, near Alliance Orchid Springs Apartment, Korattur, Chennai, Tamil Nadu 600099";
-
 // Colours from the logo and the icing-drip image, for renderers that cannot read CSS variables.
 export const BRAND_COLOURS = { ink: "#111111", pink: "#E8838A", teal: "#26C6BC", chocolate: "#4A2418", cream: "#F7F3EE" } as const;
 

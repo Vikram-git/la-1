@@ -116,7 +116,7 @@ const cakeId = r.orderId;
 const cake = (await admin.sb.from("order_summaries").select("*").eq("id", cakeId).single()).data;
 check("custom cake total = price + set-up + delivery + add-on, advance paid", cake?.total_paise === 350000 && cake.balance_paise === 250000, `total ${cake?.total_paise} balance ${cake?.balance_paise}`);
 p = await page(`/admin/orders/${cakeId}`, counter.cookie);
-check("order page shows cupcakes, add-on and Order in msg", p.status === 200 && /Cupcakes.{0,80}>6</.test(p.body) && p.body.includes("Gold balloons") && p.body.includes("Order in msg") && !p.body.replace(/<script[\s\S]*?<\/script>/g, "").includes("Quotation"), `status ${p.status}`);
+check("order page shows cupcakes and add-on, without the message and Order in msg cards", p.status === 200 && /Cupcakes.{0,80}>6</.test(p.body) && p.body.includes("Gold balloons") && !p.body.includes("Message the customer") && !p.body.includes("Open Order in msg"), `status ${p.status}`);
 let q = await quotationFile(cakeId, "pdf", counter.cookie);
 check("counter makes Order in msg PDF", q.status === 200 && q.body.fileName === `LaPatisserieMadras-Order-in-msg-${cake.reference}.pdf`, JSON.stringify(q.body).slice(0, 200));
 if (q.body.url) {
@@ -135,7 +135,7 @@ check("one-tap send explains when WhatsApp Business is not set up", r.ok === tru
 r = await act("setStickyNoteAction", `/admin/orders/${cakeId}`, { orderId: cakeId, note: "Gold leaf on top", inWhatsApp: true }, counter.cookie);
 check("sticky note saved", r.ok === true, JSON.stringify(r));
 p = await page(`/admin/orders/${cakeId}`, admin.cookie);
-check("order page shows sticky note and send log", p.body.includes("Gold leaf on top") && /Order in msg sent/.test(p.body), `status ${p.status}`);
+check("order page shows sticky note", p.body.includes("Gold leaf on top"), `status ${p.status}`);
 p = await page(`/print/quotation/${cakeId}`, admin.cookie);
 check("quotation print page shows price and note", p.status === 200 && hasPrice(p.body) && p.body.includes("Gold leaf on top"), `status ${p.status}`);
 p = await page(`/admin/calendar?kind=custom&from=${tomorrow}`, admin.cookie);
@@ -186,12 +186,12 @@ p = await page("/admin/staff", admin.cookie);
 check("staff page has no Add staff member form", p.status === 200 && !p.body.includes("Add staff member") && p.body.includes("Staff ("), `status ${p.status}`);
 
 // --- WhatsApp quotation text carries the bill; cake sheet sends a PNG ----------------------------
-p = await page(`/admin/orders/${cakeId}`, admin.cookie);
+p = await page(`/print/quotation/${cakeId}`, admin.cookie);
 check("Order in msg text lists set-up, delivery, add-on, total, advance and balance",
   ["Set-up charges: ₹500", "Delivery charges: ₹200", "Add-on: ₹300", "Total: ₹3,500", "Advance paid: ₹1,000", "Balance to pay: ₹2,500"].every((t) => p.body.includes(t)), `status ${p.status}`);
 p = await page(`/print/cake/${cakeId}`, counter.cookie);
-check("cake sheet shows the bill, add-on and T&C, and sends the Order in msg, image first",
-  p.status === 200 && p.body.includes("Send the Order in msg to the customer") && p.body.includes("Balance to pay") && p.body.includes("Gold balloons") && p.body.includes("Terms") && /checked=""[^>]*value="png"|value="png"[^>]*checked/.test(p.body), `status ${p.status}`);
+check("cake sheet shows the bill, add-on and T&C, and sends the bill file with no text, image first",
+  p.status === 200 && p.body.includes("Send the bill to the customer on WhatsApp") && !p.body.includes("Message sent with the Order in msg") && p.body.includes("Balance to pay") && p.body.includes("Gold balloons") && p.body.includes("Terms") && /checked=""[^>]*value="png"|value="png"[^>]*checked/.test(p.body), `status ${p.status}`);
 
 // --- Dashboard and Reports -------------------------------------------------------------------------
 p = await page("/admin", admin.cookie);

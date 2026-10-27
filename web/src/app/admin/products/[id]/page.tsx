@@ -60,7 +60,7 @@ export default async function ProductPage({ params, searchParams }: PageProps<"/
         title={product.name}
         description={
           <>
-            <Link href="/admin/products" className="text-brand hover:underline">Products</Link> / {product.name}
+            <Link href="/admin/products" className="text-brand-strong hover:underline">Products</Link> / {product.name}
             {product.archived_at && <Badge className="ml-2">Archived</Badge>}
           </>
         }

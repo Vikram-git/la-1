@@ -23,7 +23,7 @@ export default async function NewProductPage() {
         title="New product"
         description={
           <>
-            <Link href="/admin/products" className="text-brand hover:underline">Products</Link> / New. You will add sizes and prices on the next screen.
+            <Link href="/admin/products" className="text-brand-strong hover:underline">Products</Link> / New. You will add sizes and prices on the next screen.
           </>
         }
       />

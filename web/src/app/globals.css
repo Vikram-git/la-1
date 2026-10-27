@@ -13,18 +13,21 @@
   --color-chocolate: #4a2418;
   --color-cream: #f7f3ee;
 
-  /* La Patisserie Madras (2026-10-28): black on white and cream, chocolate for buttons and links (white
-     text on it is 13:1), pink and teal as decoration only (they fail 4.5:1 as text). Token names are
-     shared by every screen, so changing them here restyles the whole app. */
-  --color-canvas: #f7f3ee;
+  /* La Patisserie Madras theme (2026-10-28): baby pink primary, teal secondary. White text on brand is
+     for bold button labels only (3.6:1); text in the colour uses brand-strong (5.2:1) or accent-strong
+     (5.1:1). Token names are shared by every screen, so changing them here restyles the whole app. */
+  --color-canvas: #fff6f8;
   --color-surface: #ffffff;
-  --color-ink: #111111;
-  --color-muted: #6a5d57;
-  --color-line: #eadfd6;
-  --color-brand: #4a2418;
-  --color-brand-strong: #2e150d;
-  --color-rose: #e8838a;
-  --color-brand-soft: #fbe4e5;
+  --color-ink: #2b1c20;
+  --color-muted: #7b666b;
+  --color-line: #f5dde3;
+  --color-brand: #e0718a;
+  --color-brand-strong: #b8435f;
+  --color-rose: #f4a6b8;
+  --color-brand-soft: #fde7ec;
+  --color-accent: #26c6bc;
+  --color-accent-strong: #0b7a74;
+  --color-accent-soft: #e0f7f5;
   --color-danger: #c0392b;
   --color-danger-soft: #fdecea;
   --color-warn: #9a6200;
@@ -36,13 +39,17 @@
   /* Sticky-note yellow (custom cake details, piece 4) and the script accent. */
   --color-note: #fff6c4;
   --color-note-line: #eedf93;
-  --color-script: #4a2418;
+  --color-script: #b8435f;
   /* "MADRAS" and its thin rules. */
   --color-gold: #111111;
 }
 
 body {
-  background: var(--color-canvas);
+  background:
+    radial-gradient(60rem 30rem at 100% -10%, rgb(38 198 188 / 0.08), transparent 60%),
+    radial-gradient(50rem 30rem at -10% 110%, rgb(244 166 184 / 0.16), transparent 60%),
+    var(--color-canvas);
+  background-attachment: fixed;
   color: var(--color-ink);
 }
 

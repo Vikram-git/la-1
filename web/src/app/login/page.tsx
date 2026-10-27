@@ -16,30 +16,32 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const { next } = await searchParams;
 
   return (
-    <main className="grid flex-1 lg:grid-cols-[1.1fr_1fr]">
-      {/* Brand side: the icing drip with the shop's name in its cream centre (hidden on phones). */}
-      <div className="relative hidden items-center justify-center overflow-hidden bg-cream lg:flex">
-        <Image src="/brand/drip-background.png" alt="" fill fetchPriority="high" sizes="55vw" className="object-cover" />
-        <Wordmark className="relative" />
+    <main className="relative isolate flex flex-1 items-center justify-center px-5 py-10 sm:py-16">
+      {/* The icing drip fills the screen; the sign-in card sits on its cream centre. */}
+      <div aria-hidden className="fixed inset-0 -z-10 bg-cream">
+        <Image src="/brand/drip-background.webp" alt="" fill priority sizes="100vw" quality={90} className="object-cover object-center" />
       </div>
 
-      <div className="flex items-center justify-center px-5 py-10 sm:py-16">
-        <div className="w-full max-w-sm">
-          <h1 className="sr-only">{SHOP_NAME} staff sign in</h1>
-          <div className="flex justify-center lg:hidden">
-            <Wordmark />
-          </div>
-          <div className="mt-10 text-center lg:mt-0">
-            <p className="font-caps text-[11px] uppercase tracking-[0.3em] text-chocolate">Staff portal</p>
-            <p className="mt-2 font-display text-3xl">Welcome back</p>
-          </div>
-          <div className="mt-8 rounded-3xl border border-line/90 bg-surface p-6 shadow-[0_1px_2px_rgba(17,17,17,0.04),0_18px_40px_-24px_rgba(74,36,24,0.3)] sm:p-7">
-            <LoginForm next={typeof next === "string" ? next : undefined} />
-          </div>
-          <p className="mt-6 text-center text-sm">
-            <Link href="/forgot-password" className="font-medium text-brand hover:underline">Forgot password?</Link>
-          </p>
+      <div className="relative w-full max-w-md px-6 py-8 sm:px-10 sm:py-10 [&_input]:border-[#e6dcd7] [&_input]:bg-[#f7f2ef]/80">
+        {/* A glow in the picture's own cream (#f7f2ef) that fades out, so the form has no box edge. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -inset-x-[30%] -inset-y-[18%] -z-10 bg-[radial-gradient(closest-side,rgba(247,242,239,0.95)_0%,rgba(247,242,239,0.75)_55%,rgba(247,242,239,0)_100%)]"
+        />
+        <h1 className="sr-only">{SHOP_NAME} staff sign in</h1>
+        <div className="flex justify-center">
+          <Wordmark />
         </div>
+        <div className="mt-6 text-center">
+          <p className="font-caps text-[11px] uppercase tracking-[0.3em] text-accent-strong">Staff portal</p>
+          <p className="mt-2 font-display text-3xl">Welcome back</p>
+        </div>
+        <div className="mt-7">
+          <LoginForm next={typeof next === "string" ? next : undefined} />
+        </div>
+        <p className="mt-6 text-center text-sm">
+          <Link href="/forgot-password" className="font-medium text-brand-strong hover:underline">Forgot password?</Link>
+        </p>
       </div>
     </main>
   );

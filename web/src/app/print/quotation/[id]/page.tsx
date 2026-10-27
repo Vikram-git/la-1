@@ -41,7 +41,7 @@ export default async function QuotationPage({ params }: PageProps<"/print/quotat
     <div className="min-h-screen bg-canvas px-4 py-6 sm:py-10 print:bg-white print:p-0">
       <style>{"@page { size: A4; margin: 14mm; }"}</style>
       <div className="mx-auto mb-4 flex max-w-6xl items-center justify-between gap-3 print:hidden">
-        <Link href={`/admin/orders/${id}`} className="text-sm font-medium text-brand hover:underline">← Order {q.order.reference}</Link>
+        <Link href={`/admin/orders/${id}`} className="text-sm font-medium text-brand-strong hover:underline">← Order {q.order.reference}</Link>
         <PrintButton />
       </div>
       <div className="mx-auto grid max-w-6xl items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
