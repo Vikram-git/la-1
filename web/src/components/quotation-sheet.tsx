@@ -1,14 +1,15 @@
 import type { QuotationView } from "@/lib/quotation";
 import { CityLine, LogoMark, cx } from "@/components/ui";
 
-// The quotation as a page (A4 when printed). Draws only what the view holds: a kitchen view has no amounts.
+// The "Order in msg" as a page (A4 when printed). Draws only what the view holds: a kitchen view has no amounts.
 export function QuotationSheet({ view }: { view: QuotationView }) {
   return (
-    <article className="mx-auto max-w-3xl rounded-3xl bg-white p-6 text-ink shadow-[0_18px_50px_-24px_rgba(185,63,99,0.35)] ring-1 ring-brand/10 sm:p-10 print:max-w-none print:rounded-none print:p-0 print:shadow-none print:ring-0">
+    <article className="mx-auto max-w-3xl rounded-3xl bg-white p-6 text-ink shadow-[0_18px_50px_-24px_rgba(74,36,24,0.25)] ring-1 ring-brand/10 sm:p-10 print:max-w-none print:rounded-none print:p-0 print:shadow-none print:ring-0">
       <header className="flex flex-col items-center gap-2 border-b border-brand/15 pb-6 text-center">
-        <LogoMark className="size-14" />
-        <p className="font-display text-3xl font-medium leading-none">{view.shopName}</p>
+        <LogoMark className="size-24" />
+        <p className="font-script text-5xl leading-none">La Patisserie</p>
         <CityLine />
+        <span className="sr-only">{view.shopName}</span>
         {view.shopContact.length > 0 && <p className="mt-1 text-xs text-muted">{view.shopContact.join(" · ")}</p>}
       </header>
 

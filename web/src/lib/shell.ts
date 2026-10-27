@@ -6,7 +6,7 @@ type Role = Exclude<Enums<"staff_role">, "chef">;
 
 export type NavIcon =
   | "dashboard" | "orders" | "calendar" | "products" | "customers" | "analytics"
-  | "staff" | "settings" | "bell" | "offers" | "reviews" | "kitchen" | "gallery";
+  | "staff" | "settings" | "bell" | "reviews" | "kitchen" | "gallery" | "reports";
 
 export type NavItem = {
   href: string;
@@ -33,10 +33,10 @@ const SECTIONS: NavSection[] = [
       // What the chefs see (2026-10-20); chefs themselves land there and have no sidebar.
       { href: "/kitchen", label: "Chef screen", icon: "kitchen", roles: BOTH },
       { href: "/admin/notifications", label: "Notifications", icon: "bell", roles: BOTH, badge: "attention" },
-      { href: "/admin/offers", label: "Offers & Banners", icon: "offers", roles: ADMIN },
       { href: "/admin/gallery", label: "Gallery", icon: "gallery", roles: ADMIN },
       { href: "/admin/reviews", label: "Reviews", icon: "reviews", roles: ADMIN, badge: "reviews" },
       { href: "/admin/reports", label: "Analytics", icon: "analytics", roles: ADMIN },
+      { href: "/admin/sales-report", label: "Reports", icon: "reports", roles: ADMIN },
       { href: "/admin/staff", label: "Staff", icon: "staff", roles: ADMIN },
       { href: "/admin/settings", label: "Shop Settings", icon: "settings", roles: ADMIN },
     ],

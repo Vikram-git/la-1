@@ -74,6 +74,7 @@ export type CakeInfo = {
   cupcake_count?: number;
   popsicle_count?: number;
   instructions?: string;
+  addon_details?: string;
   photo_paths?: string[];
 };
 
@@ -174,7 +175,7 @@ export function cakeRows(c: CakeInfo): { label: string; value: string }[] {
   add("Flavour", c.flavour);
   if (c.weight_kg != null) add("Weight", `${Number(c.weight_kg)} kg${c.tiers && c.tiers > 1 ? ` · ${c.tiers} tiers` : ""}`);
   add("Theme", c.theme);
-  add("Design", c.design);
+  add("Colour", c.design);
   add("Model", c.model);
   add("Fondant", c.fondant);
   add("Cream", c.cream);
@@ -186,6 +187,7 @@ export function cakeRows(c: CakeInfo): { label: string; value: string }[] {
   if (cupcakes) add("Cupcakes", String(cupcakes));
   if (popsicles) add("Popsicles", String(popsicles));
   add("Instructions", c.instructions);
+  add("Add on", c.addon_details);
   return rows;
 }
 

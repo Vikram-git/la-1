@@ -9,7 +9,7 @@ import { quotationView, withoutPrices } from "@/lib/quotation";
 import { QuotationSheet } from "@/components/quotation-sheet";
 import { PrintButton } from "@/app/print/print-button";
 
-export const metadata: Metadata = { title: "Kitchen quotation" };
+export const metadata: Metadata = { title: "Order in msg (kitchen)" };
 
 // The price-free quotation for the kitchen. Chefs get only confirmed orders of their own kitchen (the
 // database refuses the rest); admins and counter staff opening it see the same price-free version.

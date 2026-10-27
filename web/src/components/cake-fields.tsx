@@ -18,6 +18,9 @@ export type CakeFormValue = {
   popsicleCount: string;
   setupCharge: string; // rupees
   deliveryCharge: string; // rupees
+  hasAddon: boolean;
+  addonDetails: string;
+  addonCharge: string; // rupees
 };
 
 export const EMPTY_CAKE: CakeFormValue = {
@@ -36,7 +39,16 @@ export const EMPTY_CAKE: CakeFormValue = {
   popsicleCount: "0",
   setupCharge: "",
   deliveryCharge: "",
+  hasAddon: false,
+  addonDetails: "",
+  addonCharge: "",
 };
+
+// Set-up, delivery and (when ticked) add-on, in paise, for the running total on the form.
+export function cakeChargesPaise(v: CakeFormValue, parse: (rupees: string) => number | null): number {
+  const rupees = (s: string) => parse(s.trim() || "0") ?? 0;
+  return rupees(v.setupCharge) + rupees(v.deliveryCharge) + (v.hasAddon ? rupees(v.addonCharge) : 0);
+}
 
 // The custom cake's details: the new custom cake order form and the order page's edit card.
 export function CakeFields({
@@ -118,7 +130,7 @@ export function CakeFields({
         </Field>
       </div>
       {text("theme", "Theme", 200, "e.g. Unicorn, Frozen")}
-      {text("design", "Design", 200, "e.g. Gold drip, floral")}
+      {text("design", "Colour", 200, "e.g. Pastel pink, gold")}
       {text("model", "Model", 200, "e.g. Doll cake, number 5")}
       {text("fondant", "Fondant", 80, "e.g. Full fondant, semi fondant")}
       {text("cream", "Cream", 80, "e.g. Whipped, buttercream")}
@@ -145,7 +157,7 @@ export function CakeFields({
   );
 }
 
-// Set-up and delivery charges (rupees, optional): each is its own line on the bill.
+// Set-up and delivery charges and the add-on (rupees, optional): each is its own line on the bill.
 export function CakeChargeFields({
   value,
   onChange,
@@ -175,6 +187,37 @@ export function CakeChargeFields({
           placeholder="0"
         />
       </Field>
+      <div className="col-span-full">
+        <Checkbox
+          label="Add on"
+          hint="Toppers, sparklers, extra items: added to the price, advance and balance."
+          checked={value.hasAddon}
+          onChange={(e) => onChange({ ...value, hasAddon: e.target.checked })}
+        />
+      </div>
+      {value.hasAddon && (
+        <>
+          <Field label="Add-on details" htmlFor={`${idPrefix}-addon-details`} className="col-span-full">
+            <Textarea
+              id={`${idPrefix}-addon-details`}
+              value={value.addonDetails}
+              onChange={(e) => onChange({ ...value, addonDetails: e.target.value })}
+              maxLength={500}
+              className="min-h-14"
+              placeholder="e.g. Gold topper, 2 sparklers"
+            />
+          </Field>
+          <Field label="Add-on amount (₹)" htmlFor={`${idPrefix}-addon-charge`}>
+            <Input
+              id={`${idPrefix}-addon-charge`}
+              inputMode="decimal"
+              value={value.addonCharge}
+              onChange={(e) => onChange({ ...value, addonCharge: e.target.value })}
+              placeholder="0"
+            />
+          </Field>
+        </>
+      )}
     </>
   );
 }

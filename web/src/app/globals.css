@@ -3,22 +3,28 @@
 @theme inline {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --font-display: var(--font-playfair);
-  --font-script: var(--font-great-vibes);
+  --font-display: var(--font-marcellus);
+  --font-caps: var(--font-marcellus);
+  --font-script: var(--font-mea-culpa);
 
-  /* La Patisserie (owner's mock-up, 2026-10-03): rose, blush and cream. Token names are shared by
-     every screen, so changing them here restyles the whole app. */
-  --color-canvas: #fdf5f6;
+  /* Accents from the icing-drip image (2026-10-28); the logo itself is black on white. */
+  --color-drip-pink: #e8838a;
+  --color-drip-teal: #26c6bc;
+  --color-chocolate: #4a2418;
+  --color-cream: #f7f3ee;
+
+  /* La Patisserie Madras (2026-10-28): black on white and cream, chocolate for buttons and links (white
+     text on it is 13:1), pink and teal as decoration only (they fail 4.5:1 as text). Token names are
+     shared by every screen, so changing them here restyles the whole app. */
+  --color-canvas: #f7f3ee;
   --color-surface: #ffffff;
-  --color-ink: #3a2a30;
-  --color-muted: #7d6870;
-  --color-line: #f1dde3;
-  /* brand passes 4.5:1 with white text, as text on canvas and on brand-soft (5.3, 4.95, 4.51);
-     rose (lighter) is decoration only. */
-  --color-brand: #b93f63;
-  --color-brand-strong: #9c3253;
-  --color-rose: #e8789a;
-  --color-brand-soft: #fde7ee;
+  --color-ink: #111111;
+  --color-muted: #6a5d57;
+  --color-line: #eadfd6;
+  --color-brand: #4a2418;
+  --color-brand-strong: #2e150d;
+  --color-rose: #e8838a;
+  --color-brand-soft: #fbe4e5;
   --color-danger: #c0392b;
   --color-danger-soft: #fdecea;
   --color-warn: #9a6200;
@@ -30,9 +36,9 @@
   /* Sticky-note yellow (custom cake details, piece 4) and the script accent. */
   --color-note: #fff6c4;
   --color-note-line: #eedf93;
-  --color-script: #c0466b;
-  /* Rose gold: "MADRAS" and its thin rules (4.9:1 on white, so it can be small text). */
-  --color-gold: #9a634e;
+  --color-script: #4a2418;
+  /* "MADRAS" and its thin rules. */
+  --color-gold: #111111;
 }
 
 body {
@@ -46,7 +52,6 @@ body {
   h2,
   h3 {
     font-family: var(--font-display), Georgia, serif;
-    letter-spacing: -0.01em;
   }
 }
 

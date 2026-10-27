@@ -1,21 +1,16 @@
 import "server-only";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { Circle, Document, Font, Page, Path, StyleSheet, Svg, Text, View, renderToBuffer } from "@react-pdf/renderer";
-import { LOGO_PATHS } from "@/components/ui";
+import { Document, Font, Image, Page, StyleSheet, Text, View, renderToBuffer } from "@react-pdf/renderer";
 import { QUOTATION_COLOURS as ROSE, type QuotationView } from "@/lib/quotation";
 
-// The quotation as an A4 PDF, drawn by @react-pdf/renderer: plain JavaScript, no headless browser, so it
-// runs in a normal Vercel function. Fonts are embedded from assets/fonts (traced in next.config.ts).
-// Playfair Display has no ₹ sign, so amounts use Geist (the app's body font).
+// The "Order in msg" as an A4 PDF, drawn by @react-pdf/renderer: plain JavaScript, no headless browser, so
+// it runs in a normal Vercel function. Fonts and the logo are read from assets/fonts and public/brand
+// (traced in next.config.ts). Marcellus has no ₹ sign, so amounts use Geist (the app's body font).
 const fontDir = join(process.cwd(), "assets/fonts");
-Font.register({
-  family: "Playfair Display",
-  fonts: [
-    { src: join(fontDir, "playfair-display-latin-400-normal.woff"), fontWeight: 400 },
-    { src: join(fontDir, "playfair-display-latin-600-normal.woff"), fontWeight: 600 },
-    { src: join(fontDir, "playfair-display-latin-400-italic.woff"), fontWeight: 400, fontStyle: "italic" },
-  ],
-});
+const logo = readFileSync(join(process.cwd(), "public/brand/logo-round.png"));
+Font.register({ family: "Marcellus", src: join(fontDir, "marcellus-latin-400-normal.woff") });
+Font.register({ family: "Mea Culpa", src: join(fontDir, "mea-culpa-latin-400-normal.woff") });
 Font.register({
   family: "Geist",
   fonts: [
@@ -29,22 +24,22 @@ Font.registerHyphenationCallback((word) => [word]);
 const s = StyleSheet.create({
   page: { paddingTop: 40, paddingBottom: 48, paddingHorizontal: 44, fontFamily: "Geist", fontSize: 10, color: ROSE.ink, backgroundColor: "#ffffff" },
   header: { alignItems: "center", paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: ROSE.line },
-  shop: { fontFamily: "Playfair Display", fontSize: 24, marginTop: 8 },
-  cityRow: { flexDirection: "row", alignItems: "center", marginTop: 6 },
-  cityRule: { width: 26, height: 0.6, backgroundColor: ROSE.gold },
-  city: { fontSize: 7.5, letterSpacing: 3.2, color: ROSE.gold, marginHorizontal: 8 },
+  shop: { fontFamily: "Mea Culpa", fontSize: 34, marginTop: 6 },
+  cityRow: { flexDirection: "row", alignItems: "center", marginTop: 2 },
+  cityRule: { width: 26, height: 0.6, backgroundColor: ROSE.ink },
+  city: { fontFamily: "Marcellus", fontSize: 8, letterSpacing: 3.2, marginHorizontal: 8 },
   contact: { fontSize: 8, color: ROSE.muted, marginTop: 6 },
   titleRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", marginTop: 18 },
-  title: { fontFamily: "Playfair Display", fontWeight: 600, fontSize: 20, color: ROSE.brandStrong },
+  title: { fontFamily: "Marcellus", fontSize: 20, color: ROSE.brandStrong },
   facts: { flexDirection: "row", flexWrap: "wrap", marginTop: 10, padding: 12, borderRadius: 10, backgroundColor: ROSE.canvas },
   fact: { width: "50%", paddingVertical: 4, paddingRight: 8 },
   label: { fontSize: 7, letterSpacing: 1, color: ROSE.muted, textTransform: "uppercase" },
   value: { fontSize: 10, fontWeight: 500, marginTop: 2 },
-  h2: { fontFamily: "Playfair Display", fontWeight: 600, fontSize: 13, marginTop: 18, marginBottom: 6 },
+  h2: { fontFamily: "Marcellus", fontSize: 13, marginTop: 18, marginBottom: 6 },
   cakeRow: { flexDirection: "row", paddingVertical: 2 },
   cakeLabel: { width: 110, color: ROSE.muted },
   cakeValue: { flex: 1 },
-  wording: { fontFamily: "Playfair Display", fontStyle: "italic", fontSize: 11 },
+  wording: { fontFamily: "Marcellus", fontSize: 11 },
   thead: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: ROSE.brand, paddingBottom: 4 },
   th: { fontSize: 7, letterSpacing: 1, color: ROSE.muted, textTransform: "uppercase" },
   row: { flexDirection: "row", borderBottomWidth: 0.6, borderBottomColor: ROSE.line, paddingVertical: 6 },
@@ -59,23 +54,12 @@ const s = StyleSheet.create({
   strong: { fontWeight: 600, fontSize: 11.5, color: ROSE.brandStrong },
   note: { marginTop: 4 },
   footer: { position: "absolute", left: 44, right: 44, bottom: 24, borderTopWidth: 0.6, borderTopColor: ROSE.line, paddingTop: 8, alignItems: "center" },
-  thanks: { fontFamily: "Playfair Display", fontStyle: "italic", fontSize: 10, color: ROSE.brandStrong },
+  thanks: { fontFamily: "Marcellus", fontSize: 10, color: ROSE.brandStrong },
 });
 
-// react-pdf paints gradients only as fills, so the strokes use the rose-gold midtone.
-const ROSE_GOLD = "#c7837a";
-
 function Logo() {
-  return (
-    <Svg viewBox="0 0 64 64" width={46} height={46}>
-      <Circle cx="32" cy="32" r="31" fill="#fffafb" />
-      <Path d={LOGO_PATHS.ring} stroke={ROSE_GOLD} strokeWidth={1.6} fill="none" />
-      <Path d={LOGO_PATHS.innerRing} stroke={ROSE_GOLD} strokeWidth={0.6} fill="none" opacity={0.7} />
-      <Path d={LOGO_PATHS.l} stroke={ROSE.brand} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" fill="none" />
-      <Path d={LOGO_PATHS.p} stroke={ROSE.brand} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" fill="none" />
-      <Path d={LOGO_PATHS.sparkle} fill="#e7b99a" />
-    </Svg>
-  );
+  // eslint-disable-next-line jsx-a11y/alt-text -- a react-pdf Image, which has no alt
+  return <Image src={{ data: logo, format: "png" }} style={{ width: 64, height: 64 }} />;
 }
 
 function QuotationPdf({ view }: { view: QuotationView }) {
@@ -84,7 +68,7 @@ function QuotationPdf({ view }: { view: QuotationView }) {
       <Page size="A4" style={s.page}>
         <View style={s.header}>
           <Logo />
-          <Text style={s.shop}>{view.shopName}</Text>
+          <Text style={s.shop}>La Patisserie</Text>
           <View style={s.cityRow}>
             <View style={s.cityRule} />
             <Text style={s.city}>MADRAS</Text>

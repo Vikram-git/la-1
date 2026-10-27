@@ -3,11 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="La Patisserie Madras — Exquisite handcrafted cakes, pastries & macarons in the heart of Chennai. Where French elegance meets South Indian soul.">
-    <title>La Patisserie Madras — Artisan Cakes & Pastries | Chennai</title>
+    <meta name="description" content="La Patisserie Madras — handcrafted cakes, pastries and macarons. Where French elegance meets South Indian soul.">
+    <title>La Patisserie Madras — Artisan Cakes & Pastries</title>
+    <link rel="icon" href="/brand/logo-192.png" type="image/png">
+    <link rel="preload" as="image" href="/brand/drip-background.webp" type="image/webp">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500&family=Outfit:wght@300;400;500;600&family=Dancing+Script:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Mea+Culpa&family=Marcellus&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/site/style.css">
 </head>
 <body>
@@ -32,7 +34,7 @@
     <nav id="navbar">
         <div class="nav-container">
             <a href="#hero" class="nav-logo" aria-label="La Patisserie Madras Home">
-                <img src="/site/images/logo.png" alt="La Patisserie Madras" class="nav-logo-img">
+                <img src="/brand/logo-round-light.png" alt="La Patisserie Madras" class="nav-logo-img" width="512" height="512">
             </a>
             <ul class="nav-links" id="navLinks">
                 <li><a href="#hero" class="nav-link active">Home</a></li>
@@ -40,7 +42,7 @@
                 <li><a href="#products" class="nav-link">Products</a></li>
                 <li><a href="#gallery" class="nav-link">Gallery</a></li>
 
-                <li><a href="#contact" class="nav-link">Visit Us</a></li>
+                <li><a href="#contact" class="nav-link">Order</a></li>
             </ul>
             <button class="hamburger" id="hamburger" aria-label="Toggle navigation">
                 <span></span>
@@ -50,58 +52,37 @@
         </div>
     </nav>
 
-    <!-- Hero Section -->
+    <!-- Hero: the icing drip in layers (drips fall in, the bottom flows, a shine sweeps across) -->
     <section id="hero">
-        <div class="hero-bg">
-            <img src="/site/images/hero.jpg" alt="La Patisserie Madras bakery display" class="hero-img" fetchpriority="high" decoding="async">
-            <div class="hero-overlay"></div>
+        <div class="drip-scene" aria-hidden="true">
+            <div class="drip-layer drip-flow">
+                <div class="drip-flow-strip"><span></span><span class="mirror"></span><span></span><span class="mirror"></span></div>
+            </div>
+            <div class="drip-layer drip-top"></div>
+            <div class="drip-shine"></div>
         </div>
-        <div class="hero-particles" id="heroParticles"></div>
         <div class="hero-content">
-
-            <h1 class="hero-title" data-animate="fade-up">
-                <span class="hero-welcome">Welcome to</span>
-                <span class="hero-line">La Patisserie</span>
-                <span class="hero-line script">Madras</span>
-            </h1>
-            <p class="hero-subtitle" data-animate="fade-up" data-delay="200">Where French elegance meets South Indian soul — handcrafted cakes, pastries & confections made with love.</p>
-            <div class="hero-actions" data-animate="fade-up" data-delay="400">
-                <a href="#products" class="btn btn-primary">
-                    <span>Order Now</span>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M17 7H7M17 7V17"/></svg>
-                </a>
-                <a href="https://www.instagram.com/lapatisseriemadras?rpxt=dmR0dmoxbjJkeGhk" target="_blank" rel="noopener noreferrer" class="btn btn-outline">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
-                        <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
-                        <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
-                    </svg>
-                    <span>Instagram</span>
-                </a>
+            <div class="hero-card">
+                <img src="/brand/logo-round.png" alt="" class="hero-logo" width="512" height="512" fetchpriority="high" decoding="async">
+                <h1 class="hero-title">
+                    <span class="hero-script">La Patisserie</span>
+                    <span class="hero-city"><span class="hero-rule" aria-hidden="true"></span>Madras</span>
+                </h1>
+                <div class="hero-actions">
+                    <a href="#products" class="btn btn-primary">
+                        <span>Order Now</span>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M17 7H7M17 7V17"/></svg>
+                    </a>
+                    <a href="https://www.instagram.com/lapatisseriemadras?rpxt=dmR0dmoxbjJkeGhk" target="_blank" rel="noopener noreferrer" class="btn btn-outline">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                            <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                            <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                        </svg>
+                        <span>Instagram</span>
+                    </a>
+                </div>
             </div>
-
-        </div>
-
-        <!-- Scroll Indicator -->
-        <div class="scroll-indicator">
-            <span class="scroll-indicator-text">Scroll to Discover</span>
-            <div class="scroll-arrow">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 5v14M5 12l7 7 7-7"/>
-                </svg>
-            </div>
-        </div>
-
-    </section>
-
-    <!-- Current Offers (from Offers & Banners in the admin; hidden when there are none) -->
-    <section id="offers" hidden>
-        <div class="section-container">
-            <div class="section-header center">
-                <span class="section-tag">Current Offers</span>
-                <h2 class="section-title">Sweet <em>Deals</em></h2>
-            </div>
-            <div class="offers-grid" id="offersGrid"></div>
         </div>
     </section>
 
@@ -123,8 +104,8 @@
                 </div>
                 <div class="about-content" data-animate="fade-left">
                     <span class="section-tag">Our Story</span>
-                    <h2 class="section-title">A Passion Born in <br><em>the Heart of Madras</em></h2>
-                    <p class="about-text">Nestled in the vibrant streets of Chennai, La Patisserie Madras is where the art of French baking meets the warmth of Tamil Nadu. Every creation is a love letter — from buttery croissants kissed by morning sun to towering celebration cakes that mark life's sweetest moments.</p>
+                    <h2 class="section-title">A Passion for <br><em>Beautiful Cakes</em></h2>
+                    <p class="about-text">At La Patisserie Madras, the art of French baking meets South Indian warmth. Every creation is a love letter — from buttery croissants kissed by morning sun to towering celebration cakes that mark life's sweetest moments.</p>
                     <p class="about-text">Our master pâtissiers blend time-honored French techniques with locally sourced ingredients, crafting confections that are as breathtaking to behold as they are to taste.</p>
                     <div class="about-features">
                         <div class="feature">
@@ -290,14 +271,12 @@
                 <span>✦ Made with Love</span>
                 <span>✦ French Techniques</span>
                 <span>✦ Custom Orders Welcome</span>
-                <span>✦ Free Delivery in Chennai</span>
                 <span>✦ Eggless Options Available</span>
                 <span>✦ Freshly Baked Daily</span>
                 <span>✦ Premium Ingredients</span>
                 <span>✦ Made with Love</span>
                 <span>✦ French Techniques</span>
                 <span>✦ Custom Orders Welcome</span>
-                <span>✦ Free Delivery in Chennai</span>
                 <span>✦ Eggless Options Available</span>
             </div>
         </div>
@@ -412,18 +391,10 @@
         <div class="section-container">
             <div class="contact-grid">
                 <div class="contact-info" data-animate="fade-right">
-                    <span class="section-tag">Visit Us</span>
-                    <h2 class="section-title">Come Say <em>Hello!</em></h2>
-                    <p class="contact-desc">Step into our warm, cozy patisserie and let the aroma of freshly baked delights welcome you.</p>
+                    <span class="section-tag">Order</span>
+                    <h2 class="section-title">Say <em>Hello!</em></h2>
 
                     <div class="contact-details">
-                        <div class="contact-item">
-                            <div class="contact-icon">📍</div>
-                            <div>
-                                <h4>Our Location</h4>
-                                <p><a href="https://maps.google.com/?q=7,+Water+Canal+Rd,+Venkateswara+Nagar,+Korattur,+Chennai,+Tamil+Nadu+600076" target="_blank" rel="noopener noreferrer">7, Water Canal Rd, Venkateswara Nagar, Korattur,<br>Chennai, Tamil Nadu 600076, India</a></p>
-                            </div>
-                        </div>
                         <div class="contact-item">
                             <div class="contact-icon">🕐</div>
                             <div>
@@ -490,7 +461,7 @@
                         </div>
                         <fieldset class="form-choice">
                             <legend>How would you like it?</legend>
-                            <label><input type="radio" name="fulfilment" value="collect" checked> I'll pick it up from the store</label>
+                            <label><input type="radio" name="fulfilment" value="collect" checked> Pickup / Cab</label>
                             <label><input type="radio" name="fulfilment" value="setup"> Set it up at my place</label>
                         </fieldset>
                         <div class="form-group" id="addressGroup" hidden>
@@ -542,7 +513,7 @@
                 <div class="footer-grid">
                     <div class="footer-brand">
                         <a href="#hero" class="nav-logo" aria-label="La Patisserie Madras Home">
-                            <img src="/site/images/logo.png" alt="La Patisserie Madras" class="nav-logo-img">
+                            <img src="/brand/logo-round-light.png" alt="La Patisserie Madras" class="nav-logo-img" width="512" height="512">
                         </a>
                         <p>Where French elegance meets South Indian soul. Handcrafting moments of sweetness since 2014.</p>
                     </div>
@@ -566,7 +537,7 @@
                     </div>
                     <div class="footer-newsletter">
                         <h4>Stay Sweet 🍰</h4>
-                        <p>Subscribe for exclusive offers and new flavour drops!</p>
+                        <p>Subscribe for new flavour drops!</p>
                         <form class="newsletter-form">
                             <input type="email" placeholder="Your email address">
                             <button type="submit">→</button>
@@ -577,7 +548,7 @@
         </div>
         <div class="footer-bottom">
             <div class="section-container">
-                <p>© 2024 La Patisserie Madras. Baked with ❤️ in Chennai.</p>
+                <p>© 2026 La Patisserie Madras. Baked with ❤️</p>
                 <p class="footer-legal">Privacy Policy · Terms of Service · <a href="/site/photo-credits.html">Photo credits</a> · <a href="/login">Staff login</a></p>
             </div>
         </div>

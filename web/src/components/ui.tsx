@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
+import { LOGO_SRC, SHOP_NAME } from "@/lib/brand";
 
 export function cx(...classes: (string | false | null | undefined)[]) {
   return classes.filter(Boolean).join(" ");
@@ -188,68 +189,47 @@ export function EmptyState({ title, children }: { title: string; children?: Reac
   );
 }
 
-// Handwritten accent lines ("Baked with Love, Always"). Decorative: hidden from screen readers.
+// Accent lines ("All caught up"). Decorative: hidden from screen readers. The script font is kept for
+// the shop name only (2026-10-28), so accents are the serif in italics.
 export function ScriptText({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <span aria-hidden className={cx("font-script text-script leading-tight", className)}>
+    <span aria-hidden className={cx("font-display italic text-script leading-tight", className)}>
       {children}
     </span>
   );
 }
 
-// "LP" monogram in a fine double ring, rose-gold gradient. Strokes only (no text), so it renders the
-// same without fonts: the favicon (app/icon.svg) and the quotation file draw the same paths.
-export const LOGO_PATHS = {
-  ring: "M32 3.5a28.5 28.5 0 1 1 0 57a28.5 28.5 0 1 1 0-57",
-  innerRing: "M32 7.5a24.5 24.5 0 1 1 0 49a24.5 24.5 0 1 1 0-49",
-  l: "M21.5 19.5h6M24.5 19.5v24.5h12.5",
-  p: "M30 19.5h7.25a6.25 6.25 0 0 1 0 12.5H33M33 19.5v24.5M30 44h6",
-  sparkle: "M32 11.2l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9z",
-} as const;
-
-export function LogoMark({ className, glow = true }: { className?: string; glow?: boolean }) {
-  return (
-    <svg
-      viewBox="0 0 64 64"
-      fill="none"
-      aria-hidden
-      className={cx(glow && "drop-shadow-[0_6px_14px_rgba(185,63,99,0.28)]", className)}
-    >
-      <defs>
-        <linearGradient id="lp-rose-gold" x1="8" y1="6" x2="56" y2="58" gradientUnits="userSpaceOnUse">
-          <stop offset="0" stopColor="#e7b99a" />
-          <stop offset="0.5" stopColor="#c7837a" />
-          <stop offset="1" stopColor="#b93f63" />
-        </linearGradient>
-      </defs>
-      <circle cx="32" cy="32" r="31" fill="#fffafb" />
-      <path d={LOGO_PATHS.ring} stroke="url(#lp-rose-gold)" strokeWidth="1.6" />
-      <path d={LOGO_PATHS.innerRing} stroke="url(#lp-rose-gold)" strokeWidth="0.6" opacity="0.7" />
-      <path d={LOGO_PATHS.l} stroke="url(#lp-rose-gold)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d={LOGO_PATHS.p} stroke="url(#lp-rose-gold)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d={LOGO_PATHS.sparkle} fill="url(#lp-rose-gold)" />
-    </svg>
-  );
+// The round logo (black linework on transparent, public/brand/logo-round.png).
+export function LogoMark({ className }: { className?: string }) {
+  // eslint-disable-next-line @next/next/no-img-element -- small static brand image, also used in print
+  return <img src={LOGO_SRC} alt="" aria-hidden className={cx("aspect-square object-contain", className)} />;
 }
 
-// "MADRAS" between two thin rose-gold rules, under the wordmark.
+// "MADRAS" in spaced flared capitals.
 export function CityLine({ className }: { className?: string }) {
-  return (
-    <span className={cx("flex items-center justify-center gap-3", className)}>
-      <span aria-hidden className="h-px w-8 bg-gradient-to-r from-transparent to-gold" />
-      <span className="text-[10px] font-medium uppercase tracking-[0.42em] text-gold [font-variant:small-caps]">Madras</span>
-      <span aria-hidden className="h-px w-8 bg-gradient-to-l from-transparent to-gold" />
-    </span>
-  );
+  return <span className={cx("block font-caps text-[11px] uppercase tracking-[0.35em] text-ink", className)}>Madras</span>;
 }
 
-// "La Patisserie" wordmark with the LP mark and "MADRAS".
+// The logo above "La Patisserie" in the signature script and "MADRAS".
 export function Brand({ compact = false, className }: { compact?: boolean; className?: string }) {
   return (
     <div className={cx("flex flex-col items-center text-center", className)}>
-      <LogoMark className={compact ? "size-10" : "size-16"} />
-      <span className={cx("font-display font-medium leading-none text-ink", compact ? "mt-2 text-2xl" : "mt-3 text-4xl")}>La Patisserie</span>
-      <CityLine className={compact ? "mt-1.5" : "mt-2.5"} />
+      <LogoMark className={compact ? "size-14" : "size-24"} />
+      <span className="sr-only">{SHOP_NAME}</span>
+    </div>
+  );
+}
+
+// Text lockup like the logo, without the badge (login): the script name, a rule under it running
+// into "MADRAS" at its right end.
+export function Wordmark({ className }: { className?: string }) {
+  return (
+    <div className={cx("inline-flex flex-col", className)}>
+      <span className="font-script text-6xl leading-none text-ink sm:text-7xl">La Patisserie</span>
+      <span className="mt-1 flex items-center gap-3">
+        <span aria-hidden className="h-px flex-1 bg-ink" />
+        <span className="font-caps text-sm uppercase tracking-[0.3em] text-ink">Madras</span>
+      </span>
     </div>
   );
 }

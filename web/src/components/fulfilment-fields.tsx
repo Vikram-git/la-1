@@ -38,8 +38,8 @@ export function FulfilmentFields({
 
   return (
     <div className="flex flex-col gap-3">
-      <div role="radiogroup" aria-label="Collect or set up" className="flex flex-wrap gap-3">
-        {option("collect", "Collect from store", "🏪", "text-ok", "border-ok bg-ok-soft")}
+      <div role="radiogroup" aria-label="Pickup/Cab or set up" className="flex flex-wrap gap-3">
+        {option("collect", "Pickup/Cab", "🏪", "text-ok", "border-ok bg-ok-soft")}
         {option("setup", "Set up at customer's place", "🚚", "text-danger", "border-danger bg-danger-soft")}
       </div>
       {value.fulfilment === "setup" && (

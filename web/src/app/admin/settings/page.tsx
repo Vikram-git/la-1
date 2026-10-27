@@ -50,7 +50,6 @@ export default async function SettingsPage() {
                 <dd className="font-medium">{settings.currency}</dd>
               </div>
             </dl>
-            <p className="mt-3 text-sm text-muted">Prices are treated as GST-inclusive.</p>
           </Card>
           <Card>
             <h2 className="text-lg font-semibold">Opening hours</h2>

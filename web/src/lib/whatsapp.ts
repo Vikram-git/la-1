@@ -106,7 +106,7 @@ function billText(b: CaptionBill): string {
 // The caption sent with the quotation file. Staff can edit it before sending.
 export function quotationCaption(o: { reference: string; note?: string | null; bill?: CaptionBill | null }, shop: string): string {
   const bill = o.bill ? `\n\n${billText(o.bill)}` : "";
-  return withNote(`${GREETING}\nPlease find attached the quotation for your order ${o.reference}.${bill}\n\n— ${shop}`, o.note);
+  return withNote(`${GREETING}\nPlease find attached the order in msg for your order ${o.reference}.${bill}\n\n— ${shop}`, o.note);
 }
 
 function baseText(kind: MessageKind, o: MessageOrder, ctx: MessageContext): string {

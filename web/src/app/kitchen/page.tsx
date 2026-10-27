@@ -183,7 +183,7 @@ function OrderCard({ order, tz, showDay, photos, multiKitchen }: {
           href={`/kitchen/quotation/${order.id}`}
           className="self-start rounded-xl border border-line bg-surface px-3 py-2 text-sm font-medium text-brand hover:bg-brand-soft"
         >
-          Open quotation (no prices) →
+          Open Order in msg (no prices) →
         </Link>
       )}
 
@@ -342,9 +342,9 @@ export default async function KitchenPage({ searchParams }: PageProps<"/kitchen"
       <header className="sticky top-0 z-10 border-b border-line bg-surface/95 px-4 py-3 backdrop-blur sm:px-6">
         <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-x-4 gap-y-2">
           <div className="flex min-w-0 items-center gap-3">
-            <LogoMark className="size-9 shrink-0 sm:size-10" />
+            <LogoMark className="size-11 shrink-0 sm:size-12" />
             <div className="min-w-0">
-              <p className="font-display text-base leading-none sm:text-lg">La Patisserie <span className="text-sm text-muted">· Kitchen</span></p>
+              <p className="font-caps text-sm uppercase leading-none tracking-[0.15em] sm:text-base">La Patisserie Madras <span className="text-xs normal-case tracking-normal text-muted">· Kitchen</span></p>
               <h1 className="mt-1 truncate text-lg font-semibold sm:text-xl">{heading}</h1>
             </div>
           </div>

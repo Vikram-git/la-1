@@ -3,23 +3,20 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card, Checkbox, Field, Input, Select, Textarea, cx } from "@/components/ui";
-import { CakeChargeFields, CakeFields, EMPTY_CAKE, type CakeFormValue } from "@/components/cake-fields";
+import { CakeChargeFields, CakeFields, EMPTY_CAKE, cakeChargesPaise, type CakeFormValue } from "@/components/cake-fields";
 import { FulfilmentFields, type FulfilmentValue } from "@/components/fulfilment-fields";
 import { CustomerWarning } from "@/components/customer-warning";
 import { OverridePrompt } from "@/components/override-prompt";
 import { PickupWindows } from "@/components/pickup-windows";
 import { MAX_CAKE_PHOTOS, cakePhotoProblem } from "@/lib/custom-cake";
 import { formatPaise, parseRupeesToPaise } from "@/lib/money";
-import { paymentMethodLabel, sourceLabel, type PaymentMethod } from "@/lib/orders";
+import { paymentMethodLabel, type PaymentMethod } from "@/lib/orders";
 import { uploadPhoto } from "@/lib/photo-upload";
 import { createCustomCakeOrderAction, setCustomCakePhotosAction } from "../actions";
 
-type Source = "IN_STORE" | "CALL" | "CUSTOMER";
-const SOURCES: { value: Source; icon: string }[] = [
-  { value: "IN_STORE", icon: "🏪" },
-  { value: "CALL", icon: "📞" },
-  { value: "CUSTOMER", icon: "💬" },
-];
+// The form no longer asks how the order was taken (2026-10-28); customised orders are saved as call
+// orders, so an admin confirms them, as before.
+const SOURCE = "CALL";
 
 export function CakeOrderForm({
   isAdmin,
@@ -32,7 +29,6 @@ export function CakeOrderForm({
 }) {
   const router = useRouter();
   const [idempotencyKey] = useState(() => crypto.randomUUID());
-  const [source, setSource] = useState<Source>("CALL");
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [dueLocal, setDueLocal] = useState(defaultDueLocal);
@@ -47,8 +43,7 @@ export function CakeOrderForm({
   const [advanceReference, setAdvanceReference] = useState("");
   const [customerNotes, setCustomerNotes] = useState("");
   const [internalNotes, setInternalNotes] = useState("");
-  // Counter staff confirm only in-store orders (as with any order); admins confirm any.
-  const canConfirm = isAdmin || source === "IN_STORE";
+  const canConfirm = isAdmin;
   const [confirmChoice, setConfirmChoice] = useState(false);
   const confirm = canConfirm && confirmChoice;
   const [error, setError] = useState<{ message: string; kind?: string } | null>(null);
@@ -56,7 +51,7 @@ export function CakeOrderForm({
 
   const pricePaise = parseRupeesToPaise(price.trim() || "0") ?? 0;
   const advancePaise = parseRupeesToPaise(advance.trim() || "0") ?? 0;
-  const chargesPaise = (parseRupeesToPaise(cake.setupCharge.trim() || "0") ?? 0) + (parseRupeesToPaise(cake.deliveryCharge.trim() || "0") ?? 0);
+  const chargesPaise = cakeChargesPaise(cake, parseRupeesToPaise);
   const totalPaise = pricePaise + chargesPaise;
   const isSetup = fulfil.fulfilment === "setup";
 
@@ -82,7 +77,7 @@ export function CakeOrderForm({
       try {
         result = await createCustomCakeOrderAction({
           idempotencyKey,
-          source,
+          source: SOURCE,
           customerName,
           customerPhone,
           dueLocal,
@@ -131,7 +126,7 @@ export function CakeOrderForm({
         <Card className="flex flex-col gap-4">
           <h2 className="text-lg font-semibold">The cake</h2>
           <CakeFields value={cake} onChange={(v) => { setError(null); setCake(v); }} />
-          <p className="text-sm text-muted">Custom orders are made in Kitchen 1.</p>
+          <p className="text-sm text-muted">Customised orders are made in Kitchen 1.</p>
           <Field
             label={`Reference photos (optional, up to ${MAX_CAKE_PHOTOS})`}
             htmlFor="cake-photo"
@@ -166,7 +161,7 @@ export function CakeOrderForm({
         <Card className="flex flex-col gap-4">
           <h2 className="text-lg font-semibold">Price and advance</h2>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Cake price (₹, incl. GST)" htmlFor="cake-price">
+            <Field label="Cake price (₹)" htmlFor="cake-price">
               <Input id="cake-price" inputMode="decimal" value={price} onChange={(e) => { setError(null); setPrice(e.target.value); }} placeholder="1500" required />
             </Field>
             <CakeChargeFields value={cake} onChange={(v) => { setError(null); setCake(v); }} />
@@ -191,7 +186,7 @@ export function CakeOrderForm({
           {pricePaise > 0 && (
             <p className="text-sm">
               Total {formatPaise(totalPaise)}
-              {chargesPaise > 0 && <span className="text-muted"> (cake {formatPaise(pricePaise)} + charges {formatPaise(chargesPaise)})</span>}
+              {chargesPaise > 0 && <span className="text-muted"> (cake {formatPaise(pricePaise)} + charges{cake.hasAddon ? " and add-on" : ""} {formatPaise(chargesPaise)})</span>}
               {advancePaise > 0 && (
                 <>
                   {" "}· Advance {formatPaise(advancePaise)} ·{" "}
@@ -208,27 +203,11 @@ export function CakeOrderForm({
       <div className="flex flex-col gap-4">
         <Card className="flex flex-col gap-4">
           <h2 className="text-lg font-semibold">Order taken</h2>
-          <div role="radiogroup" aria-label="Order taken" className="flex flex-wrap gap-2">
-            {SOURCES.map((s) => (
-              <label
-                key={s.value}
-                className={cx(
-                  "flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium",
-                  source === s.value ? "border-brand bg-brand-soft text-brand-strong" : "border-line text-muted hover:border-brand/40",
-                  "has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-brand",
-                )}
-              >
-                <input type="radio" name="cake-source" className="sr-only" checked={source === s.value} onChange={() => setSource(s.value)} />
-                <span aria-hidden>{s.icon}</span>
-                {sourceLabel[s.value]}
-              </label>
-            ))}
-          </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Customer name" htmlFor="cake-cname">
               <Input id="cake-cname" value={customerName} onChange={(e) => setCustomerName(e.target.value)} maxLength={80} autoComplete="off" required />
             </Field>
-            <Field label="Phone" htmlFor="cake-cphone">
+            <Field label="Phone number" htmlFor="cake-cphone">
               <Input id="cake-cphone" type="tel" inputMode="tel" value={customerPhone} onChange={(e) => { setError(null); setCustomerPhone(e.target.value); }} autoComplete="off" required />
             </Field>
           </div>
@@ -256,7 +235,7 @@ export function CakeOrderForm({
           {canConfirm ? (
             <Checkbox
               label="Confirm now"
-              hint="Confirms the promised date and design. Leave unticked to review later."
+              hint="Confirms the promised date and colour. Leave unticked to review later."
               checked={confirmChoice}
               onChange={(e) => setConfirmChoice(e.target.checked)}
             />
@@ -277,7 +256,7 @@ export function CakeOrderForm({
         )}
 
         <Button type="button" className="py-3 text-base" disabled={pending || missing || advancePaise > totalPaise} onClick={() => submit()}>
-          {pending ? "Saving…" : `${confirm ? "Create and confirm" : "Create custom cake order"}${pricePaise > 0 ? ` · ${formatPaise(totalPaise)}` : ""}`}
+          {pending ? "Saving…" : `${confirm ? "Create and confirm" : "Create customised order"}${pricePaise > 0 ? ` · ${formatPaise(totalPaise)}` : ""}`}
         </Button>
         {missing && !pending && (
           <p className="-mt-2 text-xs text-muted">Needs the flavour, price, customer name and phone, the time{isSetup ? " and the set-up address" : ""}.</p>

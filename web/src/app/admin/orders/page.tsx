@@ -112,9 +112,9 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/ord
         description={`Due times shown in ${tz}. Green rows are collected from the store; red rows are set up at the customer's place.`}
         actions={
           <>
-            <ButtonLink href="/admin/orders/new?source=IN_STORE">New in-store order</ButtonLink>
+            <ButtonLink href="/admin/orders/new?source=IN_STORE">Online Orders</ButtonLink>
             <ButtonLink href="/admin/orders/new?source=CALL" variant="secondary">New call order</ButtonLink>
-            <ButtonLink href="/admin/orders/new-cake" variant="secondary">New custom cake order</ButtonLink>
+            <ButtonLink href="/admin/orders/new-cake" variant="secondary">Customised order</ButtonLink>
           </>
         }
       />
@@ -160,10 +160,10 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/ord
           </Select>
         </div>
         <div>
-          <label htmlFor="fulfil" className="sr-only">Collect or set up</label>
+          <label htmlFor="fulfil" className="sr-only">Pickup/Cab or set up</label>
           <Select id="fulfil" name="fulfil" defaultValue={fulfil}>
-            <option value="">Collect and set up</option>
-            <option value="collect">Collect only</option>
+            <option value="">Pickup/Cab and set up</option>
+            <option value="collect">Pickup/Cab only</option>
             <option value="setup">Set up only</option>
           </Select>
         </div>

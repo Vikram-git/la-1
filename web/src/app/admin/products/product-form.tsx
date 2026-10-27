@@ -65,15 +65,6 @@ export function ProductForm({
           <Input id="hsn_code" name="hsn_code" inputMode="numeric" defaultValue={product?.hsn_code ?? ""} />
         </Field>
 
-        <Field label="GST rate (%)" htmlFor="tax_rate" error={err.tax_rate_bps} hint="From your accountant, e.g. 5 or 18.">
-          <Input
-            id="tax_rate"
-            name="tax_rate"
-            inputMode="decimal"
-            defaultValue={product ? String(product.tax_rate_bps / 100) : "0"}
-          />
-        </Field>
-
         <div className="flex flex-col gap-3 md:col-span-2">
           <Checkbox
             name="contains_egg"

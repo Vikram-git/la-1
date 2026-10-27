@@ -15,7 +15,7 @@ export async function POST(request: NextRequest, ctx: RouteContext<"/api/orders/
   const staff = await getStaff();
   if (!staff) return Response.json({ ok: false, message: "Sign in again." }, { status: 401 });
   if (staff.role !== "admin" && staff.role !== "counter") {
-    return Response.json({ ok: false, message: "Only admin and counter staff can send quotations." }, { status: 403 });
+    return Response.json({ ok: false, message: "Only admin and counter staff can send the Order in msg." }, { status: 403 });
   }
 
   const { id } = await ctx.params;
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest, ctx: RouteContext<"/api/orders/
     .createSignedUrl(made.path, LINK_SECONDS, { download: made.fileName });
   if (signError || !signed) {
     console.error("quotation signed link failed", signError?.message);
-    return Response.json({ ok: false, message: "Could not open the quotation file. Try again." }, { status: 500 });
+    return Response.json({ ok: false, message: "Could not open the Order in msg file. Try again." }, { status: 500 });
   }
 
   return Response.json(

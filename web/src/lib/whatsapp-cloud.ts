@@ -78,7 +78,7 @@ function graphProblem(body: GraphError, fallback: string): string {
   const e = body.error;
   if (!e) return fallback;
   if (e.code === 190) return "The WhatsApp access token has expired or is wrong. Ask the admin to update WHATSAPP_TOKEN.";
-  if (e.code === 132001) return "WhatsApp cannot find the quotation template. Check its name and language, and that Meta approved it.";
+  if (e.code === 132001) return "WhatsApp cannot find the Order in msg template. Check its name and language, and that Meta approved it.";
   if (e.code === 131026) return "This customer's number cannot receive WhatsApp messages.";
   const detail = e.error_data?.details || e.message;
   return detail ? `WhatsApp refused it: ${detail}` : fallback;

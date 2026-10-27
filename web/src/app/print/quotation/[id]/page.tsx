@@ -13,7 +13,7 @@ import { Alert, Card } from "@/components/ui";
 import { PrintButton } from "../../print-button";
 import { QuotationSend } from "@/app/admin/orders/[id]/quotation-send";
 
-export const metadata: Metadata = { title: "Quotation" };
+export const metadata: Metadata = { title: "Order in msg" };
 
 // The full quotation (every amount) for admin and counter staff, with "Send quotation on WhatsApp".
 // The kitchen's price-free version is /kitchen/quotation/[id].
@@ -29,7 +29,7 @@ export default async function QuotationPage({ params }: PageProps<"/print/quotat
   ]);
   if (!result.ok) {
     if (result.status === 404) notFound();
-    return <div className="mx-auto max-w-3xl p-6"><Alert tone="danger" title="Could not load the quotation">{result.message}</Alert></div>;
+    return <div className="mx-auto max-w-3xl p-6"><Alert tone="danger" title="Could not load the Order in msg">{result.message}</Alert></div>;
   }
   const q = result.quotation;
   const caption = quotationCaption(

@@ -28,7 +28,7 @@ export async function makeQuotationFile(supabase: Client, orderId: string, forma
   const result = await loadQuotation(supabase, orderId);
   if (!result.ok) return result;
   if (result.quotation.mode !== "full" || !result.quotation.amounts) {
-    return { ok: false, status: 403, message: "Only the full quotation can be sent." };
+    return { ok: false, status: 403, message: "Only the full Order in msg can be sent." };
   }
 
   let file: Buffer;
@@ -37,7 +37,7 @@ export async function makeQuotationFile(supabase: Client, orderId: string, forma
     file = format === "pdf" ? await renderQuotationPdf(view) : await renderQuotationPng(view);
   } catch (e) {
     console.error("quotation render failed", format, e);
-    return { ok: false, status: 500, message: "Could not make the quotation file. Try again." };
+    return { ok: false, status: 500, message: "Could not make the Order in msg file. Try again." };
   }
 
   const contentType = format === "pdf" ? "application/pdf" : "image/png";
@@ -45,7 +45,7 @@ export async function makeQuotationFile(supabase: Client, orderId: string, forma
   const upload = await supabase.storage.from("quotations").upload(path, file, { contentType, upsert: false });
   if (upload.error) {
     console.error("quotation upload failed", upload.error.message);
-    return { ok: false, status: 500, message: "Could not save the quotation file. Try again." };
+    return { ok: false, status: 500, message: "Could not save the Order in msg file. Try again." };
   }
   const reference = result.quotation.order.reference;
   return { ok: true, file, path, fileName: quotationFileName(reference, format), contentType, reference };

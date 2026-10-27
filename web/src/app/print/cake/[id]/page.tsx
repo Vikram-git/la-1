@@ -12,14 +12,15 @@ import { loadQuotation } from "@/lib/quotation-server";
 import { captionBill } from "@/lib/quotation";
 import { quotationCaption, whatsappNumber } from "@/lib/whatsapp";
 import { cloudFormats, whatsappCloudConfig } from "@/lib/whatsapp-cloud";
-import { Card, cx } from "@/components/ui";
+import { Card, LogoMark, cx } from "@/components/ui";
+import { CAKE_SHEET_TERMS, SHOP_NAME } from "@/lib/brand";
 import { QuotationSend } from "@/app/admin/orders/[id]/quotation-send";
 import { PrintControls } from "../../print-controls";
 
 export const metadata: Metadata = { title: "Cake sheet" };
 
 // The custom cake's details for whoever bakes and decorates it (owner, 2026-10-09). The id is the order's.
-// Below it (not printed), the quotation goes to the customer on WhatsApp, as an image by default (2026-10-24).
+// Below it (not printed), the Order in msg goes to the customer on WhatsApp, as an image by default (2026-10-24).
 export default async function CakeSheetPage({ params, searchParams }: PageProps<"/print/cake/[id]">) {
   await requireRole(["admin", "counter"]);
   const { id } = await params;
@@ -47,7 +48,7 @@ export default async function CakeSheetPage({ params, searchParams }: PageProps<
   const bill = quotation.ok ? captionBill(quotation.quotation) : null;
   const caption = quotationCaption(
     { reference: order.reference ?? "", note: note?.sticky_note_in_whatsapp ? note.sticky_note : null, bill },
-    quotation.ok ? quotation.quotation.shop.name : "La Patisserie",
+    quotation.ok ? quotation.quotation.shop.name : SHOP_NAME,
   );
 
   const rows: [string, string | null][] = [
@@ -55,7 +56,7 @@ export default async function CakeSheetPage({ params, searchParams }: PageProps<
     ["Size", `${Number(cake.weight_kg)} kg${cake.tiers > 1 ? ` · ${cake.tiers} tiers` : ""}`],
     ["Egg", cake.is_eggless ? "EGGLESS" : "With egg"],
     ["Theme", cake.theme],
-    ["Design", cake.design],
+    ["Colour", cake.design],
     ["Model", cake.model],
     ["Fondant", cake.fondant],
     ["Cream", cake.cream],
@@ -63,6 +64,7 @@ export default async function CakeSheetPage({ params, searchParams }: PageProps<
     ["Toppings", cake.toppings],
     ["Extras", cakeExtras(cake) || null],
     ["Instructions", cake.instructions],
+    ["Add on", cake.addon_details],
   ];
 
   return (
@@ -73,9 +75,12 @@ export default async function CakeSheetPage({ params, searchParams }: PageProps<
         ? "mx-auto w-[76mm] bg-white p-3 font-mono text-[11px] leading-snug text-black shadow print:w-full print:p-0 print:shadow-none"
         : "mx-auto max-w-3xl bg-white p-10 text-base text-black shadow print:max-w-none print:p-0 print:shadow-none"}>
         <header className={narrow ? "border-b border-dashed border-black pb-1 text-center" : "flex items-start justify-between gap-6 border-b-2 border-black pb-3"}>
-          <div>
-            <p className={narrow ? "font-sans text-sm font-bold" : "font-sans text-2xl font-bold"}>CUSTOM CAKE</p>
+          <div className={narrow ? "flex flex-col items-center" : "flex items-center gap-3"}>
+            <LogoMark className={narrow ? "size-12" : "size-16"} />
+            <div>
+            <p className={narrow ? "font-sans text-sm font-bold" : "font-sans text-2xl font-bold"}>CUSTOMISED ORDER</p>
             <p>Order {order.reference} · {order.source ? sourceLabel[order.source] : ""}</p>
+            </div>
           </div>
           <div className={narrow ? "" : "text-right"}>
             <p className="font-bold">
@@ -91,7 +96,7 @@ export default async function CakeSheetPage({ params, searchParams }: PageProps<
             {order.setup_note && <span className="block font-normal">{order.setup_note}</span>}
           </p>
         ) : (
-          <p className="mt-2 font-bold">COLLECT from store</p>
+          <p className="mt-2 font-bold">PICKUP/CAB</p>
         )}
 
         {cake.message && (
@@ -145,10 +150,17 @@ export default async function CakeSheetPage({ params, searchParams }: PageProps<
             <>Price {formatPaise(order.total_paise ?? 0)} · {(order.balance_paise ?? 0) > 0 ? `Balance due ${formatPaise(order.balance_paise ?? 0)}` : "Paid"}</>
           )}
         </footer>
+
+        <section aria-label="Terms and conditions" className={narrow ? "mt-2 border-t border-dashed border-black pt-1 text-[10px]" : "mt-4 border-t border-black pt-2 text-xs"}>
+          <p className="font-bold">Terms and Conditions</p>
+          <ul className="list-disc pl-4">
+            {CAKE_SHEET_TERMS.map((t) => <li key={t}>{t}</li>)}
+          </ul>
+        </section>
       </article>
       {quotation.ok && (
         <Card className="mx-auto mt-6 max-w-3xl print:hidden">
-          <h2 className="mb-3 text-lg font-semibold">Send the quotation to the customer</h2>
+          <h2 className="mb-3 text-lg font-semibold">Send the Order in msg to the customer</h2>
           <QuotationSend
             orderId={id}
             phone={whatsappNumber(order.customer_phone)}

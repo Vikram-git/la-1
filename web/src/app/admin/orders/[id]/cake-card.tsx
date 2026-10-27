@@ -29,6 +29,8 @@ export type CustomCake = {
   popsicle_count: number;
   setup_charge_paise: number;
   delivery_charge_paise: number;
+  addon_details: string | null;
+  addon_charge_paise: number;
 };
 
 export type CakePhoto = { path: string; url: string | null };
@@ -69,6 +71,9 @@ export function CakeCard({
     popsicleCount: String(cakeExtraCounts(cake).popsicles),
     setupCharge: cake.setup_charge_paise ? paiseToRupeesInput(cake.setup_charge_paise) : "",
     deliveryCharge: cake.delivery_charge_paise ? paiseToRupeesInput(cake.delivery_charge_paise) : "",
+    hasAddon: Boolean(cake.addon_details || cake.addon_charge_paise),
+    addonDetails: cake.addon_details ?? "",
+    addonCharge: cake.addon_charge_paise ? paiseToRupeesInput(cake.addon_charge_paise) : "",
   }));
   const [price, setPrice] = useState(paiseToRupeesInput(pricePaise));
   const [error, setError] = useState<string | null>(null);
@@ -132,7 +137,7 @@ export function CakeCard({
     ["Flavour", cake.flavour],
     ["Size", `${Number(cake.weight_kg)} kg${cake.tiers > 1 ? ` · ${cake.tiers} tiers` : ""}`],
     ["Theme", cake.theme],
-    ["Design", cake.design],
+    ["Colour", cake.design],
     ["Model", cake.model],
     ["Fondant", cake.fondant],
     ["Cream", cake.cream],
@@ -144,6 +149,8 @@ export function CakeCard({
     ["Instructions", cake.instructions],
     ["Set-up charges", cake.setup_charge_paise ? formatPaise(cake.setup_charge_paise) : null],
     ["Delivery charges", cake.delivery_charge_paise ? formatPaise(cake.delivery_charge_paise) : null],
+    ["Add on", cake.addon_details],
+    ["Add-on amount", cake.addon_charge_paise ? formatPaise(cake.addon_charge_paise) : null],
   ];
 
   return (
@@ -160,7 +167,7 @@ export function CakeCard({
         <div className="flex flex-col gap-4 rounded-xl bg-surface/80 p-4">
           <CakeFields value={value} onChange={setValue} idPrefix="edit-cake" />
           <div className="grid gap-4 sm:grid-cols-3">
-            <Field label="Cake price (₹, incl. GST)" htmlFor="edit-cake-price" hint="Price and charges change the order total.">
+            <Field label="Cake price (₹)" htmlFor="edit-cake-price" hint="Price and charges change the order total.">
               <Input id="edit-cake-price" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} />
             </Field>
             <CakeChargeFields value={value} onChange={setValue} idPrefix="edit-cake" />
@@ -175,7 +182,7 @@ export function CakeCard({
         <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_auto]">
           <div>
             {cake.message && (
-              <p className="mb-3 font-script text-3xl leading-tight text-script">“{cake.message}”</p>
+              <p className="mb-3 font-display text-2xl italic leading-tight text-script">“{cake.message}”</p>
             )}
             <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
               {rows

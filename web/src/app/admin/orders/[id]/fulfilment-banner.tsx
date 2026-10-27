@@ -51,7 +51,7 @@ export function FulfilmentBanner({
 
   return (
     <section
-      aria-label={setup ? "Set up at the customer's place" : "Collect from store"}
+      aria-label={setup ? "Set up at the customer's place" : "Pickup/Cab"}
       className={cx(
         "rounded-2xl border-2 p-4",
         setup ? "border-danger bg-danger-soft text-danger" : "border-ok bg-ok-soft text-ok",
@@ -61,7 +61,7 @@ export function FulfilmentBanner({
         <div>
           <p className="text-lg font-bold">
             <span aria-hidden>{setup ? "🚚 " : "🏪 "}</span>
-            {setup ? "Set up at customer's place" : "Collect from store"}
+            {setup ? "Set up at customer's place" : "Pickup/Cab"}
           </p>
           {setup && address && <p className="mt-1 font-medium text-ink">{address}</p>}
           {setup && note && <p className="text-sm text-ink">{note}</p>}

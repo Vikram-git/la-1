@@ -9,7 +9,7 @@ import { recordQuotationSendAction, sendQuotationNowAction } from "../actions";
 type Format = "pdf" | "png";
 type Prepared = { file: File; path: string; format: Format };
 
-// "Send quotation on WhatsApp" (2026-10-24). With WhatsApp Business (Cloud API) set up for the chosen
+// "Send Order in msg on WhatsApp" (was "Send quotation") (2026-10-24). With WhatsApp Business (Cloud API) set up for the chosen
 // format, one tap and the server sends it (Meta's approved template text goes with the file, not the caption).
 // Otherwise, or as a backup, the file goes from this device: phones get the share sheet with the file
 // attached (pick WhatsApp, then the chat); computers download the file and open the customer's WhatsApp
@@ -66,13 +66,13 @@ export function QuotationSend({
       });
       const data = (await res.json().catch(() => ({}))) as { ok?: boolean; message?: string; url?: string; path?: string; fileName?: string; contentType?: string };
       if (!res.ok || !data.ok || !data.url || !data.path || !data.fileName) {
-        setError(data.message ?? "Could not make the quotation file.");
+        setError(data.message ?? "Could not make the Order in msg file.");
         return;
       }
       const blob = await (await fetch(data.url)).blob();
       setPrepared({ file: new File([blob], data.fileName, { type: data.contentType ?? blob.type }), path: data.path, format });
     } catch {
-      setError("Could not make the quotation file. Check the connection and try again.");
+      setError("Could not make the Order in msg file. Check the connection and try again.");
     } finally {
       setBusy(false);
     }
@@ -157,13 +157,13 @@ export function QuotationSend({
             {sending ? "Sending on WhatsApp…" : "Send on WhatsApp now"}
           </button>
           <p className="text-xs text-muted">
-            Sent straight to the customer from the bakery&rsquo;s WhatsApp Business number, with the approved quotation message. No need to open WhatsApp.
+            Sent straight to the customer from the bakery&rsquo;s WhatsApp Business number, with the approved Order in msg message. No need to open WhatsApp.
           </p>
         </div>
       )}
       {cloud && <p className="text-sm font-medium text-muted">Or send it from this device</p>}
       <Textarea
-        aria-label="Message sent with the quotation"
+        aria-label="Message sent with the Order in msg"
         rows={Math.min(10, caption.split("\n").length + 1)}
         value={caption}
         onChange={(e) => setCaption(e.target.value)}
@@ -190,7 +190,7 @@ export function QuotationSend({
                 : "bg-[#1f9d55] text-white shadow-sm shadow-[#1f9d55]/25 hover:bg-[#14713c]",
             )}
           >
-            {busy ? `Preparing ${format === "pdf" ? "PDF" : "image"}…` : cloud ? "Share from this device" : "Send quotation on WhatsApp"}
+            {busy ? `Preparing ${format === "pdf" ? "PDF" : "image"}…` : cloud ? "Share from this device" : "Send Order in msg on WhatsApp"}
           </button>
         )}
         <p className="text-xs text-muted">

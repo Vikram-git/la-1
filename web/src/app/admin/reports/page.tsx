@@ -9,7 +9,7 @@ import { zonedDayKey } from "@/lib/time";
 import { parseSalesReport, reportRange } from "@/lib/report";
 import { Alert, Button, ButtonLink, Card, EmptyState, Input, PageHeader, cx } from "@/components/ui";
 
-export const metadata: Metadata = { title: "Reports" };
+export const metadata: Metadata = { title: "Analytics" };
 
 const PICKS = [
   { range: "today", label: "Today" },
@@ -77,7 +77,7 @@ export default async function ReportsPage({ searchParams }: PageProps<"/admin/re
   return (
     <>
       <PageHeader
-        title="Reports"
+        title="Analytics"
         description={`Sales by bill date (${tz}). Credit notes count on their own date; money on the day it was received.`}
         actions={report && <ButtonLink href={csvHref} prefetch={false} variant="secondary">Download CSV</ButtonLink>}
       />
@@ -124,11 +124,6 @@ export default async function ReportsPage({ searchParams }: PageProps<"/admin/re
                     label="Credit notes"
                     value={formatPaise(s.credited_paise)}
                     hint={`${s.credit_notes} issued`}
-                  />
-                  <Tile
-                    label="GST on net sales"
-                    value={formatPaise(s.net_tax_paise)}
-                    hint={`CGST ${formatPaise(s.net_cgst_paise)} · SGST ${formatPaise(s.net_sgst_paise)} · taxable ${formatPaise(s.net_taxable_paise)}`}
                   />
                   <Tile
                     label="Net collected"

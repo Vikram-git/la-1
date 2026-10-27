@@ -59,7 +59,7 @@ test("a sticky note chosen for WhatsApp is added at the end", () => {
 test("the quotation caption: greeting, one line, shop sign-off, note if chosen; never a name", () => {
   assert.equal(
     quotationCaption({ reference: "B-1042" }, "La Patisserie"),
-    "Hello Sir / Madam!\nPlease find attached the quotation for your order B-1042.\n\n— La Patisserie",
+    "Hello Sir / Madam!\nPlease find attached the order in msg for your order B-1042.\n\n— La Patisserie",
   );
   assert.match(quotationCaption({ reference: "B-1042", note: "Bring the stand back" }, "La Patisserie"), /\n\nNote: Bring the stand back$/);
 });
@@ -71,7 +71,7 @@ test("the quotation caption carries the bill: each charge, total, advance and ba
   };
   assert.equal(
     quotationCaption({ reference: "B-1042", bill }, "La Patisserie"),
-    "Hello Sir / Madam!\nPlease find attached the quotation for your order B-1042.\n\n" +
+    "Hello Sir / Madam!\nPlease find attached the order in msg for your order B-1042.\n\n" +
       "Custom cake: ₹2,500\nSet-up charges: ₹500\nDelivery charges: ₹200\n*Total: ₹3,200*\nAdvance paid: ₹1,000\n*Balance to pay: ₹2,200*\n\n— La Patisserie",
   );
   assert.match(quotationCaption({ reference: "B-1", bill: { ...bill, advancePaise: 320000, balancePaise: 0 } }, "S"), /Advance paid: ₹3,200\nFully paid ✅/);

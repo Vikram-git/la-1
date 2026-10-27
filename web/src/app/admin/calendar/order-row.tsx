@@ -4,6 +4,8 @@ import { formatTime } from "@/lib/time";
 import { cx } from "@/components/ui";
 import { ContactBadge, FulfilmentBadge, StatusBadge } from "@/components/order-badges";
 import { DeleteOrderButton } from "./delete-order";
+import { PAYMENT_TERMS } from "@/lib/brand";
+import { whatsappLink, whatsappNumber } from "@/lib/whatsapp";
 
 // Columns selected from order_summaries by the calendar page.
 export type CalendarOrder = {
@@ -53,7 +55,7 @@ function CakeDetails({ cake, fulfilment, setupAddress }: { cake: CalendarCake; f
     ["Theme", cake.theme ?? "—"],
     fulfilment === "setup"
       ? ["Location", `Set up at: ${setupAddress ?? "—"}`, "text-danger"]
-      : ["Location", "Collect from store", "text-ok"],
+      : ["Location", "Pickup/Cab", "text-ok"],
   ];
   return (
     <dl className="grid min-w-64 flex-1 grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3 xl:grid-cols-5">
@@ -64,6 +66,22 @@ function CakeDetails({ cake, fulfilment, setupAddress }: { cake: CalendarCake; f
         </div>
       ))}
     </dl>
+  );
+}
+
+// Opens WhatsApp to the customer with the payment terms typed in (owner, 2026-10-28).
+function TermsButton({ phone }: { phone: string | null }) {
+  const to = whatsappNumber(phone);
+  if (!to) return null;
+  return (
+    <a
+      href={whatsappLink(to, PAYMENT_TERMS)}
+      target="_blank"
+      rel="noreferrer"
+      className="relative z-10 whitespace-nowrap rounded-full border border-line bg-surface px-3 py-1 text-xs font-medium text-brand hover:bg-brand-soft"
+    >
+      Terms and Conditions
+    </a>
   );
 }
 
@@ -86,6 +104,7 @@ export function OrderList({ orders, tz, canDelete = false }: { orders: CalendarO
             {o.fulfilment && <FulfilmentBadge fulfilment={o.fulfilment} />}
             {o.source && <ContactBadge source={o.source} phone={o.customer_phone} />}
             {o.status && <StatusBadge status={o.status} />}
+            <TermsButton phone={o.customer_phone} />
             {canDelete && o.id && <DeleteOrderButton orderId={o.id} reference={o.reference ?? ""} />}
         </li>
       ))}

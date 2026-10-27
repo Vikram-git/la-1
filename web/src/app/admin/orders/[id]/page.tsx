@@ -26,6 +26,7 @@ import { StickyNote } from "./sticky-note";
 import { QuotationSend } from "./quotation-send";
 import { loadQuotation } from "@/lib/quotation-server";
 import { captionBill } from "@/lib/quotation";
+import { SHOP_NAME } from "@/lib/brand";
 
 export const metadata: Metadata = { title: "Order" };
 
@@ -41,7 +42,7 @@ const eventLabel: Record<string, string> = {
   discount_applied: "Discount applied",
   discount_removed: "Discount removed",
   items_changed: "Items changed",
-  bill_issued: "GST bill issued",
+  bill_issued: "Bill issued",
   credit_note_issued: "Credit note issued",
   completed: "Completed",
   ticket_acknowledged: "Kitchen acknowledged",
@@ -59,14 +60,14 @@ const eventLabel: Record<string, string> = {
   packing_reopened: "Packing reopened",
   handed_over: "Handed over",
   kitchen_tickets_retired: "Kitchen tickets retired",
-  fulfilment_changed: "Collect / set-up changed",
+  fulfilment_changed: "Pickup/Cab / set-up changed",
   item_kitchen_changed: "Kitchen changed",
   custom_cake_created: "Custom cake ordered",
   custom_cake_changed: "Custom cake changed",
   custom_cake_photo: "Cake photos changed",
   customer_message: "WhatsApp message opened",
   sticky_note_changed: "Sticky note changed",
-  quotation_sent: "Quotation sent",
+  quotation_sent: "Order in msg sent",
 };
 
 const QUOTATION_CHANNEL: Record<string, string> = {
@@ -162,7 +163,7 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
       .filter((i) => i.quantity > i.cancelled_quantity)
       .map((i) => ({ name: `${i.product_name} — ${i.variant_name}`, quantity: i.quantity - i.cancelled_quantity })),
   };
-  const messageContext = { shop: settings?.business_name ?? "La Patisserie", timeZone: tz, reviewUrl: `${proto}://${host}/#testimonials` };
+  const messageContext = { shop: settings?.business_name ?? SHOP_NAME, timeZone: tz, reviewUrl: `${proto}://${host}/#testimonials` };
   const messages = availableMessages(messageOrder).map((kind) => ({ kind, text: messageText(kind, messageOrder, messageContext) }));
   const quotation = await loadQuotation(supabase, id);
   const caption = quotationCaption(
@@ -197,7 +198,7 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
             </div>
             <div className="text-right">
               <p className="font-medium">{formatPaise(i.line_total_paise)}</p>
-              <p className="text-xs text-muted">{formatPaise(i.unit_price_paise)} each · GST {i.tax_rate_bps / 100}%</p>
+              <p className="text-xs text-muted">{formatPaise(i.unit_price_paise)} each</p>
             </div>
           </li>
         );
@@ -217,7 +218,7 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
             <span>/</span>
             <SourceBadge source={order.source} />
             <StatusBadge status={order.status} />
-            {kitchen && <Badge tone="info">{kitchen.name} · {cake ? "Custom orders" : "Web orders"}</Badge>}
+            {kitchen && <Badge tone="info">{kitchen.name} · {cake ? "Customised orders" : "Online orders"}</Badge>}
           </span>
         }
       />
@@ -308,7 +309,6 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
                   </div>
                 </>
               )}
-              <div className="flex justify-between"><dt className="text-muted">Included GST</dt><dd>{formatPaise(order.tax_paise ?? 0)}</dd></div>
               <div className="flex justify-between text-base font-semibold"><dt>Total</dt><dd>{formatPaise(order.total_paise ?? 0)}</dd></div>
               {(order.credited_paise ?? 0) > 0 && (
                 <div className="flex justify-between text-danger"><dt>Credited</dt><dd>−{formatPaise(order.credited_paise ?? 0)}</dd></div>
@@ -401,8 +401,8 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
 
         <Card>
           <div className="mb-3 flex flex-wrap items-baseline justify-between gap-3">
-            <h2 className="text-lg font-semibold">Quotation</h2>
-            <ButtonLink href={`/print/quotation/${order.id}`} variant="secondary" className="py-1.5!">Open quotation</ButtonLink>
+            <h2 className="text-lg font-semibold">Order in msg</h2>
+            <ButtonLink href={`/print/quotation/${order.id}`} variant="secondary" className="py-1.5!">Open Order in msg</ButtonLink>
           </div>
           <div className="grid gap-6 lg:grid-cols-2">
             <QuotationSend
@@ -419,7 +419,7 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
                   {quotationSends.map((s) => (
                     <li key={s.id} className="rounded-xl border border-line px-3 py-2">
                       <p className="font-medium">
-                        {s.status === "failed" ? "WhatsApp did not send the quotation" : "Quotation sent"} on {formatDateTime(s.sent_at, tz)} by {who(s.sent_by)}
+                        {s.status === "failed" ? "WhatsApp did not send the Order in msg" : "Order in msg sent"} on {formatDateTime(s.sent_at, tz)} by {who(s.sent_by)}
                       </p>
                       <p className="text-xs text-muted">
                         {s.format === "pdf" ? "PDF" : "Image (PNG)"} · {QUOTATION_CHANNEL[s.channel] ?? s.channel}
@@ -497,7 +497,7 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
           </Card>
 
           <Card>
-            <h2 className="mb-3 text-lg font-semibold">GST bill</h2>
+            <h2 className="mb-3 text-lg font-semibold">Bill</h2>
             <BillPanel
               key={`b-${order.version}`}
               orderId={order.id}
@@ -557,7 +557,7 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
                     )}
                     {e.event_type === "fulfilment_changed" && typeof data.to === "string" && (
                       <p className="text-xs">
-                        {data.to === "setup" ? `Set up at ${typeof data.setup_address === "string" ? data.setup_address : "the customer's place"}` : "Collect from store"}
+                        {data.to === "setup" ? `Set up at ${typeof data.setup_address === "string" ? data.setup_address : "the customer's place"}` : "Pickup/Cab"}
                       </p>
                     )}
                     {e.event_type === "handed_over" && typeof data.collected_by === "string" && (

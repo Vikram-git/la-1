@@ -108,6 +108,8 @@ export default async function CalendarPage({ searchParams }: PageProps<"/admin/c
   const byDay: OrdersByDay = new Map();
   for (const o of orders ?? []) {
     if (!o.due_at) continue;
+    // The online calendar never shows customised (custom cake) orders, whatever kitchen they are in.
+    if (kind === "web" && o.id && cakeByOrder.has(o.id)) continue;
     const key = zonedDayKey(o.due_at, tz);
     byDay.set(key, [...(byDay.get(key) ?? []), { ...o, cake: o.id ? cakeByOrder.get(o.id) ?? null : null }]);
   }
@@ -133,7 +135,7 @@ export default async function CalendarPage({ searchParams }: PageProps<"/admin/c
       <LiveRefresh />
       <PageHeader
         title={`${orderKindLabel[kind]} calendar`}
-        description={`${kind === "custom" ? "Custom cake orders, made in Kitchen 1" : "Website, in-store and call orders, made in Kitchen 2"}, by pickup or set-up time (${tz}). Green: collect from store. Red: set up at the customer's place. Orders appear here once they are confirmed.`}
+        description={`${kind === "custom" ? "Customised orders, made in Kitchen 1" : "Website, in-store and call orders, made in Kitchen 2"}, by pickup or set-up time (${tz}). Green: Pickup/Cab. Red: set up at the customer's place. Orders appear here once they are confirmed.`}
       />
 
       <nav aria-label="Calendars" className="mb-4 flex flex-wrap gap-2">
@@ -194,10 +196,10 @@ export default async function CalendarPage({ searchParams }: PageProps<"/admin/c
           </Select>
         </div>
         <div>
-          <label htmlFor="fulfil" className="sr-only">Collect or set up</label>
+          <label htmlFor="fulfil" className="sr-only">Pickup/Cab or set up</label>
           <Select id="fulfil" name="fulfil" defaultValue={fulfil}>
-            <option value="">Collect and set up</option>
-            <option value="collect">Collect only</option>
+            <option value="">Pickup/Cab and set up</option>
+            <option value="collect">Pickup/Cab only</option>
             <option value="setup">Set up only</option>
           </Select>
         </div>

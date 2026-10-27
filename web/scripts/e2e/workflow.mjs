@@ -57,7 +57,7 @@ const vegPuff = await variant("Veg Puff%", "%");
 check("catalogue variants found", Boolean(blackForest && vegPuff), `${blackForest} ${vegPuff}`);
 
 // --- Admin pages ---------------------------------------------------------------------------------
-for (const path of ["/admin", "/admin/orders", "/admin/calendar", "/admin/calendar?kind=custom", "/admin/products", "/admin/staff", "/admin/customers", "/admin/reports", "/admin/settings", "/admin/offers", "/admin/reviews", "/admin/gallery", "/admin/notifications", "/admin/orders/new?source=CALL", "/admin/orders/new-cake"]) {
+for (const path of ["/admin", "/admin/orders", "/admin/calendar", "/admin/calendar?kind=custom", "/admin/products", "/admin/staff", "/admin/customers", "/admin/reports", "/admin/settings", "/admin/sales-report", "/admin/reviews", "/admin/gallery", "/admin/notifications", "/admin/orders/new?source=CALL", "/admin/orders/new-cake"]) {
   const p = await page(path, admin.cookie);
   check(`admin page ${path}`, p.status === 200, `status ${p.status} ${p.location ?? ""}`);
 }
@@ -105,24 +105,24 @@ if (!bill) {
   bill = (await admin.sb.from("bills").select("id").eq("order_id", callId).maybeSingle()).data;
 }
 let p = await page(`/print/bill/${bill?.id}`, counter.cookie);
-check("bill prints with shop details", p.status === 200 && p.body.includes(call.reference) && p.body.includes("Korattur"), `status ${p.status}`);
+check("bill prints with shop details and no GST", p.status === 200 && p.body.includes(call.reference) && p.body.includes("Korattur") && p.body.includes("La Patisserie") && !/GST|TAX INVOICE/.test(p.body), `status ${p.status}`);
 
 // --- Custom cake → quotation → send log → sticky note -------------------------------------------
 r = await act("createCustomCakeOrderAction", "/admin/orders/new-cake", { idempotencyKey: crypto.randomUUID(), source: "CALL", customerName: `E2E Cake ${tag}`, customerPhone: "9000099904",
   dueLocal: `${tomorrow}T17:00`, price: "2500", advance: "1000", advanceMethod: "upi", confirm: true, fulfilment: "setup", setupAddress: "12 Anna Nagar, Chennai",
-  cake: { flavour: "Rasmalai", weightKg: "1.5", tiers: "1", theme: "Floral", message: "Happy Birthday Anu", isEggless: true, cupcakeCount: "6", popsicleCount: "0", setupCharge: "500", deliveryCharge: "200" } }, admin.cookie);
+  cake: { flavour: "Rasmalai", weightKg: "1.5", tiers: "1", theme: "Floral", message: "Happy Birthday Anu", isEggless: true, cupcakeCount: "6", popsicleCount: "0", setupCharge: "500", deliveryCharge: "200", hasAddon: true, addonDetails: "Gold balloons", addonCharge: "300" } }, admin.cookie);
 check("admin creates confirmed custom cake order", r.ok === true, JSON.stringify(r));
 const cakeId = r.orderId;
 const cake = (await admin.sb.from("order_summaries").select("*").eq("id", cakeId).single()).data;
-check("custom cake total = price + set-up + delivery, advance paid", cake?.total_paise === 320000 && cake.balance_paise === 220000, `total ${cake?.total_paise} balance ${cake?.balance_paise}`);
+check("custom cake total = price + set-up + delivery + add-on, advance paid", cake?.total_paise === 350000 && cake.balance_paise === 250000, `total ${cake?.total_paise} balance ${cake?.balance_paise}`);
 p = await page(`/admin/orders/${cakeId}`, counter.cookie);
-check("order page shows cupcakes and quotation", p.status === 200 && /Cupcakes.{0,80}>6</.test(p.body) && p.body.includes("Quotation"), `status ${p.status}`);
+check("order page shows cupcakes, add-on and Order in msg", p.status === 200 && /Cupcakes.{0,80}>6</.test(p.body) && p.body.includes("Gold balloons") && p.body.includes("Order in msg") && !p.body.replace(/<script[\s\S]*?<\/script>/g, "").includes("Quotation"), `status ${p.status}`);
 let q = await quotationFile(cakeId, "pdf", counter.cookie);
-check("counter makes quotation PDF", q.status === 200 && q.body.fileName === `LaPatisserie-Quotation-${cake.reference}.pdf`, JSON.stringify(q.body).slice(0, 200));
+check("counter makes Order in msg PDF", q.status === 200 && q.body.fileName === `LaPatisserieMadras-Order-in-msg-${cake.reference}.pdf`, JSON.stringify(q.body).slice(0, 200));
 if (q.body.url) {
   const bytes = Buffer.from(await (await fetch(q.body.url)).arrayBuffer());
   check("signed link returns a PDF", bytes.subarray(0, 4).toString() === "%PDF", `${bytes.length} bytes`);
-  r = await act("recordQuotationSendAction", `/admin/orders/${cakeId}`, { orderId: cakeId, format: "pdf", channel: "download_and_chat", path: q.body.path, caption: `Quotation ${cake.reference}` }, counter.cookie);
+  r = await act("recordQuotationSendAction", `/admin/orders/${cakeId}`, { orderId: cakeId, format: "pdf", channel: "download_and_chat", path: q.body.path, caption: `Order in msg ${cake.reference}` }, counter.cookie);
   check("quotation send recorded", r.ok === true, JSON.stringify(r));
 }
 q = await quotationFile(cakeId, "png", admin.cookie);
@@ -135,13 +135,14 @@ check("one-tap send explains when WhatsApp Business is not set up", r.ok === tru
 r = await act("setStickyNoteAction", `/admin/orders/${cakeId}`, { orderId: cakeId, note: "Gold leaf on top", inWhatsApp: true }, counter.cookie);
 check("sticky note saved", r.ok === true, JSON.stringify(r));
 p = await page(`/admin/orders/${cakeId}`, admin.cookie);
-check("order page shows sticky note and send log", p.body.includes("Gold leaf on top") && /Quotation (sent|downloaded|shared)/i.test(p.body), `status ${p.status}`);
+check("order page shows sticky note and send log", p.body.includes("Gold leaf on top") && /Order in msg sent/.test(p.body), `status ${p.status}`);
 p = await page(`/print/quotation/${cakeId}`, admin.cookie);
 check("quotation print page shows price and note", p.status === 200 && hasPrice(p.body) && p.body.includes("Gold leaf on top"), `status ${p.status}`);
 p = await page(`/admin/calendar?kind=custom&from=${tomorrow}`, admin.cookie);
 check("custom calendar lists the cake, not the call order", p.body.includes(cake.reference) && !p.body.includes(call.reference), `status ${p.status}`);
 p = await page(`/admin/calendar?from=${tomorrow}`, admin.cookie);
-check("orders calendar lists the call order", p.body.includes(call.reference), `status ${p.status}`);
+check("online calendar lists the call order, not the cake", p.body.includes(call.reference) && !p.body.includes(cake.reference), `status ${p.status}`);
+check("calendar has the Terms and Conditions button", p.body.includes("Terms and Conditions") && p.body.includes("wa.me"), `status ${p.status}`);
 
 // --- Kitchens -------------------------------------------------------------------------------------
 const kitchenOf = async (id) => (await admin.sb.from("orders").select("kitchens(code)").eq("id", id).single()).data?.kitchens?.code;
@@ -155,7 +156,7 @@ for (const [chef, code] of [[chef1, "K1"], [chef2, "K2"]]) {
   check(`${code} sees its own custom cake only`, html.includes(cake.reference) === (routes.cake === code), `cake → ${routes.cake}`);
   check(`${code} sees its own website order only`, html.includes(web.reference) === (routes.web === code), `web → ${routes.web}`);
   const kq = await page(`/kitchen/quotation/${cakeId}`, chef.cookie);
-  if (routes.cake === code) check(`${code} kitchen quotation has no prices`, kq.status === 200 && kq.body.includes("Rasmalai") && !hasPrice(kq.body), `status ${kq.status}`);
+  if (routes.cake === code) check(`${code} kitchen Order in msg has the add-on but no prices`, kq.status === 200 && kq.body.includes("Rasmalai") && kq.body.includes("Gold balloons") && !hasPrice(kq.body), `status ${kq.status}`);
   else check(`${code} cannot open another kitchen's quotation`, kq.status !== 200 || !kq.body.includes("Rasmalai"), `status ${kq.status}`);
   const api = await quotationFile(cakeId, "pdf", chef.cookie);
   check(`${code} chef gets 403 from quotation file`, api.status === 403, `status ${api.status}`);
@@ -186,11 +187,19 @@ check("staff page has no Add staff member form", p.status === 200 && !p.body.inc
 
 // --- WhatsApp quotation text carries the bill; cake sheet sends a PNG ----------------------------
 p = await page(`/admin/orders/${cakeId}`, admin.cookie);
-check("quotation message lists set-up, delivery, total, advance and balance",
-  ["Set-up charges: ₹500", "Delivery charges: ₹200", "Total: ₹3,200", "Advance paid: ₹1,000", "Balance to pay: ₹2,200"].every((t) => p.body.includes(t)), `status ${p.status}`);
+check("Order in msg text lists set-up, delivery, add-on, total, advance and balance",
+  ["Set-up charges: ₹500", "Delivery charges: ₹200", "Add-on: ₹300", "Total: ₹3,500", "Advance paid: ₹1,000", "Balance to pay: ₹2,500"].every((t) => p.body.includes(t)), `status ${p.status}`);
 p = await page(`/print/cake/${cakeId}`, counter.cookie);
-check("cake sheet shows the bill and sends the quotation, image first",
-  p.status === 200 && p.body.includes("Send the quotation to the customer") && p.body.includes("Balance to pay") && /checked=""[^>]*value="png"|value="png"[^>]*checked/.test(p.body), `status ${p.status}`);
+check("cake sheet shows the bill, add-on and T&C, and sends the Order in msg, image first",
+  p.status === 200 && p.body.includes("Send the Order in msg to the customer") && p.body.includes("Balance to pay") && p.body.includes("Gold balloons") && p.body.includes("Terms") && /checked=""[^>]*value="png"|value="png"[^>]*checked/.test(p.body), `status ${p.status}`);
+
+// --- Dashboard and Reports -------------------------------------------------------------------------
+p = await page("/admin", admin.cookie);
+check("dashboard has the renamed tiles and buttons", ["Due today (Online orders)", "Due today (Customised order)", "Online Orders", "Customised order"].every((t) => p.body.includes(t)) && !/GST/.test(p.body), `status ${p.status}`);
+p = await page(`/admin/sales-report?range=custom&from=${tomorrow}&to=${tomorrow}`, admin.cookie);
+check("reports list the sold cake with kg and a total", p.status === 200 && p.body.includes("9000099904") && p.body.includes("1.5") && p.body.includes("Total"), `status ${p.status}`);
+p = await page("/admin/sales-report", counter.cookie);
+check("counter kept out of reports", p.status !== 200 || p.body.includes("NEXT_REDIRECT"), `${p.status} ${p.location ?? ""}`);
 
 // --- Delete from the calendar ----------------------------------------------------------------------
 p = await page(`/admin/calendar?from=${later}`, admin.cookie);

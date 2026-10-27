@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, type ReactNode } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -13,19 +12,20 @@ import {
   Images,
   LayoutDashboard,
   LogOut,
-  Megaphone,
   Menu,
   Package,
   Search,
   Settings,
   ShoppingCart,
   Star,
+  Table2,
   UserCog,
   Users,
   X,
   type LucideIcon,
 } from "lucide-react";
-import { Brand, ScriptText, cx } from "@/components/ui";
+import { Brand, cx } from "@/components/ui";
+import { SHOP_NAME } from "@/lib/brand";
 import { isActivePath, type NavIcon, type NavSection } from "@/lib/shell";
 import { signOut } from "@/app/login/actions";
 
@@ -39,10 +39,10 @@ const ICONS: Record<NavIcon, LucideIcon> = {
   staff: UserCog,
   settings: Settings,
   bell: Bell,
-  offers: Megaphone,
   reviews: Star,
   kitchen: ChefHat,
   gallery: Images,
+  reports: Table2,
 };
 
 type Counts = { pending: number; reviews: number; attention: number };
@@ -51,7 +51,7 @@ function SidebarContent({ sections, counts, onNavigate }: { sections: NavSection
   const pathname = usePathname();
   return (
     <div className="flex h-full flex-col overflow-y-auto">
-      <Link href="/admin" onClick={onNavigate} className="px-4 pb-5 pt-6" aria-label="La Patisserie, Dashboard">
+      <Link href="/admin" onClick={onNavigate} className="px-4 pb-5 pt-6" aria-label={`${SHOP_NAME}, Dashboard`}>
         <Brand />
       </Link>
       <nav aria-label="Admin" className="flex flex-1 flex-col gap-4 px-3">
@@ -95,14 +95,7 @@ function SidebarContent({ sections, counts, onNavigate }: { sections: NavSection
           </div>
         ))}
       </nav>
-      <div className="relative mt-4 h-40 shrink-0 overflow-hidden">
-        <ScriptText className="absolute left-5 top-1 z-10 block -rotate-6 text-[26px]">
-          Baked with Love,
-          <br />
-          &nbsp;&nbsp;Always ♥
-        </ScriptText>
-        <Image src="/brand/chocolate.jpg" alt="" fill sizes="256px" className="object-cover object-[50%_70%] opacity-90 [mask-image:linear-gradient(to_bottom,transparent,black_45%)]" />
-      </div>
+      <div className="h-6 shrink-0" />
     </div>
   );
 }
@@ -192,8 +185,7 @@ export function AdminShell({
                 className="w-full rounded-2xl border border-line bg-surface py-2.5 pl-10 pr-4 text-sm placeholder:text-muted/80 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
               />
             </form>
-            <ScriptText className="ml-auto hidden -rotate-3 whitespace-nowrap text-3xl xl:block">Good Cakes, Better Days ♥</ScriptText>
-            <div className="ml-auto flex items-center gap-2 xl:ml-4">
+            <div className="ml-auto flex items-center gap-2">
               <Link
                 href="/admin/notifications"
                 aria-label={counts.attention > 0 ? `${counts.attention} things need attention` : "Nothing needs attention"}
@@ -216,10 +208,7 @@ export function AdminShell({
         </main>
 
         <footer className="px-4 pb-8 pt-4 text-center">
-          <p className="font-display text-sm italic text-muted">
-            Cakes don&apos;t just fill stomachs, they fill hearts. <span className="text-brand">♥</span>
-          </p>
-          <p className="mt-1 font-display text-sm uppercase tracking-[0.3em] text-ink">La Patisserie</p>
+          <p className="font-caps text-sm uppercase tracking-[0.3em] text-ink">{SHOP_NAME}</p>
         </footer>
       </div>
     </div>

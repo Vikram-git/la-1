@@ -8,7 +8,6 @@ import { OPEN_STATUSES, fulfilmentRowClass } from "@/lib/orders";
 import { addDays, formatDateTime, zonedDayKey, zonedDayRange } from "@/lib/time";
 import { Badge, ButtonLink, Card, PageHeader, cx } from "@/components/ui";
 import { ContactBadge, FulfilmentBadge, StatusBadge } from "@/components/order-badges";
-import { netCollected } from "@/lib/home";
 import { LiveRefresh } from "@/components/live-refresh";
 
 export const metadata: Metadata = { title: "Home" };
@@ -32,37 +31,30 @@ export default async function AdminHome() {
   const nowIso = new Date().toISOString();
   const supabase = await createClient();
 
-  const [dueToday, pending, overdue, upcoming, settings, products, readyOrders, paidToday] = await Promise.all([
+  const [dueToday, pending, cakes, upcoming, products, readyOrders] = await Promise.all([
     supabase.from("order_summaries").select("id, source, status, balance_paise").in("status", OPEN_STATUSES)
       .gte("due_at", start.toISOString()).lt("due_at", end.toISOString()),
     supabase.from("orders").select("id", { count: "exact", head: true }).eq("status", "pending_confirmation"),
-    supabase.from("orders").select("id", { count: "exact", head: true }).in("status", OPEN_STATUSES).lt("due_at", nowIso),
+    // Customised orders are the ones with a custom cake (as on the Orders page).
+    supabase.from("custom_cakes").select("order_id"),
     supabase.from("order_summaries").select("id, reference, source, status, customer_name, customer_phone, due_at, fulfilment").in("status", OPEN_STATUSES)
       .gte("due_at", end.toISOString()).lt("due_at", weekEnd.toISOString()).order("due_at").limit(10),
-    supabase.from("business_settings").select("gstin, fssai_licence").single(),
     supabase.from("products").select("id", { count: "exact", head: true }).is("archived_at", null),
     supabase.from("order_summaries").select("id, reference, source, customer_name, customer_phone, due_at, balance_paise, fulfilment")
       .eq("status", "ready").order("due_at").limit(20),
-    // Money received today (payment dates, like the sales report); admins only.
-    isAdmin
-      ? supabase.from("payments").select("kind, amount_paise").gte("recorded_at", start.toISOString()).lt("recorded_at", end.toISOString())
-      : Promise.resolve({ data: null }),
   ]);
 
   const todays = dueToday.data ?? [];
-  const inStore = todays.filter((o) => o.source === "IN_STORE").length;
+  const cakeIds = new Set((cakes.data ?? []).map((c) => c.order_id));
+  const customisedToday = todays.filter((o) => o.id && cakeIds.has(o.id)).length;
   const balanceDue = todays.reduce((s, o) => s + Math.max(0, o.balance_paise ?? 0), 0);
   // Packed and waiting for the customer; past the pickup time they are late collections (PRD 5D).
   const ready = readyOrders.data ?? [];
   const isLate = (due: string | null) => Boolean(due && Date.parse(due) < Date.parse(nowIso));
   const late = ready.filter((o) => isLate(o.due_at)).length;
 
-  const preparingToday = todays.filter((o) => o.status === "preparing").length;
-  const readyToday = todays.filter((o) => o.status === "ready").length;
-
   const setup = [
     { done: (products.count ?? 0) > 0, label: "Add categories and products", href: "/admin/products" },
-    { done: Boolean(settings.data?.gstin && settings.data?.fssai_licence), label: "Enter GSTIN and FSSAI licence number", href: "/admin/settings" },
   ];
   const setupOpen = isAdmin && setup.some((s) => !s.done);
 
@@ -71,28 +63,24 @@ export default async function AdminHome() {
       <LiveRefresh />
       <PageHeader
         title={`Hello, ${staff.fullName.split(" ")[0]}`}
-        description={`Today is ${formatDateTime(new Date(), tz).split(",")[0]}. “Due today” counts pickups, not orders created today.`}
+        description={`Today is ${formatDateTime(new Date(), tz).split(",")[0]}.`}
         actions={
           <>
             <ButtonLink href="/admin/calendar" variant="secondary">Open calendar</ButtonLink>
-            <ButtonLink href="/admin/orders/new-cake" variant="secondary">New custom cake order</ButtonLink>
+            <ButtonLink href="/admin/orders/new-cake" variant="secondary">Customised order</ButtonLink>
             <ButtonLink href="/admin/orders/new?source=CALL" variant="secondary">New call order</ButtonLink>
-            <ButtonLink href="/admin/orders/new?source=IN_STORE">New in-store order</ButtonLink>
+            <ButtonLink href="/admin/orders/new?source=IN_STORE">Online Orders</ButtonLink>
           </>
         }
       />
 
       <div className="flex flex-col gap-6">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Stat label="Due today (open)" value={todays.length} href="/admin/orders?when=today" />
+          <Stat label="Due today (Online orders)" value={todays.length - customisedToday} href="/admin/orders?when=today" />
           <Stat label="Awaiting confirmation" value={pending.count ?? 0} href="/admin/orders?list=online_call&when=all&status=pending_confirmation" tone={(pending.count ?? 0) > 0 ? "warn" : undefined} />
-          <Stat label="Overdue" value={overdue.count ?? 0} href="/admin/orders?when=overdue" tone={(overdue.count ?? 0) > 0 ? "danger" : undefined} />
+          <Stat label="Due today (Customised order)" value={customisedToday} href="/admin/orders?list=custom&when=today" />
           <Stat label="Balance due today" value={formatPaise(balanceDue)} href="/admin/orders?when=today" />
         </div>
-        <p className="-mt-3 text-sm text-muted">
-          Due today: {inStore} in-store · {todays.length - inStore} online / call / customer · {preparingToday} preparing · {readyToday} ready.
-          {paidToday.data && <> Collected today (payments minus refunds): {formatPaise(netCollected(paidToday.data))}.</>}
-        </p>
 
         {ready.length > 0 && (
           <Card>

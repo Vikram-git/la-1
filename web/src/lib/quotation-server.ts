@@ -11,14 +11,14 @@ export async function loadQuotation(supabase: SupabaseClient<Database>, orderId:
   if (error) {
     if (error.code === "P0001" && error.hint === "forbidden") return { ok: false, status: 403, message: error.message };
     if (error.code === "P0001" && error.hint === "not_found") return { ok: false, status: 404, message: error.message };
-    if (error.code === "42501") return { ok: false, status: 403, message: "You do not have access to quotations." };
+    if (error.code === "42501") return { ok: false, status: 403, message: "You do not have access to the Order in msg." };
     console.error("order_quotation failed", error.code, error.message);
-    return { ok: false, status: 500, message: "Could not load the quotation." };
+    return { ok: false, status: 500, message: "Could not load the Order in msg." };
   }
   try {
     return { ok: true, quotation: parseQuotation(data) };
   } catch (e) {
     console.error("order_quotation returned an unexpected shape", e);
-    return { ok: false, status: 500, message: "Could not read the quotation." };
+    return { ok: false, status: 500, message: "Could not read the Order in msg." };
   }
 }

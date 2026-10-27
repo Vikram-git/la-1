@@ -149,7 +149,7 @@ export function OrderEntry({
             </ul>
           )}
           <div className="mt-3 flex items-center justify-between border-t border-line pt-3">
-            <span className="text-sm text-muted">Total (incl. GST)</span>
+            <span className="text-sm text-muted">Total</span>
             <span className="text-xl font-semibold">{formatPaise(total)}</span>
           </div>
         </Card>

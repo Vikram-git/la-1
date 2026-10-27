@@ -687,7 +687,7 @@ const quotationSendSchema = z.object({
 export async function recordQuotationSendAction(input: z.input<typeof quotationSendSchema>): Promise<Result> {
   await assertRole(["admin", "counter"]);
   const parsed = quotationSendSchema.safeParse(input);
-  if (!parsed.success) return { message: "The quotation could not be recorded." };
+  if (!parsed.success) return { message: "The Order in msg could not be recorded." };
   const { orderId, format, channel, path, caption } = parsed.data;
   const supabase = await createClient();
   const { error } = await supabase.rpc("record_quotation_send", {

@@ -1,4 +1,4 @@
-// The quotation (2026-10-24): one model, read from public.order_quotation, drawn three ways — the page,
+// The "Order in msg" (was "Quotation", renamed 2026-10-28): one model, read from public.order_quotation, drawn three ways — the page,
 // the PDF and the PNG. "full" (admin, counter) carries every amount; "kitchen" (chefs) carries none: the
 // database leaves the amount keys out, and parseQuotation drops them again so no view can show one.
 import { z } from "zod";
@@ -6,14 +6,16 @@ import { cakeRows, type CakeInfo } from "./kitchen.ts";
 import { formatPaise } from "./money.ts";
 import { formatDateTime } from "./time.ts";
 import type { CaptionBill } from "./whatsapp.ts";
+import { SHOP_ADDRESS, SHOP_NAME } from "./brand.ts";
 
-// The app's palette (globals.css) for the PDF and PNG, which cannot read CSS variables.
+// The brand palette (globals.css) for the PDF and PNG, which cannot read CSS variables: black on white,
+// the drip's pink and teal, chocolate for emphasis.
 export const QUOTATION_COLOURS = {
-  ink: "#3a2a30", muted: "#7d6870", brand: "#b93f63", brandStrong: "#9c3253", soft: "#fde7ee", canvas: "#fdf5f6", line: "#f1dde3", gold: "#9a634e",
+  ink: "#111111", muted: "#6f625c", brand: "#e8838a", brandStrong: "#4a2418", soft: "#fbe4e5", canvas: "#f7f3ee", line: "#eadfd6", gold: "#26c6bc",
 };
 
 export type QuotationMode = "full" | "kitchen";
-export type LineKind = "cake" | "setup" | "delivery" | "item";
+export type LineKind = "cake" | "setup" | "delivery" | "addon" | "item";
 
 export type QuotationLine = {
   lineNo: number;
@@ -85,7 +87,7 @@ const raw = z.object({
       name: z.string(),
       variant: z.string(),
       quantity: z.number(),
-      kind: z.enum(["cake", "setup", "delivery", "item"]),
+      kind: z.enum(["cake", "setup", "delivery", "addon", "item"]),
       is_eggless: z.boolean().default(false),
       notes: text,
       unit_price_paise: paise.optional(),
@@ -108,7 +110,7 @@ const raw = z.object({
 export function parseQuotation(value: unknown): Quotation {
   const q = raw.parse(value);
   const full = q.mode === "full";
-  if (full && !q.amounts) throw new Error("The quotation has no amounts.");
+  if (full && !q.amounts) throw new Error("The Order in msg has no amounts.");
   return {
     mode: q.mode,
     timeZone: q.timezone,
@@ -170,7 +172,7 @@ export function captionBill(q: Quotation): CaptionBill | null {
   if (q.mode !== "full" || !q.amounts) return null;
   const priced = q.lines.filter((l) => (l.lineTotalPaise ?? 0) > 0 || l.kind === "cake" || l.kind === "item");
   const label = (l: QuotationLine) =>
-    l.kind === "setup" || l.kind === "delivery" ? l.name : `${l.kind === "item" ? `${l.quantity} × ` : ""}${l.name}${l.variant ? ` (${l.variant})` : ""}`;
+    l.kind === "setup" || l.kind === "delivery" || l.kind === "addon" ? l.name : `${l.kind === "item" ? `${l.quantity} × ` : ""}${l.name}${l.variant ? ` (${l.variant})` : ""}`;
   const shown = priced.slice(0, CAPTION_ITEM_LINES).map((l) => ({ label: label(l), paise: l.lineTotalPaise ?? 0 }));
   const rest = priced.slice(CAPTION_ITEM_LINES);
   if (rest.length) shown.push({ label: `Other items (${rest.length})`, paise: rest.reduce((s, l) => s + (l.lineTotalPaise ?? 0), 0) });
@@ -185,10 +187,10 @@ export function captionBill(q: Quotation): CaptionBill | null {
 
 // File names never carry the customer's name.
 export function quotationFileName(reference: string, format: "pdf" | "png"): string {
-  return `LaPatisserie-Quotation-${reference.replace(/[^A-Za-z0-9-]/g, "")}.${format}`;
+  return `LaPatisserieMadras-Order-in-msg-${reference.replace(/[^A-Za-z0-9-]/g, "")}.${format}`;
 }
 
-export const LINE_KIND_LABEL: Record<LineKind, string> = { cake: "Custom cake", setup: "Set-up", delivery: "Delivery", item: "Item" };
+export const LINE_KIND_LABEL: Record<LineKind, string> = { cake: "Custom cake", setup: "Set-up", delivery: "Delivery", addon: "Add on", item: "Item" };
 
 // Everything a quotation shows, already as text, so the three renderers draw the same thing.
 export type QuotationView = {
@@ -207,19 +209,19 @@ export function quotationView(q: Quotation, issuedAt: Date = new Date()): Quotat
   const tz = q.timeZone;
   const priced = q.mode === "full" && q.amounts !== null;
   const facts = [
-    { label: "Quotation no.", value: q.order.reference },
+    { label: "Order no.", value: q.order.reference },
     { label: "Date", value: formatDate(issuedAt, tz) },
     {
       label: q.order.fulfilment === "setup" ? "Set-up date & time" : "Pickup date & time",
       value: q.order.dueAt ? formatDateTime(q.order.dueAt, tz) : "To be confirmed",
     },
-    { label: "Venue", value: q.order.fulfilment === "setup" ? (q.order.setupAddress ?? "To be confirmed") : `Collect from ${q.shop.name}` },
+    { label: "Venue", value: q.order.fulfilment === "setup" ? (q.order.setupAddress ?? "To be confirmed") : "Pickup/Cab" },
   ];
   if (!priced && q.order.kitchen) facts.push({ label: "Kitchen", value: q.order.kitchen });
 
   const lines = q.lines.map((l) => ({
     key: l.lineNo,
-    title: l.kind === "setup" || l.kind === "delivery" ? `${LINE_KIND_LABEL[l.kind]} — ${l.variant}` : `${l.name} — ${l.variant}`,
+    title: l.kind === "setup" || l.kind === "delivery" || l.kind === "addon" ? `${LINE_KIND_LABEL[l.kind]} — ${l.variant}` : `${l.name} — ${l.variant}`,
     detail: [l.isEggless ? "Eggless" : null, l.notes].filter(Boolean).join(" · ") || null,
     quantity: String(l.quantity),
     unit: priced && l.unitPricePaise !== null ? formatPaise(l.unitPricePaise) : null,
@@ -233,7 +235,6 @@ export function quotationView(q: Quotation, issuedAt: Date = new Date()): Quotat
       totals.push({ label: "Subtotal", value: formatPaise(a.subtotalPaise) });
       totals.push({ label: "Discount", value: `−${formatPaise(a.discountPaise)}` });
     }
-    totals.push({ label: "Included GST", value: formatPaise(a.taxPaise) });
     totals.push({ label: "Total", value: formatPaise(a.totalPaise), strong: true });
     if (a.creditedPaise > 0) totals.push({ label: "Credited", value: `−${formatPaise(a.creditedPaise)}` });
     totals.push({ label: "Advance paid", value: formatPaise(a.advancePaise) });
@@ -246,9 +247,9 @@ export function quotationView(q: Quotation, issuedAt: Date = new Date()): Quotat
 
   return {
     priced,
-    title: priced ? "Quotation" : "Kitchen quotation",
-    shopName: q.shop.name,
-    shopContact: [q.shop.address, q.shop.phone, q.shop.email].filter((v): v is string => Boolean(v)),
+    title: priced ? "Order in msg" : "Order in msg (kitchen)",
+    shopName: SHOP_NAME,
+    shopContact: [SHOP_ADDRESS, q.shop.phone, q.shop.email].filter((v): v is string => Boolean(v)),
     facts,
     cake: q.cake ? cakeRows(q.cake) : [],
     lines,

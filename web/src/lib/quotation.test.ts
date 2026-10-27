@@ -43,7 +43,7 @@ test("the full quotation carries every amount: lines, set-up, delivery, total, a
     ["Delivery — Within 10 km", "₹300.00"],
   ]);
   assert.deepEqual(v.totals.map((t) => `${t.label} ${t.value}`), [
-    "Included GST ₹300.00", "Total ₹6,300.00", "Advance paid ₹2,000.00", "Balance ₹4,300.00",
+    "Total ₹6,300.00", "Advance paid ₹2,000.00", "Balance ₹4,300.00",
   ]);
   assert.ok(v.facts.some((f) => f.label === "Venue" && f.value === "5 Lake View Road"));
   assert.ok(v.cake.some((r) => r.label === "Message on cake" && r.value.includes("Happy 5th")));
@@ -90,6 +90,23 @@ test("a full quotation without amounts is refused rather than shown as free", ()
 });
 
 test("file names use the order number only", () => {
-  assert.equal(quotationFileName("B-1042", "pdf"), "LaPatisserie-Quotation-B-1042.pdf");
-  assert.equal(quotationFileName("B-1042", "png"), "LaPatisserie-Quotation-B-1042.png");
+  assert.equal(quotationFileName("B-1042", "pdf"), "LaPatisserieMadras-Order-in-msg-B-1042.pdf");
+  assert.equal(quotationFileName("B-1042", "png"), "LaPatisserieMadras-Order-in-msg-B-1042.png");
+});
+
+test("the Order in msg has the shop's name and fixed address, no GST line, and an add-on line", () => {
+  const withAddon = [...items, { line_no: 9, name: "Add-on", variant: "Custom cake", quantity: 1, kind: "addon", is_eggless: false }];
+  const q = parseQuotation({
+    ...base,
+    mode: "full",
+    items: withAddon.map((i, n) => ({ ...i, unit_price_paise: priced[n]?.unit_price_paise ?? 35000, line_total_paise: priced[n]?.line_total_paise ?? 35000 })),
+    amounts,
+  });
+  const v = quotationView(q);
+  assert.equal(v.title, "Order in msg");
+  assert.equal(v.shopName, "La Patisserie Madras");
+  assert.ok(v.shopContact[0].startsWith("Bharath Nagar Extn, 7, Water Canal Rd"));
+  assert.ok(!v.totals.some((t) => /GST/.test(t.label)));
+  assert.ok(v.lines.some((l) => l.title === "Add on — Custom cake" && l.total === "₹350.00"));
+  assert.deepEqual(captionBill(q)?.lines.at(-1), { label: "Add-on", paise: 35000 });
 });

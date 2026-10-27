@@ -29,9 +29,7 @@ test("CSV keeps commas and quotes in one column and writes rupees with two decim
   assert.ok(csv.includes("Cash,990.00,90.50,899.50"));
   assert.ok(csv.includes("In-store,1,990.00,90.00,900.00"));
   assert.ok(csv.includes("Net sales,1400.00"));
-  assert.ok(csv.includes("Taxable value (net),1323.89"));
-  assert.ok(csv.includes("CGST (net),38.05"));
-  assert.ok(csv.includes("SGST (net),38.06"));
+  assert.ok(!/GST|Taxable/.test(csv));
 });
 
 test("CSV sections come in a fixed order", () => {

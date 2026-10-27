@@ -19,7 +19,7 @@ test("customer orders have their own label and sit in the Online / Call / Custom
 });
 
 test("collect is green and set-up is red, always with words", () => {
-  assert.equal(fulfilmentLabel.collect, "Collect");
+  assert.equal(fulfilmentLabel.collect, "Pickup/Cab");
   assert.equal(fulfilmentLabel.setup, "Set up");
   assert.match(fulfilmentRowClass("collect"), /border-l-ok/);
   assert.match(fulfilmentRowClass("setup"), /border-l-danger/);

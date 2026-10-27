@@ -433,48 +433,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     loadCatalogue();
 
-    // ---------- Offers and reviews (from Offers & Banners and Reviews in the admin) ----------
-    function offerCard(offer) {
-        const card = el('article', 'offer-card');
-        if (offer.image_url) {
-            const wrap = el('div', 'offer-image card-image');
-            const img = el('img');
-            img.src = offer.image_url;
-            img.alt = '';
-            img.loading = 'lazy';
-            wrap.appendChild(img);
-            card.appendChild(wrap);
-            fadeIn(img);
-        }
-        const body = el('div', 'offer-body');
-        body.appendChild(el('h3', null, offer.title));
-        if (offer.body) body.appendChild(el('p', null, offer.body));
-        if (offer.ends_on) {
-            const until = new Date(offer.ends_on + 'T00:00:00Z').toLocaleDateString('en-IN', { day: 'numeric', month: 'long', timeZone: 'UTC' });
-            body.appendChild(el('p', 'offer-until', `Until ${until}`));
-        }
-        // Links are checked by the database: a #section, a /page or https only.
-        if (offer.button_label && offer.button_link) {
-            const link = el('a', 'btn btn-primary', offer.button_label);
-            link.href = offer.button_link;
-            if (offer.button_link.startsWith('https://')) {
-                link.target = '_blank';
-                link.rel = 'noopener noreferrer';
-            } else if (offer.button_link.startsWith('#')) {
-                link.addEventListener('click', (e) => {
-                    const target = document.querySelector(offer.button_link);
-                    if (target) {
-                        e.preventDefault();
-                        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }
-                });
-            }
-            body.appendChild(link);
-        }
-        card.appendChild(body);
-        return card;
-    }
-
+    // ---------- Reviews and gallery (from the admin) ----------
     function reviewCard(review) {
         const card = el('div', 'testimonial-card');
         card.appendChild(el('div', 'testimonial-stars', '★'.repeat(review.rating) + '☆'.repeat(5 - review.rating)));
@@ -509,18 +468,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function loadContent() {
-        let content = { offers: [], reviews: [], gallery: [] };
+        let content = { reviews: [], gallery: [] };
         try {
             const res = await fetch('/api/site/content');
             if (res.ok) content = await res.json();
         } catch {
             return;
-        }
-        const offersSection = document.getElementById('offers');
-        const offersGrid = document.getElementById('offersGrid');
-        if (offersSection && offersGrid && content.offers && content.offers.length) {
-            content.offers.forEach(o => offersGrid.appendChild(offerCard(o)));
-            offersSection.hidden = false;
         }
         const galleryGrid = document.querySelector('#gallery .gallery-grid');
         if (galleryGrid && content.gallery && content.gallery.length) {

@@ -46,7 +46,7 @@ export const cakeDetailsSchema = z.object({
     .max(50, "Weight must be between 0.25 and 50 kg."),
   tiers: z.coerce.number().int("Tiers must be a whole number.").min(1, "Tiers must be between 1 and 10.").max(10, "Tiers must be between 1 and 10."),
   theme: optional(200, "Theme"),
-  design: optional(200, "Design"),
+  design: optional(200, "Colour"),
   model: optional(200, "Model"),
   fondant: optional(80, "Fondant"),
   cream: optional(80, "Cream"),
@@ -57,6 +57,10 @@ export const cakeDetailsSchema = z.object({
   popsicleCount: count("Popsicles"),
   setupCharge: charge("Set-up charges"),
   deliveryCharge: charge("Delivery charges"),
+  // The "Add on" tick (2026-10-28): unticked, the details and amount are not saved.
+  hasAddon: z.boolean().optional(),
+  addonDetails: optional(500, "Add-on details"),
+  addonCharge: charge("Add-on amount"),
 });
 
 export type CakeDetailsInput = z.input<typeof cakeDetailsSchema>;
@@ -80,6 +84,8 @@ export function cakeToJson(c: CakeDetails) {
     popsicle_count: c.popsicleCount,
     setup_charge_paise: c.setupCharge,
     delivery_charge_paise: c.deliveryCharge,
+    addon_details: c.hasAddon === false ? null : (c.addonDetails ?? null),
+    addon_charge_paise: c.hasAddon === false ? 0 : c.addonCharge,
   };
 }
 

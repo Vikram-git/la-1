@@ -120,7 +120,7 @@ export function BillPanel({
               })
             }
           >
-            {pending ? "Issuing…" : "Issue GST bill"}
+            {pending ? "Issuing…" : "Issue bill"}
           </Button>
         )}
         {error && <Alert tone="danger">{error}</Alert>}

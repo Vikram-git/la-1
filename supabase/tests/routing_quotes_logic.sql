@@ -307,6 +307,41 @@ reset role;
 insert into r(check_name,outcome) values ('R24 one active admin is left',
   (select count(*) from public.staff_profiles where role = 'admin' and is_active and deleted_at is null)::text);
 
+-- Add-on (2026-10-28): its own priced line, in the total and balance; the kitchen sees only the details.
+set local role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-000000000da2');
+do $$
+declare o public.orders;
+begin
+  o := public.create_custom_cake_order(gen_random_uuid(), 'CALL', 'Rq Addon', '9000000994', pg_temp.day(2), 200000,
+    '{"flavour": "Rasmalai", "weight_kg": 1, "addon_details": "Gold topper and 2 sparklers", "addon_charge_paise": 35000}',
+    p_confirm => true, p_advance_paise => 50000, p_advance_method => 'upi');
+  insert into ctx values ('A', o.id::text);
+  insert into ctx values ('Aq', public.order_quotation(o.id)::text);
+end $$;
+reset role;
+-- expect: 235000 / 0 / Add-on 35000 / addon
+insert into r(check_name,outcome) values ('R25 the add-on amount is a line in the total; no GST on it',
+  (select total_paise || ' / ' || tax_paise from public.orders where id = (select v::uuid from ctx where k = 'A')) || ' / ' ||
+  (select product_name || ' ' || line_total_paise from public.order_items oi join public.custom_cakes cc on cc.addon_charge_item_id = oi.id
+   where cc.order_id = (select v::uuid from ctx where k = 'A')) || ' / ' ||
+  (select string_agg(i ->> 'kind', ',') from jsonb_array_elements((select v::jsonb from ctx where k = 'Aq') -> 'items') i
+   where i ->> 'name' = 'Add-on'));
+-- expect: 185000
+insert into r(check_name,outcome) values ('R26 the advance comes off a total that includes the add-on',
+  ((select v::jsonb from ctx where k = 'Aq') -> 'amounts' ->> 'balance_paise'));
+do $$ begin
+  begin perform private.clean_cake('{"flavour": "X", "weight_kg": 1, "addon_charge_paise": -5}');
+    insert into r(check_name,outcome) values ('R27 a negative add-on amount is refused', 'ALLOWED');
+  -- expect: Add-on amount must be between ₹0 and ₹10,00,000.
+  exception when others then insert into r(check_name,outcome) values ('R27 a negative add-on amount is refused', sqlerrm); end;
+end $$;
+-- expect: 0 / 0 / La Patisserie Madras
+insert into r(check_name,outcome) values ('R28 no GST rates left; the shop is La Patisserie Madras',
+  (select count(*) from public.products where tax_rate_bps <> 0) || ' / ' ||
+  (select custom_cake_tax_rate_bps from public.business_settings) || ' / ' ||
+  (select business_name from public.business_settings));
+
 reset role;
 select check_name, outcome from r order by n;
 rollback;

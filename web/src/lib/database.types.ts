@@ -537,6 +537,9 @@ export type Database = {
       }
       custom_cakes: {
         Row: {
+          addon_charge_item_id: string | null
+          addon_charge_paise: number
+          addon_details: string | null
           created_at: string
           cream: string | null
           delivery_charge_item_id: string | null

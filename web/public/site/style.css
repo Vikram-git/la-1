@@ -6,15 +6,19 @@
 /* ---------- CSS Variables / Design Tokens ---------- */
 :root {
     /* Warm luxury color palette */
-    --gold: #c9a96e;
-    --gold-light: #e8d5a8;
-    --gold-dark: #a07c3a;
-    --cream: #faf6f0;
-    --cream-dark: #f0e8da;
-    --burgundy: #6b2737;
-    --burgundy-light: #8e3a4e;
-    --rose: #d4a0a0;
-    --rose-light: #f0d4d4;
+    /* La Patisserie Madras (2026-10-28): black on white with the icing drip's pink and teal, and chocolate.
+       The old token names are kept so every section picks up the new colours. */
+    --gold: #e8838a;
+    --gold-light: #f6c9cc;
+    --gold-dark: #c9606a;
+    --cream: #f7f3ee;
+    --cream-dark: #ece4da;
+    --burgundy: #4a2418;
+    --burgundy-light: #6b3a28;
+    --rose: #e8838a;
+    --rose-light: #fbe4e5;
+    --teal: #26c6bc;
+    --chocolate: #4a2418;
     --charcoal: #1a1714;
     --charcoal-light: #2d2824;
     --espresso: #3c2f2f;
@@ -23,9 +27,9 @@
     --shadow-color: 30 20% 10%;
 
     /* Typography */
-    --ff-heading: 'Playfair Display', 'Georgia', serif;
+    --ff-heading: 'Marcellus', 'Cormorant SC', 'Georgia', serif;
     --ff-body: 'Outfit', 'Segoe UI', sans-serif;
-    --ff-script: 'Dancing Script', cursive;
+    --ff-script: 'Mea Culpa', 'Corinthia', 'Allura', cursive;
 
     /* Spacing */
     --section-padding: clamp(80px, 10vw, 140px);
@@ -498,195 +502,219 @@ button {
     transform: rotate(-45deg) translate(4.5px, -4.5px);
 }
 
-/* ---------- Hero Section ---------- */
+/* ---------- Hero: the icing drip ----------
+   Three layers of the same picture, animated with transforms and opacity only (no layout shift):
+   the pink drips fall in from the top, the teal and chocolate band flows sideways in a slow loop, and a
+   glossy shine sweeps across every few seconds. The card floats with a slight 3D tilt. */
 #hero {
     position: relative;
     min-height: 100vh;
+    min-height: 100svh;
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
+    isolation: isolate;
+    background: linear-gradient(180deg, #fcf8f5 0%, #f7f3ee 50%, #f3eee9 100%);
 }
 
-.hero-bg {
+.drip-scene {
     position: absolute;
     inset: 0;
-    animation: heroBgReveal 1.8s var(--ease-cinematic) both;
+    z-index: 0;
+    pointer-events: none;
 }
 
-@keyframes heroBgReveal {
-    from { opacity: 0; }
-    to   { opacity: 1; }
+.drip-layer {
+    position: absolute;
+    inset: 0;
 }
 
-.hero-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transform-origin: center center;
-    animation: heroCinematicZoom 28s ease-in-out infinite alternate;
+.drip-top,
+.drip-flow-strip > span {
+    background: url('/brand/drip-background.webp') center / cover no-repeat;
+}
+
+/* The picture's top third: the pink drips. */
+.drip-top {
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 33%, transparent 44%);
+    mask-image: linear-gradient(to bottom, #000 0%, #000 33%, transparent 44%);
+    transform-origin: 50% 0;
+    animation: dripIn 1.6s cubic-bezier(0.22, 1, 0.36, 1) 0.2s both;
     will-change: transform;
 }
 
-/* slow cinematic zoom */
-@keyframes heroCinematicZoom {
-    from { transform: scale(1.0); }
-    to   { transform: scale(1.08); }
+@keyframes dripIn {
+    0%   { transform: translate3d(0, -60%, 0) scaleY(0.6); opacity: 0; }
+    60%  { transform: translate3d(0, 3%, 0) scaleY(1.06); opacity: 1; }
+    100% { transform: translate3d(0, 0, 0) scaleY(1); opacity: 1; }
 }
 
-/* Lighter warm overlay — allows bakery imagery to breathe */
-.hero-overlay {
-    position: absolute;
-    inset: 0;
-    background:
-        linear-gradient(180deg,
-            rgba(26, 23, 20, 0.52) 0%,
-            rgba(26, 23, 20, 0.28) 42%,
-            rgba(26, 23, 20, 0.60) 100%
-        ),
-        radial-gradient(ellipse at 30% 50%, rgba(107, 39, 55, 0.14), transparent 65%);
+/* The picture's bottom band, as a strip of four copies (every other one mirrored, so the joins meet);
+   moving it by half its width lands on the same picture, so the loop has no jump. */
+.drip-flow {
+    -webkit-mask-image: linear-gradient(to bottom, transparent 56%, #000 66%);
+    mask-image: linear-gradient(to bottom, transparent 56%, #000 66%);
+    overflow: hidden;
 }
 
-.hero-particles {
+.drip-flow-strip {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 400%;
+    display: flex;
+    animation: dripFlow 70s linear infinite;
+    will-change: transform;
+}
+
+.drip-flow-strip > span {
+    flex: 0 0 25%;
+    height: 100%;
+}
+
+.drip-flow-strip > span.mirror {
+    transform: scaleX(-1);
+}
+
+@keyframes dripFlow {
+    from { transform: translate3d(0, 0, 0); }
+    to   { transform: translate3d(-50%, 0, 0); }
+}
+
+/* Gloss: a soft light band sweeps over the icing (top and bottom) every 7 seconds. */
+.drip-shine {
     position: absolute;
     inset: 0;
-    pointer-events: none;
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 30%, transparent 40%, transparent 60%, #000 70%);
+    mask-image: linear-gradient(to bottom, #000 0%, #000 30%, transparent 40%, transparent 60%, #000 70%);
+    mix-blend-mode: screen;
+}
+
+.drip-shine::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 40%;
+    background: linear-gradient(100deg, transparent 0%, rgba(255, 255, 255, 0) 30%, rgba(255, 255, 255, 0.55) 50%, rgba(255, 255, 255, 0) 70%, transparent 100%);
+    transform: translate3d(-120%, 0, 0) skewX(-12deg);
+    animation: dripShine 7s ease-in-out 2s infinite;
+    will-change: transform;
+}
+
+@keyframes dripShine {
+    0%        { transform: translate3d(-120%, 0, 0) skewX(-12deg); }
+    28%, 100% { transform: translate3d(320%, 0, 0) skewX(-12deg); }
 }
 
 .hero-content {
     position: relative;
     z-index: 2;
-    text-align: center;
-    padding: clamp(100px, 14vw, 160px) clamp(20px, 5vw, 60px) clamp(80px, 10vw, 120px);
-    max-width: 940px;
     width: 100%;
+    display: flex;
+    justify-content: center;
+    padding: 96px 20px 72px;
+    perspective: 1000px;
 }
 
-/* ---------- Hero Cinematic Entrance ---------- */
+/* The logo, name and buttons on the cream centre; a soft cream backing keeps them readable where the
+   drips reach on tall phone screens. */
+.hero-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: clamp(18px, 3vw, 28px) clamp(22px, 4vw, 44px) clamp(22px, 3vw, 32px);
+    border-radius: 28px;
+    background: rgba(247, 243, 238, 0.78);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    box-shadow: 0 24px 60px -30px rgba(74, 36, 24, 0.45);
+    transform-style: preserve-3d;
+    animation: heroCardIn 1.2s cubic-bezier(0.22, 1, 0.36, 1) 0.9s both, heroFloat 10s ease-in-out 2.1s infinite;
+}
+
+@keyframes heroCardIn {
+    from { opacity: 0; transform: translate3d(0, 24px, -80px) rotateX(10deg); }
+    to   { opacity: 1; transform: translate3d(0, 0, 0) rotateX(0deg); }
+}
+
+@keyframes heroFloat {
+    0%, 100% { transform: translate3d(0, 0, 0) rotateX(0deg) rotateY(0deg); }
+    25%      { transform: translate3d(0, -6px, 0) rotateX(2deg) rotateY(-3deg); }
+    75%      { transform: translate3d(0, 4px, 0) rotateX(-1.5deg) rotateY(3deg); }
+}
+
+.hero-logo {
+    width: clamp(96px, 16vw, 150px);
+    height: auto;
+    aspect-ratio: 1;
+    transform: translateZ(30px);
+}
+
 .hero-title {
-    font-family: var(--ff-heading);
-    color: #fff;
-    margin-bottom: 28px;
-}
-
-.hero-welcome {
-    display: block;
-    font-family: var(--ff-heading);
-    font-style: italic;
-    font-size: clamp(1.15rem, 2.2vw, 1.7rem);
+    display: inline-flex;
+    flex-direction: column;
+    margin: 6px 0 22px;
+    color: #111;
     font-weight: 400;
-    color: var(--gold-light);
-    letter-spacing: 0.5px;
-    margin-bottom: 8px;
-    opacity: 0;
-    transform: translateY(20px);
-    animation: heroLineReveal 1.2s var(--ease-cinematic) 0.6s forwards;
+    transform: translateZ(20px);
 }
 
-.hero-line {
-    display: block;
-    font-size: clamp(2.8rem, 7.5vw, 5.8rem);
-    font-weight: 800;
-    line-height: 1.08;
-    letter-spacing: -1.5px;
-    opacity: 0;
-    transform: translateY(28px);
-    animation: heroLineReveal 1.3s var(--ease-cinematic) 1.0s forwards;
-}
-
-.hero-line.script {
+.hero-script {
     font-family: var(--ff-script);
-    font-size: clamp(2.4rem, 6.5vw, 4.8rem);
-    color: var(--gold);
-    font-weight: 600;
-    margin-top: 6px;
-    text-shadow: 0 4px 40px rgba(201, 169, 110, 0.28);
-    letter-spacing: 1px;
-    animation-delay: 1.4s;
+    font-size: clamp(3.2rem, 9vw, 5.6rem);
+    line-height: 1;
 }
 
-@keyframes heroLineReveal {
-    from { opacity: 0; transform: translateY(28px); }
-    to   { opacity: 1; transform: translateY(0); }
+.hero-city {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: var(--ff-heading);
+    font-size: clamp(0.8rem, 1.6vw, 1rem);
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
 }
 
-.hero-subtitle {
-    font-size: clamp(0.95rem, 1.8vw, 1.15rem);
-    color: rgba(255, 255, 255, 0.78);
-    max-width: 580px;
-    margin: 0 auto 40px;
-    line-height: 1.85;
-    font-weight: 300;
-    letter-spacing: 0.2px;
-    opacity: 0;
-    animation: heroFadeUp 1.1s var(--ease-cinematic) 1.85s forwards;
+.hero-rule {
+    flex: 1;
+    height: 1px;
+    background: #111;
 }
 
 .hero-actions {
     display: flex;
-    gap: 18px;
+    gap: 14px;
     justify-content: center;
     flex-wrap: wrap;
-    opacity: 0;
-    animation: heroFadeUp 1.0s var(--ease-cinematic) 2.2s forwards;
+    transform: translateZ(10px);
 }
 
-@keyframes heroFadeUp {
-    from { opacity: 0; transform: translateY(22px); }
-    to   { opacity: 1; transform: translateY(0); }
+#hero .btn-outline {
+    color: var(--chocolate);
+    border-color: var(--chocolate);
+    background: rgba(255, 255, 255, 0.6);
 }
 
-/* ---------- Scroll Indicator ---------- */
-.scroll-indicator {
-    position: absolute;
-    bottom: 36px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-    z-index: 2;
-    opacity: 0;
-    animation: heroFadeUp 1s var(--ease-cinematic) 2.9s forwards;
-    pointer-events: none;
-    user-select: none;
+#hero .btn-outline:hover {
+    background: var(--chocolate);
+    color: #fff;
 }
 
-.scroll-indicator-text {
-    font-size: 0.62rem;
-    letter-spacing: 4px;
-    text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.40);
-    font-family: var(--ff-body);
-    font-weight: 500;
-}
-
-.scroll-arrow {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    animation: scrollBounce 2.6s ease-in-out infinite;
-}
-
-.scroll-arrow svg {
-    opacity: 0.42;
-    color: var(--gold);
-}
-
-@keyframes scrollBounce {
-    0%, 100% { transform: translateY(0); }
-    50%       { transform: translateY(7px); }
+/* The drips are pink: a solid bar keeps the menu readable over them. */
+#navbar {
+    background: rgba(26, 23, 20, 0.94);
 }
 
 /* ---------- Reduced Motion ---------- */
 @media (prefers-reduced-motion: reduce) {
-    .hero-img,
-    .hero-line,
-    .hero-subtitle,
-    .hero-actions,
-    .scroll-indicator,
-    .hero-bg,
+    .drip-top,
+    .drip-flow-strip,
+    .drip-shine::before,
+    .hero-card,
     [data-animate],
     .about-badge-float,
     .cta-emoji,
@@ -1647,28 +1675,9 @@ button {
         padding: clamp(85px, 16vw, 120px) 18px 50px;
     }
 
-    .hero-welcome {
-        font-size: clamp(0.95rem, 3.2vw, 1.25rem);
-        margin-bottom: 6px;
-    }
 
-    .hero-line {
-        font-size: clamp(2.2rem, 8.5vw, 3.5rem);
-        line-height: 1.1;
-        letter-spacing: -0.5px;
-    }
 
-    .hero-line.script {
-        font-size: clamp(2.2rem, 8vw, 3.2rem);
-        margin-top: 4px;
-    }
 
-    .hero-subtitle {
-        font-size: 0.94rem;
-        line-height: 1.65;
-        margin: 0 auto 30px;
-        padding: 0 4px;
-    }
 
     .hero-actions {
         flex-direction: column;
@@ -1760,9 +1769,6 @@ button {
         text-align: center;
     }
 
-    .scroll-indicator {
-        display: none; /* Hide scroll indicator on mobile to save viewport space */
-    }
 }
 
 @media (max-width: 480px) {
@@ -1770,13 +1776,7 @@ button {
         height: 33px;
     }
 
-    .hero-line {
-        font-size: clamp(1.95rem, 8vw, 2.5rem);
-    }
 
-    .hero-line.script {
-        font-size: clamp(1.95rem, 7.5vw, 2.4rem);
-    }
 
     .gallery-grid {
         grid-template-columns: 1fr;
@@ -2313,75 +2313,6 @@ img.img-fade.is-loaded {
     .card-title {
         font-size: 1.1rem;
     }
-}
-
-/* ---------- Current offers (Offers & Banners) ---------- */
-#offers {
-    padding: clamp(56px, 7vw, 96px) 0;
-    background: var(--warm-white);
-}
-
-#offers .section-header {
-    margin-bottom: 36px;
-}
-
-.offers-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
-    gap: 24px;
-}
-
-.offer-card {
-    display: flex;
-    flex-direction: column;
-    background: linear-gradient(135deg, var(--charcoal), var(--espresso));
-    color: #fff;
-    border-radius: var(--radius-lg);
-    overflow: hidden;
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
-}
-
-.offer-card .offer-image {
-    aspect-ratio: 16 / 9;
-}
-
-.offer-card .offer-image img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-}
-
-.offer-body {
-    padding: 24px 26px 28px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    flex: 1;
-}
-
-.offer-body h3 {
-    font-family: var(--ff-heading);
-    font-size: 1.35rem;
-    color: var(--gold-light);
-}
-
-.offer-body p {
-    color: rgba(255, 255, 255, 0.78);
-    font-size: 0.92rem;
-    line-height: 1.6;
-}
-
-.offer-until {
-    font-size: 0.75rem !important;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    color: var(--gold) !important;
-}
-
-.offer-body .btn {
-    margin-top: auto;
-    align-self: flex-start;
 }
 
 /* ---------- Reviews form ---------- */

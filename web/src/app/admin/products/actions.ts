@@ -70,17 +70,12 @@ const productSchema = z.object({
     .string()
     .regex(/^\d{4,8}$/, "HSN code is 4 to 8 digits.")
     .nullable(),
-  tax_rate_bps: z
-    .number({ error: "Enter a GST rate such as 5 or 18." })
-    .int()
-    .min(0, "GST rate cannot be negative.")
-    .max(2800, "GST rate cannot exceed 28%."),
+  // GST was removed (2026-10-28): the price is the total.
+  tax_rate_bps: z.literal(0),
   is_available: z.boolean(),
 });
 
 function readProduct(formData: FormData) {
-  const taxText = text(formData, "tax_rate") || "0";
-  const taxPercent = Number(taxText);
   return productSchema.safeParse({
     name: text(formData, "name"),
     category_id: text(formData, "category_id"),
@@ -88,7 +83,7 @@ function readProduct(formData: FormData) {
     prep_type: text(formData, "prep_type"),
     contains_egg: checkbox(formData, "contains_egg"),
     hsn_code: optionalText(formData, "hsn_code"),
-    tax_rate_bps: /^\d+(\.\d{1,2})?$/.test(taxText) ? Math.round(taxPercent * 100) : NaN,
+    tax_rate_bps: 0,
     is_available: checkbox(formData, "is_available"),
   });
 }

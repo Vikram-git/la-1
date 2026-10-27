@@ -57,16 +57,16 @@ export function listKeyForSource(source: OrderSource): ListKey {
 // in Kitchen 1, every other order ("web orders": website and catalogue orders) in Kitchen 2.
 export type OrderKind = "web" | "custom";
 export const KITCHEN_CODE_FOR: Record<OrderKind, string> = { custom: "K1", web: "K2" };
-export const orderKindLabel: Record<OrderKind, string> = { web: "Web orders", custom: "Custom orders" };
+export const orderKindLabel: Record<OrderKind, string> = { web: "Online orders", custom: "Customised orders" };
 
 export function kitchenListLabel(code: string | null | undefined): string {
   return code === KITCHEN_CODE_FOR.custom ? orderKindLabel.custom : code === KITCHEN_CODE_FOR.web ? orderKindLabel.web : "Orders";
 }
 
-// Collect from the store (green) or set up at the customer's place (red), owner 2026-10-09. The colour
+// Pickup/Cab from the store (green; "Collect" until 2026-10-28) or set up at the customer's place (red), owner 2026-10-09. The colour
 // always comes with the words, never on its own.
 export const fulfilmentLabel: Record<Fulfilment, string> = {
-  collect: "Collect",
+  collect: "Pickup/Cab",
   setup: "Set up",
 };
 

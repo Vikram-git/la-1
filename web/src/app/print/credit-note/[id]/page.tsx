@@ -6,11 +6,11 @@ import { createClient } from "@/lib/supabase/server";
 import { getBusinessTimezone } from "@/lib/settings";
 import { formatPaise } from "@/lib/money";
 import { formatDateTime } from "@/lib/time";
+import { SHOP_ADDRESS, SHOP_NAME } from "@/lib/brand";
+import { CityLine, LogoMark } from "@/components/ui";
 import { PrintControls } from "../../print-controls";
 
 export const metadata: Metadata = { title: "Credit note" };
-
-type Business = { name: string; address: string | null; phone: string | null; gstin: string | null; fssai_licence: string | null };
 
 export default async function CreditNotePrintPage({ params, searchParams }: PageProps<"/print/credit-note/[id]">) {
   await requireRole(["admin", "counter"]);
@@ -21,9 +21,8 @@ export default async function CreditNotePrintPage({ params, searchParams }: Page
   const tz = await getBusinessTimezone();
 
   const supabase = await createClient();
-  const { data: cn } = await supabase.from("credit_notes").select("*, bills(bill_number, issued_at, business, customer_name, customer_phone)").eq("id", id).maybeSingle();
+  const { data: cn } = await supabase.from("credit_notes").select("*, bills(bill_number, issued_at, customer_name, customer_phone)").eq("id", id).maybeSingle();
   if (!cn || !cn.bills) notFound();
-  const business = cn.bills.business as unknown as Business;
   const narrow = size === "80mm";
 
   return (
@@ -33,10 +32,12 @@ export default async function CreditNotePrintPage({ params, searchParams }: Page
       <article className={narrow
         ? "mx-auto w-[76mm] bg-white p-3 font-mono text-[11px] leading-snug text-black shadow print:w-full print:p-0 print:shadow-none"
         : "mx-auto max-w-3xl bg-white p-10 text-sm text-black shadow print:max-w-none print:p-0 print:shadow-none"}>
-        <header className={narrow ? "text-center" : ""}>
-          <h1 className={narrow ? "font-sans text-sm font-bold" : "font-sans text-2xl font-bold"}>{business.name}</h1>
-          {business.address && <p className="whitespace-pre-line">{business.address}</p>}
-          {business.gstin && <p>GSTIN: {business.gstin}</p>}
+        <header className={narrow ? "flex flex-col items-center text-center" : ""}>
+          <LogoMark className={narrow ? "size-16" : "size-20"} />
+          <h1 className={narrow ? "font-script text-2xl leading-none" : "mt-1 font-script text-4xl leading-none"}>La Patisserie</h1>
+          <CityLine className={narrow ? "text-[9px]" : ""} />
+          <span className="sr-only">{SHOP_NAME}</span>
+          <p className="mt-1 font-sans">{SHOP_ADDRESS}</p>
           <p className={narrow ? "mt-2 border-y border-dashed border-black py-1 font-bold" : "mt-6 text-lg font-bold"}>CREDIT NOTE</p>
         </header>
         <dl className="mt-3 flex flex-col gap-0.5">
@@ -48,9 +49,6 @@ export default async function CreditNotePrintPage({ params, searchParams }: Page
           <div className="mt-2"><dt className="font-semibold">Reason</dt><dd>{cn.reason}</dd></div>
         </dl>
         <dl className={narrow ? "mt-2 border-t border-dashed border-black pt-1" : "ml-auto mt-6 w-72"}>
-          <div className="flex justify-between"><dt>Taxable value</dt><dd>{formatPaise(cn.taxable_paise)}</dd></div>
-          <div className="flex justify-between"><dt>CGST</dt><dd>{formatPaise(cn.cgst_paise)}</dd></div>
-          <div className="flex justify-between"><dt>SGST</dt><dd>{formatPaise(cn.sgst_paise)}</dd></div>
           <div className="mt-1 flex justify-between border-t border-black pt-1 font-bold"><dt>Total credited</dt><dd>{formatPaise(cn.total_paise)}</dd></div>
         </dl>
       </article>
