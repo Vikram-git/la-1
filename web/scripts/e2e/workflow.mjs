@@ -223,9 +223,13 @@ r = await act("deleteOrderAction", "/admin/calendar", { orderId: web.id, reason:
 const webGone = !(await admin.sb.from("orders").select("id").eq("id", web.id).maybeSingle()).data;
 check("admin deletes an order with no payments: it is gone", r.ok === true && r.outcome === "deleted" && webGone, JSON.stringify(r));
 r = await act("deleteOrderAction", "/admin/calendar?kind=custom", { orderId: cakeId, reason: "E2E test order, not real" }, admin.cookie);
-const cakeAfter = (await admin.sb.from("orders").select("status").eq("id", cakeId).maybeSingle()).data;
-check("an order with an advance is cancelled instead, money kept", r.ok === true && r.outcome === "cancelled" && cakeAfter?.status === "cancelled", JSON.stringify(r));
-
+const cakeGone = !(await admin.sb.from("orders").select("id").eq("id", cakeId).maybeSingle()).data;
+const cakePayments = (await admin.sb.from("payments").select("id").eq("order_id", cakeId)).data ?? [];
+check("an order with an advance is deleted outright, payments too", r.ok === true && r.outcome === "deleted" && cakeGone && cakePayments.length === 0, JSON.stringify(r));
+r = await act("deleteOrderAction", "/admin/calendar", { orderId: callId, reason: "E2E test order, not real" }, admin.cookie);
+const callGone = !(await admin.sb.from("orders").select("id").eq("id", callId).maybeSingle()).data;
+const callBills = (await admin.sb.from("bills").select("id").eq("order_id", callId)).data ?? [];
+check("a completed, billed and paid order is deleted outright, bill too", r.ok === true && r.outcome === "deleted" && callGone && callBills.length === 0, JSON.stringify(r));
 console.log(results.join("\n"));
 const failed = results.filter((x) => x.startsWith("FAIL")).length;
 console.log(`\n${results.length - failed}/${results.length} passed`);

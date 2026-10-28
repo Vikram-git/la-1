@@ -160,8 +160,8 @@ export async function cancelOrderAction(input: z.input<typeof transitionSchema>)
   return { ok: true };
 }
 
-// Delete from the calendar (owner, 2026-10-24). An order with an advance, refund or bill keeps its money
-// records: it is cancelled instead, which also takes it off the calendar and stops the kitchen.
+// Delete from the calendar (owner, 2026-10-24): any order goes, with its payments, bill and credit notes
+// (2026-10-28). The audit log keeps a copy.
 const deleteSchema = z.object({ orderId: z.uuid(), reason: z.string().trim().min(3, "Give a reason for deleting the order.").max(300) });
 
 export async function deleteOrderAction(input: z.input<typeof deleteSchema>): Promise<Result<{ outcome: "deleted" | "cancelled" }>> {
@@ -171,23 +171,13 @@ export async function deleteOrderAction(input: z.input<typeof deleteSchema>): Pr
   const { orderId, reason } = parsed.data;
   const supabase = await createClient();
   const [{ data: order }, { data: cake }] = await Promise.all([
-    supabase.from("orders").select("version, status").eq("id", orderId).maybeSingle(),
+    supabase.from("orders").select("version").eq("id", orderId).maybeSingle(),
     supabase.from("custom_cakes").select("photo_paths").eq("order_id", orderId).maybeSingle(),
   ]);
   if (!order) return { message: "This order was already deleted. Reload the calendar." };
 
   const { error } = await supabase.rpc("delete_order", { p_order_id: orderId, p_expected_version: order.version, p_reason: reason });
-  if (error) {
-    const failure = rpcError(error);
-    if (failure.kind !== "has_money") return failure;
-    if (["completed", "rejected", "cancelled"].includes(order.status)) {
-      return { message: `This order is ${order.status} and has payments or a bill, so it stays on record.` };
-    }
-    const { error: cancelError } = await supabase.rpc("cancel_order", { p_order_id: orderId, p_expected_version: order.version, p_reason: reason });
-    if (cancelError) return rpcError(cancelError);
-    await afterChange(orderId);
-    return { ok: true, outcome: "cancelled" };
-  }
+  if (error) return rpcError(error);
 
   const { data: files } = await supabase.storage.from("quotations").list(orderId);
   if (files?.length) await supabase.storage.from("quotations").remove(files.map((f) => `${orderId}/${f.name}`));
