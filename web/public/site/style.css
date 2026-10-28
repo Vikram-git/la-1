@@ -2559,9 +2559,9 @@ textarea:focus {
     border-top-color: rgba(255, 255, 255, 0.14);
 }
 
-/* ---------- Hero wordmark (2026-10-28) ----------
-   The shop's name once, large: the script is written in from left to right, then a soft shine runs
-   through its pink-to-chocolate fill; MADRAS sits between two teal rules that grow out from it. */
+/* ---------- Hero wordmark ----------
+   The shop's name in the logo's own lettering (traced from the logo, without its circle), written in
+   from left to right. */
 .hero-card {
     padding: clamp(28px, 5vw, 56px) clamp(28px, 6vw, 72px) clamp(28px, 4vw, 44px);
     background: rgba(255, 255, 255, 0.72);
@@ -2573,68 +2573,17 @@ textarea:focus {
     margin: 0 0 clamp(22px, 3vw, 32px);
 }
 
-.hero-script {
-    position: relative;
-    font-size: clamp(4rem, 12vw, 8rem);
-    line-height: 1.05;
-    padding: 0.08em 0.18em 0.12em;
-    background: linear-gradient(100deg, #4a2418 0%, #b8435f 38%, #e0718a 50%, #b8435f 62%, #4a2418 100%);
-    background-size: 250% 100%;
-    background-position: 100% 0;
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-    filter: drop-shadow(0 6px 14px rgba(184, 67, 95, 0.18));
+.hero-wordmark {
+    display: block;
+    width: min(680px, 78vw);
+    height: auto;
+    margin: 0 auto;
     clip-path: inset(0 100% 0 0);
-    animation:
-        heroWrite 1.8s cubic-bezier(0.65, 0, 0.35, 1) 1.1s forwards,
-        heroSheen 6s ease-in-out 3.2s infinite;
+    animation: heroWrite 1.8s cubic-bezier(0.65, 0, 0.35, 1) 1.1s forwards;
 }
 
 @keyframes heroWrite {
     to { clip-path: inset(0 0 0 0); }
-}
-
-@keyframes heroSheen {
-    0%, 100% { background-position: 100% 0; }
-    50%      { background-position: 0% 0; }
-}
-
-.hero-city {
-    justify-content: center;
-    gap: 16px;
-    margin-top: 2px;
-    font-size: clamp(0.85rem, 1.8vw, 1.15rem);
-    letter-spacing: 0.6em;
-    color: var(--charcoal);
-}
-
-.hero-city-name {
-    padding-left: 0.6em;
-    opacity: 0;
-    animation: heroFade 0.9s ease 2.4s forwards;
-}
-
-.hero-city .hero-rule {
-    flex: 0 0 clamp(48px, 9vw, 110px);
-    height: 1.5px;
-    background: linear-gradient(90deg, transparent, var(--teal));
-    transform: scaleX(0);
-    transform-origin: right center;
-    animation: heroRule 0.9s cubic-bezier(0.22, 1, 0.36, 1) 2.4s forwards;
-}
-
-.hero-city .hero-rule:last-child {
-    background: linear-gradient(270deg, transparent, var(--teal));
-    transform-origin: left center;
-}
-
-@keyframes heroRule {
-    to { transform: scaleX(1); }
-}
-
-@keyframes heroFade {
-    to { opacity: 1; }
 }
 
 @media (max-width: 768px) {
@@ -2646,13 +2595,9 @@ textarea:focus {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .hero-script,
-    .hero-city-name,
-    .hero-city .hero-rule {
+    .hero-wordmark {
         animation: none !important;
         clip-path: none;
-        opacity: 1;
-        transform: none;
     }
 }
 
@@ -2711,16 +2656,27 @@ textarea:focus {
 }
 
 
-/* Menu bar logo: big enough to read the badge; the bar's padding shrinks to keep it slim. */
-#navbar { padding: 8px 0; }
-#navbar.scrolled { padding: 4px 0; }
-#navbar .nav-logo-img { height: 96px; }
-#navbar.scrolled .nav-logo-img { height: 76px; }
-@media (max-width: 1024px) {
-    #navbar .nav-logo-img { height: 80px; }
-    #navbar.scrolled .nav-logo-img { height: 68px; }
+/* Menu bar without a logo: the links sit in the centre, in a larger size. */
+#navbar { padding: 16px 0; }
+#navbar.scrolled { padding: 8px 0; }
+#navbar .nav-container { justify-content: center; }
+#navbar .nav-link {
+    font-size: 1.2rem;
+    font-weight: 500;
+    padding: 10px 22px;
+    letter-spacing: 0.4px;
 }
-@media (max-width: 480px) {
-    #navbar .nav-logo-img { height: 64px; }
-    #navbar.scrolled .nav-logo-img { height: 58px; }
+#navbar .nav-link:hover::after,
+#navbar .nav-link.active::after {
+    width: calc(100% - 44px);
+    left: 22px;
+}
+@media (max-width: 1024px) {
+    #navbar .nav-link { font-size: 1.1rem; padding: 10px 16px; }
+    #navbar .nav-link:hover::after,
+    #navbar .nav-link.active::after { width: calc(100% - 32px); left: 16px; }
+}
+@media (max-width: 768px) {
+    #navbar .nav-container { justify-content: flex-end; }
+    #navbar .nav-link { font-size: 1.3rem; padding: 14px 20px; }
 }
