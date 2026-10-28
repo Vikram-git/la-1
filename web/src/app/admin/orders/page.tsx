@@ -112,8 +112,7 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/ord
         description={`Due times shown in ${tz}. Green rows are collected from the store; red rows are set up at the customer's place.`}
         actions={
           <>
-            <ButtonLink href="/admin/orders/new?source=IN_STORE">Online Orders</ButtonLink>
-            <ButtonLink href="/admin/orders/new?source=CALL" variant="secondary">New call order</ButtonLink>
+            <ButtonLink href="/admin/orders/new?source=IN_STORE">In-store order</ButtonLink>
             <ButtonLink href="/admin/orders/new-cake" variant="secondary">Customised order</ButtonLink>
           </>
         }

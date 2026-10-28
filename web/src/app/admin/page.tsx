@@ -6,7 +6,7 @@ import { getBusinessTimezone } from "@/lib/settings";
 import { formatPaise } from "@/lib/money";
 import { OPEN_STATUSES, fulfilmentRowClass } from "@/lib/orders";
 import { addDays, formatDateTime, zonedDayKey, zonedDayRange } from "@/lib/time";
-import { Badge, ButtonLink, Card, PageHeader, cx } from "@/components/ui";
+import { Badge, Card, PageHeader, cx } from "@/components/ui";
 import { ContactBadge, FulfilmentBadge, StatusBadge } from "@/components/order-badges";
 import { LiveRefresh } from "@/components/live-refresh";
 
@@ -70,14 +70,6 @@ export default async function AdminHome() {
       <PageHeader
         title={`Hello, ${staff.fullName.split(" ")[0]}`}
         description={`Today is ${formatDateTime(new Date(), tz).split(",")[0]}.`}
-        actions={
-          <>
-            <ButtonLink href="/admin/calendar" variant="secondary">Open calendar</ButtonLink>
-            <ButtonLink href="/admin/orders/new-cake" variant="secondary">Customised order</ButtonLink>
-            <ButtonLink href="/admin/orders/new?source=CALL" variant="secondary">New call order</ButtonLink>
-            <ButtonLink href="/admin/orders/new?source=IN_STORE">Online Orders</ButtonLink>
-          </>
-        }
       />
 
       <div className="flex flex-col gap-6">

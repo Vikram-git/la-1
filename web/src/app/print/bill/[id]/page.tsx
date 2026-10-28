@@ -8,6 +8,7 @@ import { formatPaise } from "@/lib/money";
 import { paymentMethodLabel } from "@/lib/orders";
 import { formatDateTime } from "@/lib/time";
 import { SHOP_ADDRESS_LINES, SHOP_NAME } from "@/lib/brand";
+import { OrderTerms } from "@/components/order-terms";
 import { CityLine, LogoMark } from "@/components/ui";
 import { PrintControls } from "../../print-controls";
 
@@ -132,7 +133,12 @@ export default async function BillPrintPage({ params, searchParams }: PageProps<
           </div>
         </section>
 
-        <footer className={narrow ? "mt-3 text-center" : "mt-10 text-center text-xs text-gray-600"}>
+        <section aria-label="Terms and conditions" className={narrow ? "mt-3 border-t border-dashed border-black pt-1 font-sans text-[9px] leading-snug" : "mt-8 border-t border-black pt-3 text-[11px] leading-snug"}>
+          <p className={narrow ? "mb-1 text-center text-[10px] font-bold" : "mb-2 text-sm font-bold"}>TERMS AND CONDITIONS</p>
+          <OrderTerms compact />
+        </section>
+
+        <footer className={narrow ? "mt-3 text-center" : "mt-6 text-center text-xs text-gray-600"}>
           <p>Thank you!</p>
         </footer>
       </article>

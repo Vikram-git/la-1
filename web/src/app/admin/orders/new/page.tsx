@@ -8,10 +8,9 @@ import { EmptyState, PageHeader } from "@/components/ui";
 import { loadCatalogue } from "@/lib/catalogue";
 import { OrderEntry } from "./order-entry";
 
-export const metadata: Metadata = { title: "New order" };
+export const metadata: Metadata = { title: "In-store order" };
 
-const TITLES = { IN_STORE: "New in-store order", CALL: "New call order", CUSTOMER: "New customer order" } as const;
-const SWITCH_LABEL = { IN_STORE: "in-store", CALL: "call", CUSTOMER: "customer" } as const;
+const TITLES = { IN_STORE: "In-store order", CALL: "Call order", CUSTOMER: "Customer order" } as const;
 
 export default async function NewOrderPage({ searchParams }: PageProps<"/admin/orders/new">) {
   const staff = await requireRole(["admin", "counter"]);
@@ -30,15 +29,7 @@ export default async function NewOrderPage({ searchParams }: PageProps<"/admin/o
         title={TITLES[source]}
         description={
           <>
-            <Link href="/admin/orders" className="text-brand-strong hover:underline">Orders</Link> / New · Switch to{" "}
-            {(["IN_STORE", "CALL", "CUSTOMER"] as const)
-              .filter((s) => s !== source)
-              .map((s, i) => (
-                <span key={s}>
-                  {i > 0 && " or "}
-                  <Link href={`/admin/orders/new?source=${s}`} className="text-brand-strong hover:underline">{SWITCH_LABEL[s]}</Link>
-                </span>
-              ))}
+            <Link href="/admin/orders" className="text-brand-strong hover:underline">Orders</Link> / {TITLES[source]}
           </>
         }
       />

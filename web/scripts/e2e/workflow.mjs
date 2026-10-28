@@ -106,6 +106,7 @@ if (!bill) {
 }
 let p = await page(`/print/bill/${bill?.id}`, counter.cookie);
 check("bill prints with shop details and no GST", p.status === 200 && p.body.includes(call.reference) && p.body.includes("Korattur") && p.body.includes("La Patisserie") && !/GST|TAX INVOICE/.test(p.body), `status ${p.status}`);
+check("bill prints the Terms and Conditions", ["TERMS AND CONDITIONS", "Delivery Arrangement", "Cake Supports &amp; Decorations", "UPI / GPay: 9884882516"].every((t) => p.body.includes(t)), `status ${p.status}`);
 
 // --- Custom cake → quotation → send log → sticky note -------------------------------------------
 r = await act("createCustomCakeOrderAction", "/admin/orders/new-cake", { idempotencyKey: crypto.randomUUID(), source: "CALL", customerName: `E2E Cake ${tag}`, customerPhone: "9000099904",
@@ -117,6 +118,7 @@ const cake = (await admin.sb.from("order_summaries").select("*").eq("id", cakeId
 check("custom cake total = price + set-up + delivery + add-on, advance paid", cake?.total_paise === 350000 && cake.balance_paise === 250000, `total ${cake?.total_paise} balance ${cake?.balance_paise}`);
 p = await page(`/admin/orders/${cakeId}`, counter.cookie);
 check("order page shows cupcakes and add-on, without the message and Order in msg cards", p.status === 200 && /Cupcakes.{0,80}>6</.test(p.body) && p.body.includes("Gold balloons") && !p.body.includes("Message the customer") && !p.body.includes("Open Order in msg"), `status ${p.status}`);
+check("order page sends the Terms and Conditions on WhatsApp", p.body.includes("Send Terms on WhatsApp") && p.body.includes("wa.me/919000099904") && p.body.includes("Food Colours"), `status ${p.status}`);
 let q = await quotationFile(cakeId, "pdf", counter.cookie);
 check("counter makes Order in msg PDF", q.status === 200 && q.body.fileName === `LaPatisserieMadras-Order-in-msg-${cake.reference}.pdf`, JSON.stringify(q.body).slice(0, 200));
 if (q.body.url) {
@@ -195,7 +197,9 @@ check("cake sheet shows the bill, add-on and T&C, and sends the bill file with n
 
 // --- Dashboard and Reports -------------------------------------------------------------------------
 p = await page("/admin", admin.cookie);
-check("dashboard has the renamed tiles and buttons", ["Due today (Online orders)", "Due today (Customised order)", "Online Orders", "Customised order"].every((t) => p.body.includes(t)) && !/GST/.test(p.body), `status ${p.status}`);
+check("dashboard has the renamed tiles and no order buttons", ["Due today (Online orders)", "Due today (Customised order)"].every((t) => p.body.includes(t)) && !["Online Orders", "New call order", "new-cake"].some((t) => p.body.includes(t)) && !/GST/.test(p.body), `status ${p.status}`);
+p = await page("/admin/orders", admin.cookie);
+check("orders page has In-store order and Customised order, no call order", p.body.includes("In-store order") && p.body.includes("Customised order") && !p.body.includes("New call order"), `status ${p.status}`);
 p = await page(`/admin/sales-report?range=custom&from=${tomorrow}&to=${tomorrow}`, admin.cookie);
 check("reports list the sold cake with kg and a total", p.status === 200 && p.body.includes("9000099904") && p.body.includes("1.5") && p.body.includes("Total"), `status ${p.status}`);
 p = await page("/admin/sales-report", counter.cookie);

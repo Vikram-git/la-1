@@ -15,15 +15,62 @@ export const BRAND_COLOURS = { ink: "#111111", pink: "#E8838A", teal: "#26C6BC",
 
 export const LOGO_SRC = "/brand/logo-round.png";
 
-// Shared by the calendar's "Terms and Conditions" button (WhatsApp).
-export const PAYMENT_TERMS = [
-  "Payment Terms",
-  "- Dates and time slots are reserved only after payment is received.",
-  "- Kindly mention your event date and the baby's name in the GPay payment note to help identify.",
-  "- Making the payment promptly will help us avoid any delay in dispatching the cake.",
-  "- 100% advance payment is required before the event / delivery. The cake can only be sent once the pending payment has been received.",
-  "- No cash payments accepted. Only GPay.",
-].join("\n");
+export const SHOP_UPI = "9884882516";
+
+// The customer's Terms and Conditions (owner, 2026-10-28): on the order page and the calendar (sent on
+// WhatsApp) and printed on every bill.
+export type TermsSection = { title: string; bullets?: string[]; paragraphs?: string[] };
+export const ORDER_TERMS: TermsSection[] = [
+  {
+    title: "Payment Terms",
+    bullets: [
+      "Dates and time slots are reserved only after payment is received.",
+      "Kindly mention your event date and the baby's name in the GPay payment note to help identify.",
+      "Making the payment promptly will help us avoid any delay in dispatching the cake.",
+      "100% advance payment is required before the event / delivery. Please note that the cake can only be sent once the pending payment has been received.",
+      "No cash payments accepted. Only GPay.",
+    ],
+  },
+  {
+    title: "Delivery Arrangement",
+    paragraphs: [
+      "Cab/Rapido bike has to be arranged by the customer for pickup from our location. The delivery charges will be borne by the customer.",
+      "We kindly request that the admin not be approached for cab bookings, as this may lead to confusion in the arrangements.",
+    ],
+  },
+  {
+    title: "Cake Disclaimer: Food Colours",
+    paragraphs: [
+      "We use only permitted food-grade colours that are safe for consumption. Some cake designs require deep or vibrant shades such as black, red, navy blue, emerald green, etc., which may require a higher quantity of food colouring. Dark and vibrant colours may temporarily stain the tongue, lips, teeth or hands after consumption. This is normal and harmless.",
+      "Slight variations in colour may occur due to lighting, photography, screen settings, and the nature of edible colours. Colour intensity may also vary slightly from the reference image while maintaining the overall design and aesthetic.",
+      "If you prefer minimal or no artificial food colouring, please inform us while placing your order so we can recommend suitable alternatives.",
+    ],
+  },
+  {
+    title: "Cake Disclaimer: Cake Supports & Decorations",
+    paragraphs: [
+      "Certain cake designs, especially fondant and tiered cakes, may contain internal supports such as toothpicks/skewers used to secure fondant decorations and food-safe dowels used to support the cake structure and keep tiers stable and straight. Please carefully check the cake and remove all non-edible decorations and internal supports before cutting and serving.",
+      "By confirming your order, you acknowledge and accept the use of food-grade colours and the necessary structural supports required to achieve and safely maintain your selected cake design.",
+    ],
+  },
+  {
+    title: "Payment Confirmation",
+    paragraphs: [
+      "Kindly complete the payment using the details below to confirm your order.",
+      `UPI / GPay: ${SHOP_UPI}`,
+      `Name: ${SHOP_NAME}`,
+    ],
+  },
+];
+
+// The WhatsApp text: bold titles (*…*) and bullets, with the order number when there is one.
+export function termsMessage(reference?: string | null): string {
+  const head = `*${SHOP_NAME}: Terms and Conditions*${reference ? `\nOrder ${reference}` : ""}`;
+  const body = ORDER_TERMS.map((s) =>
+    [`*${s.title.toUpperCase()}*`, ...(s.bullets ?? []).map((b) => `• ${b}`), ...(s.paragraphs ?? [])].join("\n"),
+  );
+  return [head, ...body].join("\n\n");
+}
 
 // The short version printed on cake sheets.
 export const CAKE_SHEET_TERMS = [

@@ -366,7 +366,7 @@ button {
 }
 
 .nav-logo-img {
-    height: 44px;
+    height: 58px;
     width: auto;
     object-fit: contain;
     display: block;
@@ -1655,7 +1655,7 @@ button {
     }
 
     .nav-logo-img {
-        height: 36px;
+        height: 48px;
     }
 
     .hamburger {
@@ -1767,7 +1767,7 @@ button {
 
 @media (max-width: 480px) {
     .nav-logo-img {
-        height: 33px;
+        height: 44px;
     }
 
 
@@ -2710,3 +2710,17 @@ textarea:focus {
     text-decoration: underline;
 }
 
+
+/* Menu bar logo: big enough to read the badge; the bar's padding shrinks to keep it slim. */
+#navbar { padding: 8px 0; }
+#navbar.scrolled { padding: 4px 0; }
+#navbar .nav-logo-img { height: 96px; }
+#navbar.scrolled .nav-logo-img { height: 76px; }
+@media (max-width: 1024px) {
+    #navbar .nav-logo-img { height: 80px; }
+    #navbar.scrolled .nav-logo-img { height: 68px; }
+}
+@media (max-width: 480px) {
+    #navbar .nav-logo-img { height: 64px; }
+    #navbar.scrolled .nav-logo-img { height: 58px; }
+}

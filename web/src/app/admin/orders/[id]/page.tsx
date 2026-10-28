@@ -18,7 +18,9 @@ import { ProductThumb } from "@/components/product-thumb";
 import { BillPanel, DiscountForm } from "./billing-panel";
 import { EditItems } from "./edit-items";
 import { loadCatalogue } from "@/lib/catalogue";
-import { MESSAGE_LABEL, type MessageKind } from "@/lib/whatsapp";
+import { MESSAGE_LABEL, whatsappLink, whatsappNumber, type MessageKind } from "@/lib/whatsapp";
+import { termsMessage } from "@/lib/brand";
+import { OrderTerms } from "@/components/order-terms";
 import { StickyNote } from "./sticky-note";
 
 export const metadata: Metadata = { title: "Order" };
@@ -102,6 +104,7 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
   const staffName = new Map((staffRows ?? []).map((s) => [s.user_id, s.full_name]));
   const who = (userId: string | null) => (userId ? staffName.get(userId) ?? "Staff" : "System");
   const balance = order.balance_paise ?? 0;
+  const termsTo = whatsappNumber(order.customer_phone);
   const refundable = (order.paid_paise ?? 0) - (order.refunded_paise ?? 0);
   const closed = ["completed", "rejected", "cancelled"].includes(order.status);
   const customer = noShow?.customers ?? null;
@@ -423,6 +426,32 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
               bill={bill ? { id: bill.id, number: bill.bill_number, totalPaise: bill.total_paise, issuedAt: formatDateTime(bill.issued_at, tz) } : null}
               credits={(bill?.credit_notes ?? []).map((c) => ({ id: c.id, number: c.credit_note_number, totalPaise: c.total_paise, reason: c.reason, issuedLabel: formatDateTime(c.issued_at, tz) }))}
             />
+          </Card>
+
+          <Card className="lg:col-span-2">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-lg font-semibold">Terms and Conditions</h2>
+              {termsTo ? (
+                <a
+                  href={whatsappLink(termsTo, termsMessage(order.reference))}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center justify-center rounded-xl bg-[#1f9d55] px-4 py-2 text-sm font-medium text-white shadow-sm shadow-[#1f9d55]/25 transition-colors hover:bg-[#14713c]"
+                >
+                  Send Terms on WhatsApp
+                </a>
+              ) : (
+                <p className="text-sm text-muted">Add the customer&rsquo;s phone number to send these on WhatsApp.</p>
+              )}
+            </div>
+            <details className="group rounded-xl border border-line bg-canvas/50 px-4 py-3 text-sm">
+              <summary className="cursor-pointer font-medium text-brand-strong">
+                <span className="group-open:hidden">Show the terms</span>
+                <span className="hidden group-open:inline">Hide the terms</span>
+              </summary>
+              <OrderTerms className="mt-3" />
+            </details>
+            <p className="mt-2 text-xs text-muted">Generated for order {order.reference}, and printed on the bill.</p>
           </Card>
 
           <Card className="lg:col-span-2">

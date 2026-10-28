@@ -4,7 +4,7 @@ import { formatTime } from "@/lib/time";
 import { cx } from "@/components/ui";
 import { ContactBadge, FulfilmentBadge, StatusBadge } from "@/components/order-badges";
 import { DeleteOrderButton } from "./delete-order";
-import { PAYMENT_TERMS } from "@/lib/brand";
+import { termsMessage } from "@/lib/brand";
 import { whatsappLink, whatsappNumber } from "@/lib/whatsapp";
 
 // Columns selected from order_summaries by the calendar page.
@@ -69,13 +69,13 @@ function CakeDetails({ cake, fulfilment, setupAddress }: { cake: CalendarCake; f
   );
 }
 
-// Opens WhatsApp to the customer with the payment terms typed in (owner, 2026-10-28).
-function TermsButton({ phone }: { phone: string | null }) {
+// Opens WhatsApp to the customer with the Terms and Conditions typed in (owner, 2026-10-28).
+function TermsButton({ phone, reference }: { phone: string | null; reference: string | null }) {
   const to = whatsappNumber(phone);
   if (!to) return null;
   return (
     <a
-      href={whatsappLink(to, PAYMENT_TERMS)}
+      href={whatsappLink(to, termsMessage(reference))}
       target="_blank"
       rel="noreferrer"
       className="relative z-10 whitespace-nowrap rounded-full border border-line bg-surface px-3 py-1 text-xs font-medium text-brand-strong hover:bg-brand-soft"
@@ -104,7 +104,7 @@ export function OrderList({ orders, tz, canDelete = false }: { orders: CalendarO
             {o.fulfilment && <FulfilmentBadge fulfilment={o.fulfilment} />}
             {o.source && <ContactBadge source={o.source} phone={o.customer_phone} />}
             {o.status && <StatusBadge status={o.status} />}
-            <TermsButton phone={o.customer_phone} />
+            <TermsButton phone={o.customer_phone} reference={o.reference} />
             {canDelete && o.id && <DeleteOrderButton orderId={o.id} reference={o.reference ?? ""} />}
         </li>
       ))}
