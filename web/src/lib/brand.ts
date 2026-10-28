@@ -17,8 +17,8 @@ export const LOGO_SRC = "/brand/logo-round.png";
 
 export const SHOP_UPI = "9884882516";
 
-// The customer's Terms and Conditions (owner, 2026-10-28): on the order page and the calendar (sent on
-// WhatsApp) and printed on every bill.
+// The customer's Terms and Conditions (owner, 2026-10-28): sent on WhatsApp as an image or PDF from the
+// order page and the calendar, and printed on every bill.
 export type TermsSection = { title: string; bullets?: string[]; paragraphs?: string[] };
 export const ORDER_TERMS: TermsSection[] = [
   {
@@ -62,15 +62,6 @@ export const ORDER_TERMS: TermsSection[] = [
     ],
   },
 ];
-
-// The WhatsApp text: bold titles (*…*) and bullets, with the order number when there is one.
-export function termsMessage(reference?: string | null): string {
-  const head = `*${SHOP_NAME}: Terms and Conditions*${reference ? `\nOrder ${reference}` : ""}`;
-  const body = ORDER_TERMS.map((s) =>
-    [`*${s.title.toUpperCase()}*`, ...(s.bullets ?? []).map((b) => `• ${b}`), ...(s.paragraphs ?? [])].join("\n"),
-  );
-  return [head, ...body].join("\n\n");
-}
 
 // The short version printed on cake sheets.
 export const CAKE_SHEET_TERMS = [

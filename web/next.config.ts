@@ -10,6 +10,7 @@ const nextConfig: NextConfig = {
   // actions that send them on WhatsApp Business.
   outputFileTracingIncludes: {
     "/api/orders/\\[id\\]/quotation": ["./assets/fonts/*.woff", "./public/brand/logo-round.png"],
+    "/api/terms": ["./assets/fonts/*.woff", "./public/brand/logo-round.png"],
     "/admin/**": ["./assets/fonts/*.woff", "./public/brand/logo-round.png"],
   },
   // Let browsers and Vercel's CDN keep the website's files instead of asking again on every visit.

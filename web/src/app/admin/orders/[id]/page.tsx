@@ -18,9 +18,9 @@ import { ProductThumb } from "@/components/product-thumb";
 import { BillPanel, DiscountForm } from "./billing-panel";
 import { EditItems } from "./edit-items";
 import { loadCatalogue } from "@/lib/catalogue";
-import { MESSAGE_LABEL, whatsappLink, whatsappNumber, type MessageKind } from "@/lib/whatsapp";
-import { termsMessage } from "@/lib/brand";
+import { MESSAGE_LABEL, whatsappNumber, type MessageKind } from "@/lib/whatsapp";
 import { OrderTerms } from "@/components/order-terms";
+import { TermsSend } from "@/components/terms-send";
 import { StickyNote } from "./sticky-note";
 
 export const metadata: Metadata = { title: "Order" };
@@ -429,17 +429,11 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
           </Card>
 
           <Card className="lg:col-span-2">
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-lg font-semibold">Terms and Conditions</h2>
+            <h2 className="mb-1 text-lg font-semibold">Terms and Conditions</h2>
+            <p className="mb-3 text-sm text-muted">Sent to the customer as an image or PDF, not as text.</p>
+            <div className="mb-3">
               {termsTo ? (
-                <a
-                  href={whatsappLink(termsTo, termsMessage(order.reference))}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center justify-center rounded-xl bg-[#1f9d55] px-4 py-2 text-sm font-medium text-white shadow-sm shadow-[#1f9d55]/25 transition-colors hover:bg-[#14713c]"
-                >
-                  Send Terms on WhatsApp
-                </a>
+                <TermsSend phone={termsTo} reference={order.reference} />
               ) : (
                 <p className="text-sm text-muted">Add the customer&rsquo;s phone number to send these on WhatsApp.</p>
               )}

@@ -4,8 +4,8 @@ import { formatTime } from "@/lib/time";
 import { cx } from "@/components/ui";
 import { ContactBadge, FulfilmentBadge, StatusBadge } from "@/components/order-badges";
 import { DeleteOrderButton } from "./delete-order";
-import { termsMessage } from "@/lib/brand";
-import { whatsappLink, whatsappNumber } from "@/lib/whatsapp";
+import { whatsappNumber } from "@/lib/whatsapp";
+import { TermsSend } from "@/components/terms-send";
 
 // Columns selected from order_summaries by the calendar page.
 export type CalendarOrder = {
@@ -69,20 +69,11 @@ function CakeDetails({ cake, fulfilment, setupAddress }: { cake: CalendarCake; f
   );
 }
 
-// Opens WhatsApp to the customer with the Terms and Conditions typed in (owner, 2026-10-28).
+// Sends the customer the Terms and Conditions as an image on WhatsApp (owner, 2026-10-28).
 function TermsButton({ phone, reference }: { phone: string | null; reference: string | null }) {
   const to = whatsappNumber(phone);
   if (!to) return null;
-  return (
-    <a
-      href={whatsappLink(to, termsMessage(reference))}
-      target="_blank"
-      rel="noreferrer"
-      className="relative z-10 whitespace-nowrap rounded-full border border-line bg-surface px-3 py-1 text-xs font-medium text-brand-strong hover:bg-brand-soft"
-    >
-      Terms and Conditions
-    </a>
-  );
+  return <TermsSend phone={to} reference={reference} compact />;
 }
 
 export function OrderList({ orders, tz, canDelete = false }: { orders: CalendarOrder[]; tz: string; canDelete?: boolean }) {

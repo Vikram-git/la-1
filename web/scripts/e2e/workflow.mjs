@@ -118,7 +118,12 @@ const cake = (await admin.sb.from("order_summaries").select("*").eq("id", cakeId
 check("custom cake total = price + set-up + delivery + add-on, advance paid", cake?.total_paise === 350000 && cake.balance_paise === 250000, `total ${cake?.total_paise} balance ${cake?.balance_paise}`);
 p = await page(`/admin/orders/${cakeId}`, counter.cookie);
 check("order page shows cupcakes and add-on, without the message and Order in msg cards", p.status === 200 && /Cupcakes.{0,80}>6</.test(p.body) && p.body.includes("Gold balloons") && !p.body.includes("Message the customer") && !p.body.includes("Open Order in msg"), `status ${p.status}`);
-check("order page sends the Terms and Conditions on WhatsApp", p.body.includes("Send Terms on WhatsApp") && p.body.includes("wa.me/919000099904") && p.body.includes("Food Colours"), `status ${p.status}`);
+check("order page sends the Terms and Conditions as a file", p.body.includes("Send Terms on WhatsApp (image)") && p.body.includes("Image (PNG)") && p.body.includes("Food Colours"), `status ${p.status}`);
+for (const format of ["png", "pdf"]) {
+  const t = await fetch(`${APP}/api/terms?format=${format}&ref=${cake.reference}`, { headers: { cookie: counter.cookie } });
+  const bytes = (await t.arrayBuffer()).byteLength;
+  check(`terms ${format.toUpperCase()} file is made`, t.status === 200 && t.headers.get("content-type") === (format === "pdf" ? "application/pdf" : "image/png") && bytes > 20000 && (t.headers.get("content-disposition") ?? "").includes(cake.reference), `${t.status} ${bytes} bytes`);
+}
 let q = await quotationFile(cakeId, "pdf", counter.cookie);
 check("counter makes Order in msg PDF", q.status === 200 && q.body.fileName === `LaPatisserieMadras-Order-in-msg-${cake.reference}.pdf`, JSON.stringify(q.body).slice(0, 200));
 if (q.body.url) {
@@ -144,7 +149,7 @@ p = await page(`/admin/calendar?kind=custom&from=${tomorrow}`, admin.cookie);
 check("custom calendar lists the cake, not the call order", p.body.includes(cake.reference) && !p.body.includes(call.reference), `status ${p.status}`);
 p = await page(`/admin/calendar?from=${tomorrow}`, admin.cookie);
 check("online calendar lists the call order, not the cake", p.body.includes(call.reference) && !p.body.includes(cake.reference), `status ${p.status}`);
-check("calendar has the Terms and Conditions button", p.body.includes("Terms and Conditions") && p.body.includes("wa.me"), `status ${p.status}`);
+check("calendar has the Terms and Conditions button", p.body.includes("Terms and Conditions"), `status ${p.status}`);
 
 // --- Kitchens -------------------------------------------------------------------------------------
 const kitchenOf = async (id) => (await admin.sb.from("orders").select("kitchens(code)").eq("id", id).single()).data?.kitchens?.code;
@@ -162,6 +167,8 @@ for (const [chef, code] of [[chef1, "K1"], [chef2, "K2"]]) {
   else check(`${code} cannot open another kitchen's quotation`, kq.status !== 200 || !kq.body.includes("Rasmalai"), `status ${kq.status}`);
   const api = await quotationFile(cakeId, "pdf", chef.cookie);
   check(`${code} chef gets 403 from quotation file`, api.status === 403, `status ${api.status}`);
+  const terms = await fetch(`${APP}/api/terms?format=png`, { headers: { cookie: chef.cookie } });
+  check(`${code} chef gets 403 from terms file`, terms.status === 403, `status ${terms.status}`);
   const a = await page("/admin/orders", chef.cookie);
   check(`${code} chef kept out of admin`, a.status !== 200, `${a.status} ${a.location ?? ""}`);
 }
