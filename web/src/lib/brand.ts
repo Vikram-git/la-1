@@ -14,6 +14,8 @@ export const SHOP_ADDRESS =
 export const BRAND_COLOURS = { ink: "#111111", pink: "#E8838A", teal: "#26C6BC", chocolate: "#4A2418", cream: "#F7F3EE" } as const;
 
 export const LOGO_SRC = "/brand/logo-round.png";
+// "La Patisserie" and "MADRAS" traced from the logo without its circle; the PNG is for renderers without SVG.
+export const WORDMARK_SRC = "/brand/wordmark.svg";
 
 export const SHOP_UPI = "9884882516";
 

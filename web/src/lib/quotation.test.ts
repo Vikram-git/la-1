@@ -35,8 +35,9 @@ const amounts = {
 
 test("the full quotation carries every amount: lines, set-up, delivery, total, advance and balance", () => {
   const q = parseQuotation({ ...base, mode: "full", items: items.map((i, n) => ({ ...i, ...priced[n] })), amounts });
-  const v = quotationView(q, new Date("2026-10-24T06:00:00Z"));
+  const v = quotationView(q);
   assert.equal(v.priced, true);
+  assert.ok(!v.facts.some((f) => f.label === "Date"));
   assert.deepEqual(v.lines.map((l) => [l.title, l.total]), [
     ["Custom cake — 2 kg", "₹4,500.00"],
     ["Set-up — Balloon arch", "₹1,500.00"],

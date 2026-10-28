@@ -8,7 +8,7 @@ import { QUOTATION_COLOURS as ROSE, type QuotationView } from "@/lib/quotation";
 // it runs in a normal Vercel function. Fonts and the logo are read from assets/fonts and public/brand
 // (traced in next.config.ts). Marcellus has no ₹ sign, so amounts use Geist (the app's body font).
 const fontDir = join(process.cwd(), "assets/fonts");
-const logo = readFileSync(join(process.cwd(), "public/brand/logo-round.png"));
+const wordmark = readFileSync(join(process.cwd(), "public/brand/wordmark.png"));
 Font.register({ family: "Marcellus", src: join(fontDir, "marcellus-latin-400-normal.woff") });
 Font.register({ family: "Mea Culpa", src: join(fontDir, "mea-culpa-latin-400-normal.woff") });
 Font.register({
@@ -24,10 +24,6 @@ Font.registerHyphenationCallback((word) => [word]);
 const s = StyleSheet.create({
   page: { paddingTop: 40, paddingBottom: 48, paddingHorizontal: 44, fontFamily: "Geist", fontSize: 10, color: ROSE.ink, backgroundColor: "#ffffff" },
   header: { alignItems: "center", paddingBottom: 16, borderBottomWidth: 1, borderBottomColor: ROSE.line },
-  shop: { fontFamily: "Mea Culpa", fontSize: 34, marginTop: 6 },
-  cityRow: { flexDirection: "row", alignItems: "center", marginTop: 2 },
-  cityRule: { width: 26, height: 0.6, backgroundColor: ROSE.ink },
-  city: { fontFamily: "Marcellus", fontSize: 8, letterSpacing: 3.2, marginHorizontal: 8 },
   contact: { fontSize: 8, color: ROSE.muted, marginTop: 6 },
   titleRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", marginTop: 18 },
   title: { fontFamily: "Marcellus", fontSize: 20, color: ROSE.brandStrong },
@@ -57,23 +53,13 @@ const s = StyleSheet.create({
   thanks: { fontFamily: "Marcellus", fontSize: 10, color: ROSE.brandStrong },
 });
 
-function Logo() {
-  // eslint-disable-next-line jsx-a11y/alt-text -- a react-pdf Image, which has no alt
-  return <Image src={{ data: logo, format: "png" }} style={{ width: 64, height: 64 }} />;
-}
-
 function QuotationPdf({ view }: { view: QuotationView }) {
   return (
     <Document title={`${view.title} ${view.facts[0]?.value ?? ""}`.trim()} author={view.shopName} creator={view.shopName} producer={view.shopName}>
       <Page size="A4" style={s.page}>
         <View style={s.header}>
-          <Logo />
-          <Text style={s.shop}>La Patisserie</Text>
-          <View style={s.cityRow}>
-            <View style={s.cityRule} />
-            <Text style={s.city}>MADRAS</Text>
-            <View style={s.cityRule} />
-          </View>
+          {/* eslint-disable-next-line jsx-a11y/alt-text -- a react-pdf Image, which has no alt */}
+          <Image src={{ data: wordmark, format: "png" }} style={{ width: 190, height: 68 }} />
           {view.shopContact.length > 0 && <Text style={s.contact}>{view.shopContact.join("  ·  ")}</Text>}
         </View>
 

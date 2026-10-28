@@ -4,14 +4,14 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { ImageResponse } from "next/og";
 import { Document, Image, Page, StyleSheet, Text, View, renderToBuffer } from "@react-pdf/renderer";
-import { ORDER_TERMS, SHOP_NAME } from "@/lib/brand";
+import { ORDER_TERMS, SHOP_ADDRESS, SHOP_NAME } from "@/lib/brand";
 import { QUOTATION_COLOURS as ROSE } from "@/lib/quotation";
 import "@/lib/quotation-pdf";
 
 // The customer's Terms and Conditions as a file for WhatsApp (owner, 2026-10-28): a PNG (next/og) or an A4
 // PDF (@react-pdf), with the same fonts and logo as the "Order in msg" file.
 const fontDir = join(process.cwd(), "assets/fonts");
-const logoPath = join(process.cwd(), "public/brand/logo-round.png");
+const wordmarkPath = join(process.cwd(), "public/brand/wordmark.png");
 
 export function termsFileName(reference: string | null, format: "pdf" | "png"): string {
   return `LaPatisserieMadras-Terms${reference ? `-${reference}` : ""}.${format}`;
@@ -20,11 +20,10 @@ export function termsFileName(reference: string | null, format: "pdf" | "png"): 
 // ---- PNG -----------------------------------------------------------------------------------------
 const pngFonts = Promise.all([
   readFile(join(fontDir, "marcellus-latin-400-normal.woff")),
-  readFile(join(fontDir, "mea-culpa-latin-400-normal.woff")),
   readFile(join(fontDir, "geist-sans-latin-400-normal.woff")),
   readFile(join(fontDir, "geist-sans-latin-600-normal.woff")),
 ]);
-const pngLogo = readFile(logoPath).then((b) => `data:image/png;base64,${b.toString("base64")}`);
+const pngWordmark = readFile(wordmarkPath).then((b) => `data:image/png;base64,${b.toString("base64")}`);
 
 const WIDTH = 1080;
 // Satori needs a fixed size: about 78 characters fit a 24px line at this width, 36px apart.
@@ -37,20 +36,15 @@ function estimateHeight(): number {
 }
 
 export async function renderTermsPng(reference: string | null): Promise<Buffer> {
-  const [marcellus, meaCulpa, g400, g600] = await pngFonts;
-  const logoSrc = await pngLogo;
+  const [marcellus, g400, g600] = await pngFonts;
+  const wordmarkSrc = await pngWordmark;
   const image = new ImageResponse(
     (
       <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", backgroundColor: "#ffffff", padding: "52px 64px", fontFamily: "Geist", fontSize: 24, lineHeight: 1.5, color: ROSE.ink }}>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingBottom: 24, borderBottom: `2px solid ${ROSE.line}` }}>
           {/* eslint-disable-next-line @next/next/no-img-element -- rendered by Satori, not the browser */}
-          <img src={logoSrc} width={130} height={130} alt="" />
-          <div style={{ fontFamily: "Mea Culpa", fontSize: 76, marginTop: 6, lineHeight: 1 }}>La Patisserie</div>
-          <div style={{ display: "flex", alignItems: "center", marginTop: 4 }}>
-            <div style={{ width: 60, height: 1.5, backgroundColor: ROSE.ink }} />
-            <div style={{ fontFamily: "Marcellus", fontSize: 20, letterSpacing: 8, margin: "0 18px" }}>MADRAS</div>
-            <div style={{ width: 60, height: 1.5, backgroundColor: ROSE.ink }} />
-          </div>
+          <img src={wordmarkSrc} width={520} height={188} alt="" />
+          <div style={{ fontSize: 19, color: ROSE.muted, marginTop: 12, textAlign: "center" }}>{SHOP_ADDRESS}</div>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginTop: 26 }}>
           <div style={{ fontFamily: "Marcellus", fontSize: 42, color: ROSE.brandStrong }}>Terms and Conditions</div>
@@ -80,7 +74,6 @@ export async function renderTermsPng(reference: string | null): Promise<Buffer> 
       height: estimateHeight(),
       fonts: [
         { name: "Marcellus", data: marcellus, weight: 400, style: "normal" },
-        { name: "Mea Culpa", data: meaCulpa, weight: 400, style: "normal" },
         { name: "Geist", data: g400, weight: 400, style: "normal" },
         { name: "Geist", data: g600, weight: 600, style: "normal" },
       ],
@@ -93,10 +86,7 @@ export async function renderTermsPng(reference: string | null): Promise<Buffer> 
 const s = StyleSheet.create({
   page: { paddingTop: 32, paddingBottom: 50, paddingHorizontal: 48, fontFamily: "Geist", fontSize: 9.5, lineHeight: 1.4, color: ROSE.ink },
   header: { alignItems: "center", paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: ROSE.line },
-  shop: { fontFamily: "Mea Culpa", fontSize: 32, marginTop: 4, lineHeight: 1.2 },
-  cityRow: { flexDirection: "row", alignItems: "center", marginTop: 6 },
-  cityRule: { width: 26, height: 0.6, backgroundColor: ROSE.ink },
-  city: { fontFamily: "Marcellus", fontSize: 8, letterSpacing: 3.2, marginHorizontal: 8 },
+  contact: { fontSize: 8, color: ROSE.muted, marginTop: 6 },
   titleRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", marginTop: 14 },
   title: { fontFamily: "Marcellus", fontSize: 19, color: ROSE.brandStrong },
   ref: { fontSize: 9, color: ROSE.muted },
@@ -114,13 +104,8 @@ function TermsPdf({ reference }: { reference: string | null }) {
       <Page size="A4" style={s.page}>
         <View style={s.header}>
           {/* eslint-disable-next-line jsx-a11y/alt-text -- a react-pdf Image, which has no alt */}
-          <Image src={{ data: readFileSync(logoPath), format: "png" }} style={{ width: 58, height: 58 }} />
-          <Text style={s.shop}>La Patisserie</Text>
-          <View style={s.cityRow}>
-            <View style={s.cityRule} />
-            <Text style={s.city}>MADRAS</Text>
-            <View style={s.cityRule} />
-          </View>
+          <Image src={{ data: readFileSync(wordmarkPath), format: "png" }} style={{ width: 190, height: 68 }} />
+          <Text style={s.contact}>{SHOP_ADDRESS}</Text>
         </View>
         <View style={s.titleRow}>
           <Text style={s.title}>Terms and Conditions</Text>

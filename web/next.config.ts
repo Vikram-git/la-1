@@ -9,9 +9,9 @@ const nextConfig: NextConfig = {
   // The quotation PDF and PNG read their fonts from disk at run time: made in the route, and in the order
   // actions that send them on WhatsApp Business.
   outputFileTracingIncludes: {
-    "/api/orders/\\[id\\]/quotation": ["./assets/fonts/*.woff", "./public/brand/logo-round.png"],
-    "/api/terms": ["./assets/fonts/*.woff", "./public/brand/logo-round.png"],
-    "/admin/**": ["./assets/fonts/*.woff", "./public/brand/logo-round.png"],
+    "/api/orders/\\[id\\]/quotation": ["./assets/fonts/*.woff", "./public/brand/wordmark.png"],
+    "/api/terms": ["./assets/fonts/*.woff", "./public/brand/wordmark.png"],
+    "/admin/**": ["./assets/fonts/*.woff", "./public/brand/wordmark.png"],
   },
   // Let browsers and Vercel's CDN keep the website's files instead of asking again on every visit.
   async headers() {

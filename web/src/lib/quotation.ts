@@ -205,12 +205,11 @@ export type QuotationView = {
   notes: { label: string; value: string }[];
 };
 
-export function quotationView(q: Quotation, issuedAt: Date = new Date()): QuotationView {
+export function quotationView(q: Quotation): QuotationView {
   const tz = q.timeZone;
   const priced = q.mode === "full" && q.amounts !== null;
   const facts = [
     { label: "Order no.", value: q.order.reference },
-    { label: "Date", value: formatDate(issuedAt, tz) },
     {
       label: q.order.fulfilment === "setup" ? "Set-up date & time" : "Pickup date & time",
       value: q.order.dueAt ? formatDateTime(q.order.dueAt, tz) : "To be confirmed",
@@ -256,8 +255,4 @@ export function quotationView(q: Quotation, issuedAt: Date = new Date()): Quotat
     totals,
     notes,
   };
-}
-
-function formatDate(value: Date, timeZone: string): string {
-  return new Intl.DateTimeFormat("en-IN", { timeZone, day: "numeric", month: "long", year: "numeric" }).format(value);
 }

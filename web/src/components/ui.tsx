@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
-import { LOGO_SRC, SHOP_NAME } from "@/lib/brand";
+import { LOGO_SRC, SHOP_NAME, WORDMARK_SRC } from "@/lib/brand";
 
 export function cx(...classes: (string | false | null | undefined)[]) {
   return classes.filter(Boolean).join(" ");
@@ -212,29 +212,17 @@ export function CityLine({ className }: { className?: string }) {
   return <span className={cx("block font-caps text-[11px] uppercase tracking-[0.35em] text-ink", className)}>Madras</span>;
 }
 
-// The logo above "La Patisserie" in the signature script and "MADRAS".
+// The shop's name in the logo's lettering, without the round badge.
 export function Brand({ compact = false, className }: { compact?: boolean; className?: string }) {
   return (
     <div className={cx("flex flex-col items-center text-center", className)}>
-      <LogoMark className={compact ? "size-14" : "size-24"} />
-      <span className="sr-only">{SHOP_NAME}</span>
+      <Wordmark className={compact ? "w-32" : "w-44"} />
     </div>
   );
 }
 
-// Text lockup like the logo, without the badge (login): the script name, a rule under it running
-// into "MADRAS" at its right end.
+// "La Patisserie" with its underline and "MADRAS", traced from the logo.
 export function Wordmark({ className }: { className?: string }) {
-  return (
-    <div className={cx("inline-flex flex-col", className)}>
-      <span className="bg-linear-to-r from-chocolate via-brand-strong to-chocolate bg-clip-text px-2 pb-1 font-script text-6xl leading-tight text-transparent sm:text-7xl">
-        La Patisserie
-      </span>
-      <span className="flex items-center justify-center gap-3">
-        <span aria-hidden className="h-px w-12 bg-linear-to-r from-transparent to-accent" />
-        <span className="pl-[0.4em] font-caps text-sm uppercase tracking-[0.4em] text-ink">Madras</span>
-        <span aria-hidden className="h-px w-12 bg-linear-to-l from-transparent to-accent" />
-      </span>
-    </div>
-  );
+  // eslint-disable-next-line @next/next/no-img-element -- static vector, also used in print
+  return <img src={WORDMARK_SRC} alt={SHOP_NAME} width={2135} height={770} className={cx("block h-auto w-72 max-w-full", className)} />;
 }

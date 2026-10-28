@@ -9,7 +9,6 @@ import { QUOTATION_COLOURS as ROSE, type QuotationView } from "@/lib/quotation";
 const fontDir = join(process.cwd(), "assets/fonts");
 const fonts = Promise.all([
   readFile(join(fontDir, "marcellus-latin-400-normal.woff")),
-  readFile(join(fontDir, "mea-culpa-latin-400-normal.woff")),
   readFile(join(fontDir, "geist-sans-latin-400-normal.woff")),
   readFile(join(fontDir, "geist-sans-latin-500-normal.woff")),
   readFile(join(fontDir, "geist-sans-latin-600-normal.woff")),
@@ -17,29 +16,23 @@ const fonts = Promise.all([
 
 const WIDTH = 1080;
 
-const logo = readFile(join(process.cwd(), "public/brand/logo-round.png")).then((b) => `data:image/png;base64,${b.toString("base64")}`);
+const wordmark = readFile(join(process.cwd(), "public/brand/wordmark.png")).then((b) => `data:image/png;base64,${b.toString("base64")}`);
 
 function estimateHeight(v: QuotationView): number {
   const lines = v.lines.reduce((h, l) => h + (l.detail ? 92 : 66), 0);
-  return Math.max(1100, 560 + Math.ceil(v.facts.length / 2) * 84 + (v.cake.length ? 80 + v.cake.length * 40 : 0) + 120 + lines + v.totals.length * 42 + v.notes.length * 44 + 140);
+  return Math.max(1100, 520 + Math.ceil(v.facts.length / 2) * 84 + (v.cake.length ? 80 + v.cake.length * 40 : 0) + 120 + lines + v.totals.length * 42 + v.notes.length * 44 + 140);
 }
 
 export async function renderQuotationPng(view: QuotationView): Promise<Buffer> {
-  const [marcellus, meaCulpa, g400, g500, g600] = await fonts;
-  const logoSrc = await logo;
+  const [marcellus, g400, g500, g600] = await fonts;
+  const wordmarkSrc = await wordmark;
   const label = { fontSize: 18, letterSpacing: 2, color: ROSE.muted, textTransform: "uppercase" as const };
   const image = new ImageResponse(
     (
       <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", backgroundColor: "#ffffff", padding: "56px 64px", fontFamily: "Geist", fontSize: 26, color: ROSE.ink }}>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingBottom: 28, borderBottom: `2px solid ${ROSE.line}` }}>
           {/* eslint-disable-next-line @next/next/no-img-element -- rendered by Satori, not the browser */}
-          <img src={logoSrc} width={150} height={150} alt="" />
-          <div style={{ fontFamily: "Mea Culpa", fontSize: 84, marginTop: 8, lineHeight: 1 }}>La Patisserie</div>
-          <div style={{ display: "flex", alignItems: "center", marginTop: 4 }}>
-            <div style={{ width: 60, height: 1.5, backgroundColor: ROSE.ink }} />
-            <div style={{ fontFamily: "Marcellus", fontSize: 20, letterSpacing: 8, margin: "0 18px" }}>MADRAS</div>
-            <div style={{ width: 60, height: 1.5, backgroundColor: ROSE.ink }} />
-          </div>
+          <img src={wordmarkSrc} width={520} height={188} alt="" />
           {view.shopContact.length > 0 && <div style={{ fontSize: 19, color: ROSE.muted, marginTop: 12 }}>{view.shopContact.join("  ·  ")}</div>}
         </div>
 
@@ -111,7 +104,6 @@ export async function renderQuotationPng(view: QuotationView): Promise<Buffer> {
       height: estimateHeight(view),
       fonts: [
         { name: "Marcellus", data: marcellus, weight: 400, style: "normal" },
-        { name: "Mea Culpa", data: meaCulpa, weight: 400, style: "normal" },
         { name: "Geist", data: g400, weight: 400, style: "normal" },
         { name: "Geist", data: g500, weight: 500, style: "normal" },
         { name: "Geist", data: g600, weight: 600, style: "normal" },

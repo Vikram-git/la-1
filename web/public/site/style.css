@@ -2656,7 +2656,16 @@ textarea:focus {
 }
 
 
-/* Menu bar without a logo: the links sit in the centre, in a larger size. */
+/* Menu bar without a logo: the links sit in the centre, in a larger size, on no background so the pink
+   drip shows through. */
+#navbar,
+#navbar.scrolled {
+    background: transparent;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: none;
+    border-bottom: 0;
+}
 #navbar { padding: 16px 0; }
 #navbar.scrolled { padding: 8px 0; }
 #navbar .nav-container { justify-content: center; }
