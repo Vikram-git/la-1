@@ -532,7 +532,7 @@ button {
 
 .drip-top,
 .drip-flow-strip > span {
-    background: url('/brand/drip-background.webp') center / cover no-repeat;
+    background: url('/brand/drip-bg.webp') center / cover no-repeat;
 }
 
 /* The picture's top third: the pink drips. */
@@ -2408,7 +2408,7 @@ body::before {
     position: fixed;
     inset: 0;
     z-index: -1;
-    background: url('/brand/drip-background.webp') center / cover no-repeat;
+    background: url('/brand/drip-bg.webp') center / cover no-repeat;
     pointer-events: none;
 }
 
@@ -2641,7 +2641,7 @@ textarea:focus {
     body::before,
     .drip-top,
     .drip-flow-strip > span {
-        background-image: url('/brand/drip-background-mobile.webp');
+        background-image: url('/brand/drip-bg-mobile.webp');
     }
 }
 
@@ -2667,7 +2667,7 @@ textarea:focus {
 }
 
 /* Hero card blended into the picture (2026-10-28): no edge, border or shadow; a glow in the picture's
-   own cream (#f7f2ef, sampled from its centre) fades out past the content so the name sits in the
+   own cream (#fef9f3, sampled from its centre) fades out past the content so the name sits in the
    background rather than on a separate box. */
 .hero-card {
     position: relative;
@@ -2683,12 +2683,12 @@ textarea:focus {
     position: absolute;
     inset: -28% -22%;
     z-index: -1;
-    background: radial-gradient(closest-side, rgba(247, 242, 239, 0.92) 0%, rgba(247, 242, 239, 0.7) 55%, rgba(247, 242, 239, 0) 100%);
+    background: radial-gradient(closest-side, rgba(254, 249, 243, 0.92) 0%, rgba(254, 249, 243, 0.7) 55%, rgba(254, 249, 243, 0) 100%);
     pointer-events: none;
 }
 
 #hero .btn-outline {
-    background: rgba(247, 242, 239, 0.6);
+    background: rgba(254, 249, 243, 0.6);
 }
 
 .contact-address {

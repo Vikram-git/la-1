@@ -17,16 +17,17 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
 
   return (
     <main className="relative isolate flex flex-1 items-center justify-center px-5 py-10 sm:py-16">
-      {/* The icing drip fills the screen; the sign-in card sits on its cream centre. */}
+      {/* The icing drip fills the screen; the sign-in card sits on its cream centre. Unoptimized: the file is
+          already an upscaled 3840×2160 WebP, and re-encoding it softens the drips. */}
       <div aria-hidden className="fixed inset-0 -z-10 bg-cream">
-        <Image src="/brand/drip-background.webp" alt="" fill priority sizes="100vw" quality={90} className="object-cover object-center" />
+        <Image src="/brand/drip-bg.webp" alt="" fill priority unoptimized className="object-cover object-center" />
       </div>
 
-      <div className="relative w-full max-w-md px-6 py-8 sm:px-10 sm:py-10 [&_input]:border-[#e6dcd7] [&_input]:bg-[#f7f2ef]/80">
-        {/* A glow in the picture's own cream (#f7f2ef) that fades out, so the form has no box edge. */}
+      <div className="relative w-full max-w-md px-6 py-8 sm:px-10 sm:py-10 [&_input]:border-[#efe2d6] [&_input]:bg-[#fef9f3]/80">
+        {/* A glow in the picture's own cream (#fef9f3) that fades out, so the form has no box edge. */}
         <div
           aria-hidden
-          className="pointer-events-none absolute -inset-x-[30%] -inset-y-[18%] -z-10 bg-[radial-gradient(closest-side,rgba(247,242,239,0.95)_0%,rgba(247,242,239,0.75)_55%,rgba(247,242,239,0)_100%)]"
+          className="pointer-events-none absolute -inset-x-[30%] -inset-y-[18%] -z-10 bg-[radial-gradient(closest-side,rgba(254,249,243,0.95)_0%,rgba(254,249,243,0.75)_55%,rgba(254,249,243,0)_100%)]"
         />
         <h1 className="sr-only">{SHOP_NAME} staff sign in</h1>
         <div className="flex justify-center">
