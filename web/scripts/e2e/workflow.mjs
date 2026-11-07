@@ -132,6 +132,15 @@ if (process.env.WHATSAPP_TEST_MODE === "true") {
   const unsigned = await fetch(`${APP}/api/whatsapp/webhook`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ entry: [] }) });
   const forged = await fetch(`${APP}/api/whatsapp/webhook`, { method: "POST", headers: { "Content-Type": "application/json", "X-Hub-Signature-256": "sha256=" + "0".repeat(64) }, body: "{}" });
   check("webhook refuses unsigned and wrongly signed calls", unsigned.status === 403 && forged.status === 403, `${unsigned.status}/${forged.status}`);
+
+  const sheet = await page(`/print/cake/${cakeId}`, counter.cookie);
+  check("cake sheet offers one tap: bill and Terms to the customer's WhatsApp, image or PDF",
+    sheet.status === 200 && sheet.body.includes("Send the bill and Terms to the customer") && sheet.body.includes("+91 90000 99904"), `status ${sheet.status}`);
+  const both = await act("sendBillAndTermsAction", `/print/cake/${cakeId}`, { orderId: cakeId, format: "png" }, counter.cookie);
+  const billSends = (await admin.sb.from("quotation_sends").select("format, channel, status").eq("order_id", cakeId).eq("channel", "cloud_api")).data ?? [];
+  const pngTerms = (await admin.sb.from("terms_sends").select("format").eq("order_id", cakeId).eq("format", "png")).data ?? [];
+  check("one tap sends the bill image and the Terms image to the customer's number",
+    both.ok === true && billSends.some((s) => s.format === "png" && s.status === "sent") && pngTerms.length === 2, `${JSON.stringify(both)} bill ${JSON.stringify(billSends)} terms png ${pngTerms.length}`);
 }
 check("custom cake total = price + set-up + delivery + add-on, advance paid", cake?.total_paise === 350000 && cake.balance_paise === 250000, `total ${cake?.total_paise} balance ${cake?.balance_paise}`);
 p = await page(`/admin/orders/${cakeId}`, counter.cookie);

@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Alert, Textarea, cx } from "@/components/ui";
 import { whatsappLink } from "@/lib/whatsapp";
-import { canShareFile, shareFileToWhatsApp } from "@/lib/share-file";
+import { chatOutcomeMessage, openChatWithFile } from "@/lib/share-file";
 import { recordQuotationSendAction, sendQuotationNowAction } from "../actions";
 
 type Format = "pdf" | "png";
@@ -12,10 +12,9 @@ type Prepared = { file: File; path: string; format: Format };
 
 // "Send Order in msg on WhatsApp" (was "Send quotation") (2026-10-24). With WhatsApp Business (Cloud API) set up for the chosen
 // format, one tap and the server sends it (Meta's approved template text goes with the file, not the caption).
-// Otherwise, or as a backup, the file goes from this device: phones get the share sheet with the file
-// attached (pick WhatsApp, then the chat); computers download the file and open the customer's WhatsApp
-// chat with the message filled in, to attach it there. Two taps on purpose: browsers allow sharing or
-// opening a tab only straight after a tap, and the file is made fresh on the server first.
+// Otherwise, or as a backup, one tap opens the WhatsApp chat of the customer who placed the order, with the
+// message filled in and the image copied to paste (a PDF is downloaded to attach; 2026-11-07). The file is made
+// fresh on the server first: on the cake sheet as soon as it opens, on the order page with a first tap.
 export function QuotationSend({
   orderId,
   phone,
@@ -59,6 +58,31 @@ export function QuotationSend({
     router.refresh();
   }
 
+  async function makeFile(f: Format): Promise<Prepared> {
+    const res = await fetch(`/api/orders/${orderId}/quotation`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ format: f }),
+    });
+    const data = (await res.json().catch(() => ({}))) as { ok?: boolean; message?: string; url?: string; path?: string; fileName?: string; contentType?: string };
+    if (!res.ok || !data.ok || !data.url || !data.path || !data.fileName) throw new Error(data.message ?? `Could not make the ${what} file.`);
+    const blob = await (await fetch(data.url)).blob();
+    return { file: new File([blob], data.fileName, { type: data.contentType ?? blob.type }), path: data.path, format: f };
+  }
+
+  // The cake sheet makes the bill as soon as it opens, so the first tap opens the customer's chat.
+  useEffect(() => {
+    if (!fileOnly || !phone) return;
+    let cancelled = false;
+    makeFile(format)
+      .then((made) => !cancelled && setPrepared(made))
+      .catch((e: Error) => !cancelled && setError(e.message || `Could not make the ${what} file. Check the connection and reload the page.`));
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- makeFile depends only on the order
+  }, [format, fileOnly, phone]);
+
   async function prepare() {
     setBusy(true);
     setError(null);
@@ -66,41 +90,23 @@ export function QuotationSend({
     setChatUrl(null);
     setPrepared(null);
     try {
-      const res = await fetch(`/api/orders/${orderId}/quotation`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ format }),
-      });
-      const data = (await res.json().catch(() => ({}))) as { ok?: boolean; message?: string; url?: string; path?: string; fileName?: string; contentType?: string };
-      if (!res.ok || !data.ok || !data.url || !data.path || !data.fileName) {
-        setError(data.message ?? `Could not make the ${what} file.`);
-        return;
-      }
-      const blob = await (await fetch(data.url)).blob();
-      setPrepared({ file: new File([blob], data.fileName, { type: data.contentType ?? blob.type }), path: data.path, format });
-    } catch {
-      setError(`Could not make the ${what} file. Check the connection and try again.`);
+      setPrepared(await makeFile(format));
+    } catch (e) {
+      setError(e instanceof Error && e.message ? e.message : `Could not make the ${what} file. Check the connection and try again.`);
     } finally {
       setBusy(false);
     }
   }
 
   async function send() {
-    if (!prepared) return;
+    if (!prepared || !phone) return;
     setError(null);
     const { file, path } = prepared;
-    // WhatsApp sometimes drops the text when a file is shared, so the message is also copied.
-    if (caption) navigator.clipboard?.writeText(caption).catch(() => {});
-    const channel = await shareFileToWhatsApp(file, phone, caption);
-    if (!channel) return;
-    if (channel === "download_and_chat") setChatUrl(whatsappLink(phone ?? "", caption));
-    const r = await recordQuotationSendAction({ orderId, format: prepared.format, channel, path, caption }).catch(() => null);
-    setPrepared(null);
-    setDone(
-      channel === "share_sheet"
-        ? caption ? "Shared. The message was also copied — paste it in WhatsApp if it is missing." : "Shared."
-        : `${file.name} downloaded and the customer's WhatsApp chat opened. Attach the file in the chat, then press send.`,
-    );
+    const outcome = await openChatWithFile(file, phone, caption);
+    setChatUrl(whatsappLink(phone, caption));
+    const r = await recordQuotationSendAction({ orderId, format: prepared.format, channel: "download_and_chat", path, caption }).catch(() => null);
+    if (!fileOnly) setPrepared(null);
+    setDone(chatOutcomeMessage(outcome, what, file.name));
     if (!r?.ok) setError(r?.message ?? "Sent, but not recorded on the order.");
     else router.refresh();
   }
@@ -109,7 +115,7 @@ export function QuotationSend({
     <div className="flex flex-col gap-3">
       <fieldset className="flex flex-wrap items-center gap-2">
         <legend className="mb-1 text-sm text-muted">Send as</legend>
-        {(["pdf", "png"] as const).map((f) => (
+        {(["png", "pdf"] as const).map((f) => (
           <label
             key={f}
             className={cx(
@@ -164,7 +170,11 @@ export function QuotationSend({
             onClick={send}
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#1f9d55] px-4 py-2 text-sm font-medium text-white shadow-sm shadow-[#1f9d55]/25 transition-colors hover:bg-[#14713c]"
           >
-            {canShareFile(prepared.file) ? "Share to WhatsApp" : "Download & open WhatsApp"}
+            Open customer&rsquo;s WhatsApp with the {what}
+          </button>
+        ) : fileOnly ? (
+          <button type="button" disabled className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#1f9d55] px-4 py-2 text-sm font-medium text-white opacity-60">
+            {phone ? `Preparing ${format === "pdf" ? "PDF" : "image"}…` : "No WhatsApp number on the order"}
           </button>
         ) : (
           <button
@@ -182,7 +192,11 @@ export function QuotationSend({
           </button>
         )}
         <p className="text-xs text-muted">
-          {prepared ? `${prepared.file.name} is ready (${Math.max(1, Math.round(prepared.file.size / 1024))} KB).` : "The file is made fresh from the order as it is now."}
+          {prepared
+            ? prepared.format === "png"
+              ? "Opens the chat of the customer who placed the order with the image copied: paste and send."
+              : "Opens the customer\u2019s chat and downloads the PDF to attach."
+            : "The file is made fresh from the order as it is now."}
         </p>
       </div>
       {done && <Alert tone="ok">{done}</Alert>}

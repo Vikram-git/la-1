@@ -56,7 +56,7 @@ export type CloudSendOutcome = { ok: true } | { ok: false; message: string };
 // Sends the quotation to the customer's WhatsApp from the server and records it on the order, sent or failed.
 export async function sendQuotationFromServer(supabase: Client, orderId: string, format: CloudFormat): Promise<CloudSendOutcome> {
   const cfg = whatsappCloudConfig();
-  if (!cfg || cfg.testMode || !cfg.templates[format]) return { ok: false, message: "Automatic WhatsApp sending is not set up." };
+  if (!cfg || !cfg.templates[format]) return { ok: false, message: "Automatic WhatsApp sending is not set up." };
 
   const { data: order, error } = await supabase.from("orders").select("customer_phone").eq("id", orderId).maybeSingle();
   if (error || !order) return { ok: false, message: "Order not found." };
@@ -73,7 +73,7 @@ export async function sendQuotationFromServer(supabase: Client, orderId: string,
     p_channel: "cloud_api",
     p_status: sent.ok ? "sent" : "failed",
     p_file_path: made.path,
-    p_caption: cloudLogCaption(cfg, format, made.reference),
+    p_caption: `${cfg.testMode ? "TEST (local WhatsApp test phone) · " : ""}${cloudLogCaption(cfg, format, made.reference)}`,
     p_message_id: sent.ok ? sent.messageId : undefined,
   });
   if (logError) console.error("quotation send not recorded", logError.code, logError.message);

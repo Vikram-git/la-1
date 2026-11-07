@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Alert, cx } from "@/components/ui";
 import { whatsappLink } from "@/lib/whatsapp";
-import { shareFileToWhatsApp } from "@/lib/share-file";
+import { chatOutcomeMessage, openChatWithFile } from "@/lib/share-file";
 import { sendTermsAction } from "@/app/admin/orders/actions";
 
 type Format = "pdf" | "png";
@@ -18,9 +18,9 @@ function WhatsAppIcon() {
 }
 
 // The Terms and Conditions for a cake order (owner, 2026-11-07): sent to the customer's WhatsApp as a file,
-// PDF or image as staff choose, never as a link. The file is made as soon as the format is picked, so one tap
-// shares it (phones) or downloads it and opens the customer's chat to attach it (computers). With WhatsApp
-// Business set up, the server sends both files itself (and does so automatically for cake orders on confirming).
+// image or PDF as staff choose, never as a link. The file is made as soon as the page opens, so one tap opens
+// the chat of the customer who placed the order with the image copied to paste (a PDF is downloaded to attach).
+// With WhatsApp Business set up, the server sends both files itself (automatically for cake orders on confirming).
 export function TermsPanel({ orderId, reference, phone, cloud, testMode = false }: {
   orderId: string;
   reference: string;
@@ -29,7 +29,7 @@ export function TermsPanel({ orderId, reference, phone, cloud, testMode = false 
   testMode?: boolean;
 }) {
   const router = useRouter();
-  const [format, setFormat] = useState<Format>("pdf");
+  const [format, setFormat] = useState<Format>("png");
   const [files, setFiles] = useState<Partial<Record<Format, File>>>({});
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState<string | null>(null);
@@ -60,17 +60,11 @@ export function TermsPanel({ orderId, reference, phone, cloud, testMode = false 
   }, [format, reference, phone]);
 
   async function shareNow() {
-    if (!file) return;
+    if (!file || !phone) return;
     setError(null);
-    setDone(null);
-    setChatUrl(null);
-    const channel = await shareFileToWhatsApp(file, phone);
-    if (!channel) return;
-    if (channel === "share_sheet") setDone(`Terms ${label} shared. Pick the customer's chat in WhatsApp if it did not open, then press send.`);
-    else {
-      setChatUrl(whatsappLink(phone ?? "", ""));
-      setDone(`${file.name} downloaded and the customer's WhatsApp chat opened. Attach the file in the chat, then press send.`);
-    }
+    const outcome = await openChatWithFile(file, phone);
+    setChatUrl(whatsappLink(phone, ""));
+    setDone(chatOutcomeMessage(outcome, "Terms", file.name));
   }
 
   async function sendNow() {
@@ -111,7 +105,7 @@ export function TermsPanel({ orderId, reference, phone, cloud, testMode = false 
           {cloud && <p className="text-sm font-medium text-muted">Or send it from this device</p>}
           <fieldset className="flex flex-wrap items-center gap-2">
             <legend className="mb-1 text-sm text-muted">Send as</legend>
-            {(["pdf", "png"] as const).map((f) => (
+            {(["png", "pdf"] as const).map((f) => (
               <label
                 key={f}
                 className={cx(
@@ -127,9 +121,9 @@ export function TermsPanel({ orderId, reference, phone, cloud, testMode = false 
           <div className="flex flex-wrap items-center gap-3">
             <button type="button" onClick={shareNow} disabled={!file} className={cx(button, cloud ? "border border-line bg-surface text-ink hover:bg-brand-soft" : green)}>
               <WhatsAppIcon />
-              {preparing ? `Preparing ${label}…` : `Send Terms on WhatsApp (${format === "pdf" ? "PDF" : "PNG"})`}
+              {preparing ? `Preparing ${label}…` : "Open customer's WhatsApp with the Terms"}
             </button>
-            <p className="text-xs text-muted">Goes as a file to this customer&rsquo;s WhatsApp; no link.</p>
+            <p className="text-xs text-muted">{format === "png" ? "Opens the chat of the customer who placed the order with the image copied: paste and send." : "Opens the customer\u2019s chat and downloads the PDF to attach."}</p>
           </div>
         </>
       ) : (

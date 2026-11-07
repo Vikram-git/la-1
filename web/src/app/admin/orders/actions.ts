@@ -715,6 +715,25 @@ export async function recordQuotationSendAction(input: z.input<typeof quotationS
 // One tap: the server makes the file and sends it on WhatsApp Business itself (2026-10-24).
 const quotationCloudSchema = z.object({ orderId: z.uuid(), format: z.enum(["pdf", "png"]) });
 
+// One tap sends the bill and the Terms and Conditions, in the format the admin picked, straight to the
+// WhatsApp of the number the customer gave on the order (owner, 2026-11-07).
+export async function sendBillAndTermsAction(input: z.input<typeof quotationCloudSchema>): Promise<Result & { sent?: string[] }> {
+  await assertRole(["admin", "counter"]);
+  const parsed = quotationCloudSchema.safeParse(input);
+  if (!parsed.success) return { message: "Invalid request." };
+  const { orderId, format } = parsed.data;
+  if (!cloudFormats(whatsappCloudConfig()).includes(format)) return { message: "Automatic WhatsApp sending is not set up." };
+  const supabase = await createClient();
+  const [{ sendQuotationFromServer }, { sendTermsFromServer }] = await Promise.all([import("@/lib/quotation-send"), import("@/lib/terms-send")]);
+  const bill = await sendQuotationFromServer(supabase, orderId, format);
+  const terms = await sendTermsFromServer(supabase, orderId, { automatic: false, formats: [format] });
+  revalidatePath(`/admin/orders/${orderId}`);
+  const sent = [...(bill.ok ? ["bill"] : []), ...(terms.ok ? ["Terms"] : [])];
+  if (bill.ok && terms.ok) return { ok: true, sent };
+  const problem = !bill.ok ? `Bill not sent: ${bill.message}` : !terms.ok ? `Terms not sent: ${terms.message}` : "";
+  return { message: sent.length ? `${sent.join(" and ")} sent. ${problem}` : problem, sent };
+}
+
 export async function sendQuotationNowAction(input: z.input<typeof quotationCloudSchema>): Promise<Result> {
   await assertRole(["admin", "counter"]);
   const parsed = quotationCloudSchema.safeParse(input);

@@ -26,7 +26,7 @@ const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
 
 // Local test mode (WHATSAPP_TEST_MODE=true, owner 2026-11-07): the whole Terms flow runs against the local
 // stand-in for WhatsApp (npm run whatsapp:test), so nothing reaches a customer. Only a localhost address is
-// accepted and never on Vercel; quotations are not sent in test mode, and its sends are marked as tests.
+// accepted and never on Vercel; its sends are marked as tests.
 function testGraphBase(env: Env): string | null {
   if (env.WHATSAPP_TEST_MODE?.trim().toLowerCase() !== "true" || env.VERCEL) return null;
   const raw = env.WHATSAPP_TEST_GRAPH_URL?.trim() || "http://localhost:4010";
@@ -50,7 +50,7 @@ export function whatsappCloudConfig(env: Env = process.env): CloudConfig | null 
     language: env.WHATSAPP_TEMPLATE_LANGUAGE?.trim() || "en",
     templates: {
       pdf: env.WHATSAPP_QUOTATION_TEMPLATE_PDF?.trim() || "quotation_pdf",
-      png: env.WHATSAPP_QUOTATION_TEMPLATE_PNG?.trim() || null,
+      png: env.WHATSAPP_QUOTATION_TEMPLATE_PNG?.trim() || "quotation_png",
     },
     termsTemplates: {
       pdf: env.WHATSAPP_TERMS_TEMPLATE_PDF?.trim() || "terms_pdf",
@@ -67,7 +67,7 @@ export function templateName(cfg: CloudConfig, format: CloudFormat, document: Cl
 }
 
 export function cloudFormats(cfg: CloudConfig | null, document: CloudDocument = "quotation"): CloudFormat[] {
-  if (!cfg || (cfg.testMode && document !== "terms")) return [];
+  if (!cfg) return [];
   return (["pdf", "png"] as const).filter((f) => templateName(cfg, f, document));
 }
 

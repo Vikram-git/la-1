@@ -4,7 +4,7 @@ import type { Database } from "@/lib/database.types";
 import { isCakeOrder } from "@/lib/cake-order";
 import { renderTermsPdf, renderTermsPng, termsFileName } from "@/lib/terms-file";
 import { whatsappNumber } from "@/lib/whatsapp";
-import { cloudFormats, sendFileOnWhatsApp, whatsappCloudConfig } from "@/lib/whatsapp-cloud";
+import { cloudFormats, sendFileOnWhatsApp, whatsappCloudConfig, type CloudFormat } from "@/lib/whatsapp-cloud";
 
 type Client = SupabaseClient<Database>;
 
@@ -25,7 +25,11 @@ async function cakeOrder(supabase: Client, orderId: string): Promise<boolean> {
 // Sends the Terms and Conditions, as a PDF and as an image, to the customer's WhatsApp from the server and
 // records each attempt on the order (owner, 2026-11-07). On confirming, only cake orders get them, once;
 // staff can send them again from the order page.
-export async function sendTermsFromServer(supabase: Client, orderId: string, opts: { automatic: boolean }): Promise<TermsSendOutcome> {
+export async function sendTermsFromServer(
+  supabase: Client,
+  orderId: string,
+  opts: { automatic: boolean; formats?: CloudFormat[] },
+): Promise<TermsSendOutcome> {
   const cfg = whatsappCloudConfig();
   if (!cfg) return { ok: false, message: "Automatic WhatsApp sending is not set up." };
 
@@ -42,7 +46,7 @@ export async function sendTermsFromServer(supabase: Client, orderId: string, opt
   }
 
   const problems: string[] = [];
-  for (const format of cloudFormats(cfg, "terms")) {
+  for (const format of cloudFormats(cfg, "terms").filter((f) => !opts.formats || opts.formats.includes(f))) {
     let sent: { ok: true; messageId: string } | { ok: false; message: string };
     try {
       const file = format === "pdf" ? await renderTermsPdf(reference) : await renderTermsPng(reference);

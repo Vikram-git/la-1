@@ -12,13 +12,13 @@ test("automatic sending is off until the token and phone number id are set", () 
 
   const cfg = whatsappCloudConfig(env)!;
   assert.equal(cfg.templates.pdf, "quotation_pdf");
-  assert.equal(cfg.templates.png, null);
+  assert.equal(cfg.templates.png, "quotation_png");
   assert.equal(cfg.language, "en");
   assert.equal(cfg.autoSendOnConfirm, false);
-  assert.deepEqual(cloudFormats(cfg), ["pdf"]);
+  assert.deepEqual(cloudFormats(cfg), ["pdf", "png"]);
 
-  const all = whatsappCloudConfig({ ...env, WHATSAPP_QUOTATION_TEMPLATE_PNG: "quotation_png", WHATSAPP_AUTO_SEND_ON_CONFIRM: "TRUE" })!;
-  assert.deepEqual(cloudFormats(all), ["pdf", "png"]);
+  const all = whatsappCloudConfig({ ...env, WHATSAPP_QUOTATION_TEMPLATE_PNG: "bill_image", WHATSAPP_AUTO_SEND_ON_CONFIRM: "TRUE" })!;
+  assert.equal(all.templates.png, "bill_image");
   assert.equal(all.autoSendOnConfirm, true);
 });
 
@@ -95,17 +95,17 @@ test("WhatsApp's refusals become plain messages for staff", async () => {
   const r3 = await sendFileOnWhatsApp(cfg, message, offline);
   assert.match(!r3.ok ? r3.message : "", /Could not reach WhatsApp/);
 
-  const r4 = await sendFileOnWhatsApp(cfg, { ...message, format: "png" }, offline);
+  const r4 = await sendFileOnWhatsApp({ ...cfg, templates: { ...cfg.templates, png: null } }, { ...message, format: "png" }, offline);
   assert.match(!r4.ok ? r4.message : "", /not set up/);
 });
 
-test("test mode: only the local stand-in, never on Vercel, never quotations, never auto-sent quotations", () => {
+test("test mode: only the local stand-in, never on Vercel, never auto-sent quotations", () => {
   const t = whatsappCloudConfig({ WHATSAPP_TEST_MODE: "true", WHATSAPP_AUTO_SEND_ON_CONFIRM: "true" })!;
   assert.equal(t.testMode, true);
   assert.equal(t.graphBase, "http://localhost:4010");
   assert.equal(t.autoSendOnConfirm, false);
   assert.deepEqual(cloudFormats(t, "terms"), ["pdf", "png"]);
-  assert.deepEqual(cloudFormats(t, "quotation"), []);
+  assert.deepEqual(cloudFormats(t, "quotation"), ["pdf", "png"]);
   assert.equal(whatsappCloudConfig({ WHATSAPP_TEST_MODE: "true", VERCEL: "1" }), null);
   assert.equal(whatsappCloudConfig({ WHATSAPP_TEST_MODE: "true", WHATSAPP_TEST_GRAPH_URL: "https://graph.facebook.com" }), null);
   assert.equal(whatsappCloudConfig({ WHATSAPP_TEST_MODE: "true", WHATSAPP_TEST_GRAPH_URL: "http://evil.example" }), null);

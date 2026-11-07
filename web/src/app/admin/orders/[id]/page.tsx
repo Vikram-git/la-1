@@ -21,6 +21,7 @@ import { loadCatalogue } from "@/lib/catalogue";
 import { MESSAGE_LABEL, whatsappNumber, type MessageKind } from "@/lib/whatsapp";
 import { OrderTerms } from "@/components/order-terms";
 import { TermsPanel } from "@/components/terms-panel";
+import { CustomerWhatsAppSend } from "@/components/customer-whatsapp-send";
 import { isCakeOrder } from "@/lib/cake-order";
 import { whatsappCloudConfig } from "@/lib/whatsapp-cloud";
 import { StickyNote } from "./sticky-note";
@@ -447,6 +448,14 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
               credits={(bill?.credit_notes ?? []).map((c) => ({ id: c.id, number: c.credit_note_number, totalPaise: c.total_paise, reason: c.reason, issuedLabel: formatDateTime(c.issued_at, tz) }))}
             />
           </Card>
+
+          {autoSending && (
+            <Card className="border-2 border-[#1f9d55]/40 lg:col-span-2">
+              <h2 className="mb-1 text-lg font-semibold">Send the bill and Terms to the customer&rsquo;s WhatsApp</h2>
+              <p className="mb-3 text-sm text-muted">Pick image or PDF, then one tap. Both arrive in the customer&rsquo;s WhatsApp chat.</p>
+              <CustomerWhatsAppSend orderId={order.id} phone={termsTo} testMode={whatsappCloudConfig()?.testMode ?? false} />
+            </Card>
+          )}
 
           <Card className="lg:col-span-2">
             <h2 className="mb-1 text-lg font-semibold">Terms and Conditions</h2>
