@@ -133,20 +133,41 @@ if (process.env.WHATSAPP_TEST_MODE === "true") {
   const forged = await fetch(`${APP}/api/whatsapp/webhook`, { method: "POST", headers: { "Content-Type": "application/json", "X-Hub-Signature-256": "sha256=" + "0".repeat(64) }, body: "{}" });
   check("webhook refuses unsigned and wrongly signed calls", unsigned.status === 403 && forged.status === 403, `${unsigned.status}/${forged.status}`);
 
+}
+{
   const sheet = await page(`/print/cake/${cakeId}`, counter.cookie);
   check("cake sheet offers one tap: bill and Terms to the customer's WhatsApp, image or PDF",
     sheet.status === 200 && sheet.body.includes("Send the bill and Terms to the customer") && sheet.body.includes("+91 90000 99904"), `status ${sheet.status}`);
   const both = await act("sendBillAndTermsAction", `/print/cake/${cakeId}`, { orderId: cakeId, format: "png" }, counter.cookie);
-  const billSends = (await admin.sb.from("quotation_sends").select("format, channel, status").eq("order_id", cakeId).eq("channel", "cloud_api")).data ?? [];
-  const pngTerms = (await admin.sb.from("terms_sends").select("format").eq("order_id", cakeId).eq("format", "png")).data ?? [];
-  check("one tap sends the bill image and the Terms image to the customer's number",
-    both.ok === true && billSends.some((s) => s.format === "png" && s.status === "sent") && pngTerms.length === 2, `${JSON.stringify(both)} bill ${JSON.stringify(billSends)} terms png ${pngTerms.length}`);
+  if (process.env.WHATSAPP_TEST_MODE === "true") {
+    const billSends = (await admin.sb.from("quotation_sends").select("format, channel, status").eq("order_id", cakeId).eq("channel", "cloud_api")).data ?? [];
+    const pngTerms = (await admin.sb.from("terms_sends").select("format").eq("order_id", cakeId).eq("format", "png")).data ?? [];
+    check("one tap sends the bill image and the Terms image to the customer's number",
+      both.ok === true && billSends.some((s) => s.format === "png" && s.status === "sent") && pngTerms.length === 2, `${JSON.stringify(both)} bill ${JSON.stringify(billSends)} terms png ${pngTerms.length}`);
+  } else {
+    const jobs = (await admin.sb.from("whatsapp_jobs").select("id, document, format, status, to_phone, file_path, caption").eq("order_id", cakeId)).data ?? [];
+    check("one tap queues the bill image and the Terms image for the shop computer, to the customer's number",
+      both.ok === true && both.queued === true && jobs.length === 2 && jobs.every((j) => j.status === "pending" && j.format === "png" && j.to_phone === "919000099904") &&
+      new Set(jobs.map((j) => j.document)).size === 2 && jobs.every((j) => !j.caption.includes("E2E Cake")), JSON.stringify({ both, jobs }));
+    const files = await Promise.all(jobs.map((j) => counter.sb.storage.from("quotations").download(j.file_path)));
+    check("both queued files are ready for the sender to download", files.every((f) => f.data && f.data.size > 1000), files.map((f) => f.error?.message ?? f.data?.size).join(","));
+    let claimed = [];
+    for (let i = 0; i < 2; i++) claimed.push(...((await counter.sb.rpc("claim_whatsapp_job")).data ?? []));
+    claimed = claimed.filter((j) => j.order_id === cakeId);
+    for (const j of claimed) await counter.sb.rpc("finish_whatsapp_job", { p_job_id: j.id, p_status: "sent", p_message_id: `e2e-${j.id}` });
+    const after = (await admin.sb.from("whatsapp_jobs").select("status").eq("order_id", cakeId)).data ?? [];
+    check("the sender claims each file once and reports it sent", claimed.length === 2 && after.every((j) => j.status === "sent"), JSON.stringify(after));
+    const chefClaim = await chef1.sb.rpc("claim_whatsapp_job");
+    check("kitchen logins cannot run the WhatsApp sender", Boolean(chefClaim.error), chefClaim.error?.message ?? "allowed");
+    const p2 = await page(`/print/cake/${cakeId}`, counter.cookie);
+    check("cake sheet shows each file sent", p2.body.includes("sent to the customer"), `status ${p2.status}`);
+  }
 }
 check("custom cake total = price + set-up + delivery + add-on, advance paid", cake?.total_paise === 350000 && cake.balance_paise === 250000, `total ${cake?.total_paise} balance ${cake?.balance_paise}`);
 p = await page(`/admin/orders/${cakeId}`, counter.cookie);
 check("order page shows cupcakes and add-on, without the message and Order in msg cards", p.status === 200 && /Cupcakes.{0,80}>6</.test(p.body) && p.body.includes("Gold balloons") && !p.body.includes("Message the customer") && !p.body.includes("Open Order in msg"), `status ${p.status}`);
 check("order page: Terms sent automatically for the cake, plus PDF/PNG download and send to the customer's chat",
-  !p.body.includes("not set up yet") && p.body.includes("Send Terms on WhatsApp") && p.body.includes(`/api/terms?format=pdf&amp;ref=${cake.reference}`) &&
+  !p.body.includes("not set up yet") && p.body.includes("Send bill and Terms on WhatsApp") && p.body.includes(`/api/terms?format=pdf&amp;ref=${cake.reference}`) &&
   p.body.includes(`/api/terms?format=png&amp;ref=${cake.reference}`) && p.body.includes("Food Colours"), `status ${p.status}`);
 p = await page("/admin/orders/new-cake", counter.cookie);
 check("cake form: Internal notes come right after Special instructions, not in Pickup/Set-up",
@@ -241,7 +262,7 @@ check("Order in msg text lists set-up, delivery, add-on, total, advance and bala
 p = await page(`/print/cake/${cakeId}`, counter.cookie);
 check("cake sheet shows the bill, add-on and T&C, and sends the bill file with no text, image first",
   p.status === 200 && p.body.includes("Send the bill to the customer on WhatsApp") && !p.body.includes("Message sent with the Order in msg") && p.body.includes("Balance to pay") && p.body.includes("Gold balloons") && p.body.includes("Terms") && /checked=""[^>]*value="png"|value="png"[^>]*checked/.test(p.body), `status ${p.status}`);
-check("cake sheet sends the Terms too, with PDF/PNG downloads", p.body.includes("Terms and Conditions for the customer") && p.body.includes("Send Terms on WhatsApp") && p.body.includes(`/api/terms?format=pdf&amp;ref=${cake.reference}`), `status ${p.status}`);
+check("cake sheet sends the Terms too, with PDF/PNG downloads", p.body.includes("Terms and Conditions for the customer") && p.body.includes("Send bill and Terms on WhatsApp") && p.body.includes(`/api/terms?format=pdf&amp;ref=${cake.reference}`), `status ${p.status}`);
 
 // --- Dashboard and Reports -------------------------------------------------------------------------
 p = await page("/admin", admin.cookie);

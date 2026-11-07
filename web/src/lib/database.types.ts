@@ -1110,6 +1110,47 @@ export type Database = {
           },
         ]
       }
+      whatsapp_jobs: {
+        Row: {
+          attempts: number
+          caption: string | null
+          created_at: string
+          created_by: string | null
+          document: string
+          file_name: string
+          file_path: string
+          format: string
+          id: string
+          message_id: string | null
+          order_id: string
+          problem: string | null
+          status: string
+          to_phone: string
+          updated_at: string
+        }
+        Insert: {
+          caption?: string | null
+          document: string
+          file_name: string
+          file_path: string
+          format: string
+          order_id: string
+          to_phone: string
+        }
+        Update: never
+        Relationships: []
+      }
+      whatsapp_sender: {
+        Row: {
+          id: number
+          last_seen: string | null
+          linked_phone: string | null
+          state: string | null
+        }
+        Insert: never
+        Update: never
+        Relationships: []
+      }
       terms_sends: {
         Row: {
           delivery_problem: string | null
@@ -1493,6 +1534,18 @@ export type Database = {
           p_test?: boolean
         }
         Returns: string
+      }
+      whatsapp_sender_heartbeat: {
+        Args: { p_state: string; p_linked_phone?: string | null }
+        Returns: undefined
+      }
+      claim_whatsapp_job: {
+        Args: Record<PropertyKey, never>
+        Returns: Database["public"]["Tables"]["whatsapp_jobs"]["Row"][]
+      }
+      finish_whatsapp_job: {
+        Args: { p_job_id: string; p_status: string; p_message_id?: string | null; p_problem?: string | null }
+        Returns: undefined
       }
       record_whatsapp_status: {
         Args: { p_message_id: string; p_status: string; p_problem?: string | null }
