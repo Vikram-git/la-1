@@ -22,6 +22,7 @@ export const websiteOrderSchema = z.object({
     .default([]),
   fulfilment: z.enum(["collect", "setup"]).default("collect"),
   setupAddress: z.preprocess(blankToUndefined, z.string().trim().max(300, "Please keep the address under 300 characters.").optional()),
+  setupNote: z.preprocess(blankToUndefined, z.string().trim().max(300, "Please keep the landmark under 300 characters.").optional()),
   // Hidden field people never see; bots fill it in.
   website: z.string().optional(),
 });
@@ -39,6 +40,7 @@ export type SubmitArgs = {
   p_items: { variant_id: string; quantity: number }[];
   p_fulfilment: "collect" | "setup";
   p_setup_address: string | null;
+  p_setup_note: string | null;
 };
 
 // Arguments for public.submit_website_order, or the message to show the customer.
@@ -58,7 +60,8 @@ export function submitArgs(order: WebsiteOrder, timeZone: string): { args: Submi
       p_email: order.email ?? null,
       p_items: order.items.map((i) => ({ variant_id: i.variantId, quantity: i.quantity })),
       p_fulfilment: order.fulfilment,
-      p_setup_address: order.fulfilment === "setup" ? (order.setupAddress ?? null) : null,
+      p_setup_address: order.setupAddress ?? null,
+      p_setup_note: order.setupNote ?? null,
     },
   };
 }

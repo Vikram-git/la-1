@@ -211,8 +211,8 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/ord
                     {overdue && " · Overdue"}
                   </p>
                   {cake && <p className="mt-1 text-sm">🎂 {cake.flavour}, {Number(cake.weight_kg)} kg</p>}
-                  {o.fulfilment === "setup" && o.setup_address && (
-                    <p className="mt-1 text-xs font-medium text-danger">Set up at: {o.setup_address}</p>
+                  {o.setup_address && (
+                    <p className={cx("mt-1 text-xs font-medium", o.fulfilment === "setup" ? "text-danger" : "text-ok")}>{o.fulfilment === "setup" ? "Set up at" : "Cab to"}: {o.setup_address}</p>
                   )}
                   <div className="mt-3 flex flex-wrap items-center gap-1.5">
                     {o.source && <ContactBadge source={o.source} phone={o.customer_phone} />}
@@ -260,8 +260,8 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/ord
                     <td className="px-4 py-3">
                       <div>{o.customer_name ?? <span className="text-muted">Walk-in</span>}</div>
                       {o.customer_phone && <div className="text-xs text-muted">{o.customer_phone}</div>}
-                      {o.fulfilment === "setup" && o.setup_address && (
-                        <div className="mt-1 text-xs font-medium text-danger">Set up at: {o.setup_address}</div>
+                      {o.setup_address && (
+                        <div className={cx("mt-1 text-xs font-medium", o.fulfilment === "setup" ? "text-danger" : "text-ok")}>{o.fulfilment === "setup" ? "Set up at" : "Cab to"}: {o.setup_address}</div>
                       )}
                     </td>
                     <td className={cx("px-4 py-3 whitespace-nowrap", overdue && "font-medium text-danger")}>

@@ -11,6 +11,7 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/api/orders/\\[id\\]/quotation": ["./assets/fonts/*.woff", "./public/brand/wordmark.png"],
     "/api/terms": ["./assets/fonts/*.woff", "./public/brand/wordmark.png"],
+    "/api/todo": ["./assets/fonts/*.woff", "./public/brand/wordmark.png"],
     "/admin/**": ["./assets/fonts/*.woff", "./public/brand/wordmark.png"],
   },
   // Let browsers and Vercel's CDN keep the website's files instead of asking again on every visit.

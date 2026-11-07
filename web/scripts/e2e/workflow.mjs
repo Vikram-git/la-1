@@ -77,10 +77,14 @@ check("website order confirmed", web.status === "confirmed", web.status);
 
 // --- Call order → payment → pack → handover → bill ----------------------------------------------
 r = await act("createOrderAction", "/admin/orders/new", { idempotencyKey: crypto.randomUUID(), source: "CALL", items: [{ variantId: blackForest, quantity: 1, notes: "Less cream" }, { variantId: vegPuff, quantity: 4 }],
-  customerName: `E2E Call ${tag}`, customerPhone: "9000099903", dueLocal: `${tomorrow}T12:00`, confirm: true, fulfilment: "collect" }, admin.cookie);
+  customerName: `E2E Call ${tag}`, customerPhone: "9000099903", dueLocal: `${tomorrow}T12:00`, confirm: true, fulfilment: "collect", setupAddress: "7 Lake View Road, T Nagar", setupNote: "Opposite the temple" }, admin.cookie);
 check("admin creates confirmed call order", r.ok === true, JSON.stringify(r));
 const callId = r.orderId;
 let call = (await admin.sb.from("order_summaries").select("*").eq("id", callId).single()).data;
+const callPage = await page(`/admin/orders/${callId}`, counter.cookie);
+check("Pickup/Cab order keeps the customer's address and landmark, with a map link",
+  callPage.status === 200 && callPage.body.includes("7 Lake View Road, T Nagar") && callPage.body.includes("Landmark: Opposite the temple") && callPage.body.includes("google.com/maps/search"), `status ${callPage.status}`);
+check("a menu cake (Black Forest) makes it a cake order that gets the Terms automatically", callPage.body.includes("when this cake order is confirmed"), `status ${callPage.status}`);
 check("call order totals", call?.total_paise > 0 && call.balance_paise === call.total_paise, `total ${call?.total_paise} balance ${call?.balance_paise}`);
 r = await act("recordPaymentAction", `/admin/orders/${callId}`, { orderId: callId, idempotencyKey: crypto.randomUUID(), kind: "payment", method: "upi", amount: "200", reference: "UPI-E2E" }, counter.cookie);
 check("counter records advance", r.ok === true, JSON.stringify(r));
@@ -118,7 +122,9 @@ const cake = (await admin.sb.from("order_summaries").select("*").eq("id", cakeId
 check("custom cake total = price + set-up + delivery + add-on, advance paid", cake?.total_paise === 350000 && cake.balance_paise === 250000, `total ${cake?.total_paise} balance ${cake?.balance_paise}`);
 p = await page(`/admin/orders/${cakeId}`, counter.cookie);
 check("order page shows cupcakes and add-on, without the message and Order in msg cards", p.status === 200 && /Cupcakes.{0,80}>6</.test(p.body) && p.body.includes("Gold balloons") && !p.body.includes("Message the customer") && !p.body.includes("Open Order in msg"), `status ${p.status}`);
-check("order page sends the Terms and Conditions as a file", p.body.includes("Send Terms on WhatsApp (image)") && p.body.includes("Image (PNG)") && p.body.includes("Food Colours"), `status ${p.status}`);
+check("order page sends the cake's Terms automatically, with no manual share buttons",
+  p.body.includes("when this cake order is confirmed") && !p.body.includes("Send Terms on WhatsApp") && !p.body.includes("Image (PNG)") && p.body.includes("Food Colours") &&
+  (p.body.includes("Automatic WhatsApp sending is not set up yet") || p.body.includes("Send again") || p.body.includes("Send now")), `status ${p.status}`);
 for (const format of ["png", "pdf"]) {
   const t = await fetch(`${APP}/api/terms?format=${format}&ref=${cake.reference}`, { headers: { cookie: counter.cookie } });
   const bytes = (await t.arrayBuffer()).byteLength;
@@ -149,7 +155,7 @@ p = await page(`/admin/calendar?kind=custom&from=${tomorrow}`, admin.cookie);
 check("custom calendar lists the cake, not the call order", p.body.includes(cake.reference) && !p.body.includes(call.reference), `status ${p.status}`);
 p = await page(`/admin/calendar?from=${tomorrow}`, admin.cookie);
 check("online calendar lists the call order, not the cake", p.body.includes(call.reference) && !p.body.includes(cake.reference), `status ${p.status}`);
-check("calendar has the Terms and Conditions button", p.body.includes("Terms and Conditions"), `status ${p.status}`);
+check("calendar has no manual Terms button", p.status === 200 && !p.body.includes(">Terms and Conditions<"), `status ${p.status}`);
 
 // --- Kitchens -------------------------------------------------------------------------------------
 const kitchenOf = async (id) => (await admin.sb.from("orders").select("kitchens(code)").eq("id", id).single()).data?.kitchens?.code;
@@ -211,6 +217,42 @@ p = await page(`/admin/sales-report?range=custom&from=${tomorrow}&to=${tomorrow}
 check("reports list the sold cake with kg and a total", p.status === 200 && p.body.includes("9000099904") && p.body.includes("1.5") && p.body.includes("Total"), `status ${p.status}`);
 p = await page("/admin/sales-report", counter.cookie);
 check("counter kept out of reports", p.status !== 200 || p.body.includes("NEXT_REDIRECT"), `${p.status} ${p.location ?? ""}`);
+
+// --- Private to-do list (below Shop Settings): date, bill note, amount; several notes a date ----------
+const noteTag = `E2E note ${tag}`;
+r = await act("addTodoNotesAction", "/admin/todo", { date: istDay(0), notes: [
+  { billNote: `${noteTag} A, "paid" by UPI`, amount: "1,250.50" },
+  { billNote: `${noteTag} B`, amount: "" },
+  { billNote: "", amount: "" },
+] }, admin.cookie);
+check("admin saves two notes on the same date at once (empty row skipped)", r.ok === true, JSON.stringify(r));
+const noteRows = (await admin.sb.from("diary_entries").select("*").like("bill_note", `${noteTag}%`).order("bill_note")).data ?? [];
+check("both notes saved with the same date and the amount", noteRows.length === 2 && noteRows.every((n) => n.entry_date === istDay(0)) && noteRows[0].price_paise === 125050 && noteRows[1].price_paise === null, JSON.stringify(noteRows));
+r = await act("addTodoNotesAction", "/admin/todo", { date: istDay(0), notes: [{ billNote: " ", amount: "" }] }, admin.cookie);
+check("an empty note is refused", r.ok !== true && /bill note or an amount/.test(r.message ?? ""), JSON.stringify(r));
+p = await page("/admin", admin.cookie);
+check("the dashboard no longer has the to-do list", p.status === 200 && !p.body.includes(noteTag) && !p.body.includes("Download CSV"), `status ${p.status}`);
+p = await page("/admin/todo", admin.cookie);
+check("the To-do list page shows the notes, downloads and no word diary", p.status === 200 && p.body.includes(`${noteTag} B`) && p.body.includes("Add another note") && p.body.includes("Download CSV") && !/diary/i.test(p.body.replace(/diary_entries/g, "")), `status ${p.status}`);
+check("sidebar links To-do list", p.body.includes('href="/admin/todo"'), `status ${p.status}`);
+p = await page("/admin/todo", counter.cookie);
+check("another staff member cannot see them", p.status === 200 && !p.body.includes(noteTag), `status ${p.status}`);
+check("RLS hides them from the counter", ((await counter.sb.from("diary_entries").select("id").in("id", noteRows.map((n) => n.id))).data ?? []).length === 0);
+r = await act("deleteTodoNoteAction", "/admin/todo", { id: noteRows[0]?.id }, counter.cookie);
+check("counter cannot delete the admin's note", ((await admin.sb.from("diary_entries").select("id").eq("id", noteRows[0]?.id)).data ?? []).length === 1, JSON.stringify(r));
+const month = istDay(0).slice(0, 7);
+let dl = await fetch(`${APP}/api/todo?format=csv&month=${month}`, { headers: { cookie: admin.cookie } });
+let csv = await dl.text();
+check("notes download as CSV with date, bill note and amount", dl.status === 200 && (dl.headers.get("content-type") ?? "").startsWith("text/csv") && csv.includes("Date,Bill note,Amount (Rs)") && csv.includes(`${istDay(0)},"${noteTag} A, ""paid"" by UPI",1250.50`), `${dl.status} ${csv.slice(0, 200)}`);
+dl = await fetch(`${APP}/api/todo?format=csv&month=${month}`, { headers: { cookie: counter.cookie } });
+check("counter's CSV does not include the admin's notes", dl.status === 200 && !(await dl.text()).includes(noteTag));
+dl = await fetch(`${APP}/api/todo?format=pdf&month=${month}`, { headers: { cookie: admin.cookie } });
+const pdfBytes = Buffer.from(await dl.arrayBuffer());
+check("notes download as PDF", dl.status === 200 && pdfBytes.subarray(0, 4).toString() === "%PDF" && (dl.headers.get("content-disposition") ?? "").includes(`ToDo-${month}.pdf`), `${dl.status} ${pdfBytes.length} bytes`);
+dl = await fetch(`${APP}/api/todo?format=csv`, { headers: { cookie: chef1.cookie } });
+check("kitchen staff have no to-do download", dl.status === 403, `${dl.status}`);
+for (const n of noteRows) r = await act("deleteTodoNoteAction", "/admin/todo", { id: n.id }, admin.cookie);
+check("admin deletes the notes", ((await admin.sb.from("diary_entries").select("id").like("bill_note", `${noteTag}%`)).data ?? []).length === 0, JSON.stringify(r));
 
 // --- Delete from the calendar ----------------------------------------------------------------------
 p = await page(`/admin/calendar?from=${later}`, admin.cookie);

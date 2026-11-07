@@ -1110,6 +1110,60 @@ export type Database = {
           },
         ]
       }
+      terms_sends: {
+        Row: {
+          format: string
+          id: string
+          message_id: string | null
+          order_id: string
+          problem: string | null
+          sent_at: string
+          sent_by: string | null
+          status: string
+        }
+        Insert: never
+        Update: never
+        Relationships: [
+          {
+            foreignKeyName: "terms_sends_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      diary_entries: {
+        Row: {
+          bill_note: string | null
+          created_at: string
+          entry_date: string
+          id: string
+          is_done: boolean
+          price_paise: number | null
+          quantity: number | null
+          staff_id: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          bill_note?: string | null
+          entry_date?: string
+          is_done?: boolean
+          price_paise?: number | null
+          quantity?: number | null
+          title?: string | null
+        }
+        Update: {
+          bill_note?: string | null
+          entry_date?: string
+          is_done?: boolean
+          price_paise?: number | null
+          quantity?: number | null
+          title?: string | null
+        }
+        Relationships: []
+      }
       staff_profiles: {
         Row: {
           created_at: string
@@ -1424,6 +1478,16 @@ export type Database = {
         }
         Returns: string
       }
+      record_terms_send: {
+        Args: {
+          p_order_id: string
+          p_format: string
+          p_status: string
+          p_message_id?: string | null
+          p_problem?: string | null
+        }
+        Returns: string
+      }
       delete_staff: {
         Args: { p_user_id: string }
         Returns: undefined
@@ -1452,6 +1516,7 @@ export type Database = {
           p_items?: Json
           p_fulfilment?: Database["public"]["Enums"]["fulfilment_type"]
           p_setup_address?: string | null
+          p_setup_note?: string | null
         }
         Returns: Json
       }

@@ -75,7 +75,7 @@ export default async function BillPrintPage({ params, searchParams }: PageProps<
             {bill.orders?.fulfilment === "setup" ? (
               <p className="font-bold">SET UP at: {bill.orders.setup_address}</p>
             ) : (
-              <p className="font-bold">PICKUP/CAB</p>
+              <p className="font-bold">PICKUP/CAB{bill.orders?.setup_address && <span className="block font-normal">Cab to: {bill.orders.setup_address}</span>}</p>
             )}
           </div>
         </header>

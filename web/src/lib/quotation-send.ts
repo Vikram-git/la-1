@@ -7,7 +7,7 @@ import { quotationFileName, quotationView } from "@/lib/quotation";
 import { renderQuotationPdf } from "@/lib/quotation-pdf";
 import { renderQuotationPng } from "@/lib/quotation-png";
 import { whatsappNumber } from "@/lib/whatsapp";
-import { cloudLogCaption, sendQuotationOnWhatsApp, whatsappCloudConfig, type CloudFormat } from "@/lib/whatsapp-cloud";
+import { cloudLogCaption, sendFileOnWhatsApp, whatsappCloudConfig, type CloudFormat } from "@/lib/whatsapp-cloud";
 
 type Client = SupabaseClient<Database>;
 type Failure = { ok: false; status: 400 | 403 | 404 | 500; message: string };
@@ -66,7 +66,7 @@ export async function sendQuotationFromServer(supabase: Client, orderId: string,
   const made = await makeQuotationFile(supabase, orderId, format);
   if (!made.ok) return { ok: false, message: made.message };
 
-  const sent = await sendQuotationOnWhatsApp(cfg, { to, format, file: made.file, fileName: made.fileName, contentType: made.contentType, reference: made.reference });
+  const sent = await sendFileOnWhatsApp(cfg, { to, format, file: made.file, fileName: made.fileName, contentType: made.contentType, reference: made.reference });
   const { error: logError } = await supabase.rpc("record_quotation_send", {
     p_order_id: orderId,
     p_format: format,

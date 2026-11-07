@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Alert, Button, cx } from "@/components/ui";
 import { FulfilmentFields, type FulfilmentValue } from "@/components/fulfilment-fields";
 import type { Fulfilment } from "@/lib/orders";
+import { mapsUrl } from "@/lib/location";
 import { setFulfilmentAction } from "../actions";
 
 // The big green (collect) or red (set up) banner at the top of an order, with "Change" until the order
@@ -63,8 +64,14 @@ export function FulfilmentBanner({
             <span aria-hidden>{setup ? "🚚 " : "🏪 "}</span>
             {setup ? "Set up at customer's place" : "Pickup/Cab"}
           </p>
-          {setup && address && <p className="mt-1 font-medium text-ink">{address}</p>}
-          {setup && note && <p className="text-sm text-ink">{note}</p>}
+          {address && <p className="mt-1 font-medium text-ink">{address}</p>}
+          {note && <p className="text-sm text-ink">{`Landmark: ${note}`}</p>}
+          {mapsUrl(address, note) && (
+            <a href={mapsUrl(address, note)!} target="_blank" rel="noopener noreferrer"
+              className="mt-1 inline-block text-sm font-medium text-ink underline underline-offset-2">
+              Open in Google Maps
+            </a>
+          )}
         </div>
         {canChange && !editing && (
           <Button variant="secondary" onClick={() => setEditing(true)}>Change</Button>

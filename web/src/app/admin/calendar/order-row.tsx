@@ -4,8 +4,6 @@ import { formatTime } from "@/lib/time";
 import { cx } from "@/components/ui";
 import { ContactBadge, FulfilmentBadge, StatusBadge } from "@/components/order-badges";
 import { DeleteOrderButton } from "./delete-order";
-import { whatsappNumber } from "@/lib/whatsapp";
-import { TermsSend } from "@/components/terms-send";
 
 // Columns selected from order_summaries by the calendar page.
 export type CalendarOrder = {
@@ -55,7 +53,7 @@ function CakeDetails({ cake, fulfilment, setupAddress }: { cake: CalendarCake; f
     ["Theme", cake.theme ?? "—"],
     fulfilment === "setup"
       ? ["Location", `Set up at: ${setupAddress ?? "—"}`, "text-danger"]
-      : ["Location", "Pickup/Cab", "text-ok"],
+      : ["Location", setupAddress ? `Pickup/Cab · ${setupAddress}` : "Pickup/Cab", "text-ok"],
   ];
   return (
     <dl className="grid min-w-64 flex-1 grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3 xl:grid-cols-5">
@@ -69,13 +67,6 @@ function CakeDetails({ cake, fulfilment, setupAddress }: { cake: CalendarCake; f
   );
 }
 
-// Sends the customer the Terms and Conditions as an image on WhatsApp (owner, 2026-10-28).
-function TermsButton({ phone, reference }: { phone: string | null; reference: string | null }) {
-  const to = whatsappNumber(phone);
-  if (!to) return null;
-  return <TermsSend phone={to} reference={reference} compact />;
-}
-
 export function OrderList({ orders, tz, canDelete = false }: { orders: CalendarOrder[]; tz: string; canDelete?: boolean }) {
   return (
     <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
@@ -86,8 +77,10 @@ export function OrderList({ orders, tz, canDelete = false }: { orders: CalendarO
             <Link href={`/admin/orders/${o.id}`} className="font-mono text-sm after:absolute after:inset-0">{o.reference}</Link>
             <span className={cx("min-w-32", o.cake ? "w-40" : "flex-1")}>
               {o.customer_name ?? "Walk-in"}
-              {!o.cake && o.fulfilment === "setup" && o.setup_address && (
-                <span className="block text-xs font-medium text-danger">Set up at: {o.setup_address}</span>
+              {!o.cake && o.setup_address && (
+                <span className={cx("block text-xs font-medium", o.fulfilment === "setup" ? "text-danger" : "text-ok")}>
+                  {o.fulfilment === "setup" ? "Set up at" : "Cab to"}: {o.setup_address}
+                </span>
               )}
             </span>
             {o.cake && <CakeDetails cake={o.cake} fulfilment={o.fulfilment} setupAddress={o.setup_address} />}
@@ -95,7 +88,6 @@ export function OrderList({ orders, tz, canDelete = false }: { orders: CalendarO
             {o.fulfilment && <FulfilmentBadge fulfilment={o.fulfilment} />}
             {o.source && <ContactBadge source={o.source} phone={o.customer_phone} />}
             {o.status && <StatusBadge status={o.status} />}
-            <TermsButton phone={o.customer_phone} reference={o.reference} />
             {canDelete && o.id && <DeleteOrderButton orderId={o.id} reference={o.reference ?? ""} />}
         </li>
       ))}

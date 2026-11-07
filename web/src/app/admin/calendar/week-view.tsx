@@ -51,8 +51,8 @@ export function WeekView({ weekStart, today, byDay, closureByDay, tz, dayHref }:
                             {o.fulfilment === "setup" ? "🚚 " : "🏪 "}{fulfilmentLabel[o.fulfilment]}
                           </span>
                         )}
-                        {o.fulfilment === "setup" && o.setup_address && (
-                          <span className="block text-danger">{o.setup_address}</span>
+                        {o.setup_address && (
+                          <span className={cx("block", o.fulfilment === "setup" ? "text-danger" : "text-ok")}>{o.setup_address}</span>
                         )}
                         {pending && <span className="font-medium text-warn">Pending</span>}
                       </Link>

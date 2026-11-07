@@ -79,8 +79,8 @@ export async function createOrderAction(input: CreateOrderInput): Promise<Result
     p_confirm: data.confirm,
     p_override_reason: data.overrideReason,
     p_fulfilment: data.fulfilment,
-    p_setup_address: data.fulfilment === "setup" ? data.setupAddress : undefined,
-    p_setup_note: data.fulfilment === "setup" ? data.setupNote : undefined,
+    p_setup_address: data.setupAddress,
+    p_setup_note: data.setupNote,
   });
   if (error) return rpcError(error);
 
@@ -101,17 +101,36 @@ async function afterChange(orderId: string) {
   revalidatePath(`/admin/orders/${orderId}`);
 }
 
-// With WHATSAPP_AUTO_SEND_ON_CONFIRM=true, a confirmed order's quotation PDF goes to the customer on
-// WhatsApp after the response, so confirming stays quick. The outcome, sent or failed, is in the order's
-// quotation log; an order without a phone number is skipped.
+// After a confirmed order's response, so confirming stays quick: with WHATSAPP_AUTO_SEND_ON_CONFIRM=true its
+// quotation PDF goes to the customer on WhatsApp, and a cake order always gets the Terms and Conditions as a
+// PDF and an image (owner, 2026-11-07). Each outcome, sent or failed, is logged on the order; an order
+// without a phone number is skipped. Nothing happens until WhatsApp sending is set up.
 async function autoSendQuotation(orderId: string) {
-  if (!whatsappCloudConfig()?.autoSendOnConfirm) return;
+  const cfg = whatsappCloudConfig();
+  if (!cfg) return;
   const supabase = await createClient();
   after(async () => {
-    const { sendQuotationFromServer } = await import("@/lib/quotation-send");
-    const r = await sendQuotationFromServer(supabase, orderId, "pdf");
-    if (!r.ok) console.warn("automatic quotation not sent", orderId, r.message);
+    if (cfg.autoSendOnConfirm) {
+      const { sendQuotationFromServer } = await import("@/lib/quotation-send");
+      const r = await sendQuotationFromServer(supabase, orderId, "pdf");
+      if (!r.ok) console.warn("automatic quotation not sent", orderId, r.message);
+    }
+    const { sendTermsFromServer } = await import("@/lib/terms-send");
+    const t = await sendTermsFromServer(supabase, orderId, { automatic: true });
+    if (!t.ok) console.warn("automatic terms not sent", orderId, t.message);
   });
+}
+
+// Staff send the Terms again from the order page, e.g. after a failed send or for an order that is not a cake.
+export async function sendTermsAction(input: { orderId: string }): Promise<Result> {
+  await assertRole(["admin", "counter"]);
+  const parsed = z.object({ orderId: z.uuid() }).safeParse(input);
+  if (!parsed.success) return { message: "Invalid request." };
+  const supabase = await createClient();
+  const { sendTermsFromServer } = await import("@/lib/terms-send");
+  const r = await sendTermsFromServer(supabase, parsed.data.orderId, { automatic: false });
+  revalidatePath(`/admin/orders/${parsed.data.orderId}`);
+  return r.ok ? { ok: true } : { message: r.message };
 }
 
 export async function confirmOrderAction(input: z.input<typeof transitionSchema>): Promise<Result> {
@@ -499,8 +518,8 @@ export async function setFulfilmentAction(input: z.input<typeof setFulfilmentSch
     p_order_id: d.orderId,
     p_expected_version: d.version,
     p_fulfilment: d.fulfilment,
-    p_setup_address: d.fulfilment === "setup" ? d.setupAddress : undefined,
-    p_setup_note: d.fulfilment === "setup" ? d.setupNote : undefined,
+    p_setup_address: d.setupAddress,
+    p_setup_note: d.setupNote,
   });
   if (error) return rpcError(error);
   await afterChange(d.orderId);
@@ -566,8 +585,8 @@ export async function createCustomCakeOrderAction(input: CustomCakeOrderInput): 
     p_confirm: d.confirm,
     p_override_reason: d.overrideReason,
     p_fulfilment: d.fulfilment,
-    p_setup_address: d.fulfilment === "setup" ? d.setupAddress : undefined,
-    p_setup_note: d.fulfilment === "setup" ? d.setupNote : undefined,
+    p_setup_address: d.setupAddress,
+    p_setup_note: d.setupNote,
     p_advance_paise: d.advance,
     p_advance_method: d.advance > 0 ? d.advanceMethod : undefined,
     p_advance_reference: d.advanceReference,

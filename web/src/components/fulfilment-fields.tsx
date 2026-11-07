@@ -5,7 +5,8 @@ import type { Fulfilment } from "@/lib/orders";
 
 export type FulfilmentValue = { fulfilment: Fulfilment; address: string; note: string };
 
-// Collect from the store (green) or set up at the customer's place (red), with the address for set-up.
+// Collect from the store (green) or set up at the customer's place (red), with the customer's address and
+// landmark (required for set-up, optional for Pickup/Cab).
 // Used by every order form and by the order page's "Change" form.
 export function FulfilmentFields({
   value,
@@ -42,30 +43,38 @@ export function FulfilmentFields({
         {option("collect", "Pickup/Cab", "🏪", "text-ok", "border-ok bg-ok-soft")}
         {option("setup", "Set up at customer's place", "🚚", "text-danger", "border-danger bg-danger-soft")}
       </div>
-      {value.fulfilment === "setup" && (
-        <div className="grid gap-3 rounded-xl border border-danger/30 bg-danger-soft/40 p-3">
-          <Field label="Set-up address" htmlFor={`${idPrefix}-address`}>
-            <Input
-              id={`${idPrefix}-address`}
-              value={value.address}
-              onChange={(e) => onChange({ ...value, address: e.target.value })}
-              maxLength={300}
-              required
-              autoComplete="off"
-              placeholder="House / hall, street, area"
-            />
-          </Field>
-          <Field label="Landmark or contact at the venue (optional)" htmlFor={`${idPrefix}-note`}>
-            <Input
-              id={`${idPrefix}-note`}
-              value={value.note}
-              onChange={(e) => onChange({ ...value, note: e.target.value })}
-              maxLength={300}
-              autoComplete="off"
-            />
-          </Field>
-        </div>
-      )}
+      <div
+        className={cx(
+          "grid gap-3 rounded-xl border p-3",
+          value.fulfilment === "setup" ? "border-danger/30 bg-danger-soft/40" : "border-ok/30 bg-ok-soft/40",
+        )}
+      >
+        <Field
+          label={value.fulfilment === "setup" ? "Set-up address" : "Customer address (optional)"}
+          htmlFor={`${idPrefix}-address`}
+          hint={value.fulfilment === "setup" ? undefined : "Where the cab goes, if the customer books one."}
+        >
+          <Input
+            id={`${idPrefix}-address`}
+            value={value.address}
+            onChange={(e) => onChange({ ...value, address: e.target.value })}
+            maxLength={300}
+            required={value.fulfilment === "setup"}
+            autoComplete="off"
+            placeholder="House / hall, street, area"
+          />
+        </Field>
+        <Field label="Landmark (optional)" htmlFor={`${idPrefix}-note`}>
+          <Input
+            id={`${idPrefix}-note`}
+            value={value.note}
+            onChange={(e) => onChange({ ...value, note: e.target.value })}
+            maxLength={300}
+            autoComplete="off"
+            placeholder="e.g. Opposite the temple, near the bus stop"
+          />
+        </Field>
+      </div>
     </div>
   );
 }

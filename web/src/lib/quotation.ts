@@ -214,7 +214,12 @@ export function quotationView(q: Quotation): QuotationView {
       label: q.order.fulfilment === "setup" ? "Set-up date & time" : "Pickup date & time",
       value: q.order.dueAt ? formatDateTime(q.order.dueAt, tz) : "To be confirmed",
     },
-    { label: "Venue", value: q.order.fulfilment === "setup" ? (q.order.setupAddress ?? "To be confirmed") : "Pickup/Cab" },
+    {
+      label: "Venue",
+      value: q.order.fulfilment === "setup"
+        ? (q.order.setupAddress ?? "To be confirmed")
+        : q.order.setupAddress ? `Pickup/Cab · Cab to: ${q.order.setupAddress}` : "Pickup/Cab",
+    },
   ];
   if (!priced && q.order.kitchen) facts.push({ label: "Kitchen", value: q.order.kitchen });
 
@@ -241,7 +246,7 @@ export function quotationView(q: Quotation): QuotationView {
   }
 
   const notes: { label: string; value: string }[] = [];
-  if (q.order.setupNote) notes.push({ label: "Set-up note", value: q.order.setupNote });
+  if (q.order.setupNote) notes.push({ label: "Landmark", value: q.order.setupNote });
   if (q.order.customerNotes) notes.push({ label: "Notes", value: q.order.customerNotes });
 
   return {

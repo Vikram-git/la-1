@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Mea+Culpa&family=Marcellus&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/site/style.css?v=20261028k">
+    <link rel="stylesheet" href="/site/style.css?v=20261028l">
 </head>
 <body>
 
@@ -461,9 +461,13 @@
                             <label><input type="radio" name="fulfilment" value="collect" checked> Pickup / Cab</label>
                             <label><input type="radio" name="fulfilment" value="setup"> Set it up at my place</label>
                         </fieldset>
-                        <div class="form-group" id="addressGroup" hidden>
+                        <div class="form-group" id="addressGroup">
                             <textarea id="setupAddress" rows="2" placeholder=" " maxlength="300"></textarea>
-                            <label for="setupAddress">Address for set-up</label>
+                            <label for="setupAddress" id="addressLabel">Your address (optional, for the cab)</label>
+                        </div>
+                        <div class="form-group">
+                            <input type="text" id="setupNote" placeholder=" " maxlength="300" autocomplete="off">
+                            <label for="setupNote">Landmark (optional)</label>
                         </div>
                         <div class="form-hp" aria-hidden="true">
                             <label for="website">Leave this empty</label>
@@ -575,6 +579,6 @@
         </svg>
     </button>
 
-    <script src="/site/script.js?v=20261028k"></script>
+    <script src="/site/script.js?v=20261028l"></script>
 </body>
 </html>

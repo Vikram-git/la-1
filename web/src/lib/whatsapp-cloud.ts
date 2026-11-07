@@ -1,11 +1,12 @@
-// Quotations sent by the server through the WhatsApp Business (Cloud) API (owner, 2026-10-24).
-// Off until WHATSAPP_TOKEN and WHATSAPP_PHONE_NUMBER_ID are set; staff then share from their device instead.
+// Quotations (owner, 2026-10-24) and the Terms and Conditions (2026-11-07) sent by the server through the
+// WhatsApp Business (Cloud) API. Off until WHATSAPP_TOKEN and WHATSAPP_PHONE_NUMBER_ID are set.
 // WhatsApp only lets a business start a chat (or write after 24 hours of silence) with a template Meta has
 // approved, so the customer gets the template's words with the file, not the editable caption.
-// The template needs a DOCUMENT header (an IMAGE header for the PNG one) and one body variable, {{1}}, the
+// Each template needs a DOCUMENT header (an IMAGE header for the PNG one) and one body variable, {{1}}, the
 // order number. Never the customer's name. Pure apart from fetch: imported by unit tests.
 
 export type CloudFormat = "pdf" | "png";
+export type CloudDocument = "quotation" | "terms";
 
 export type CloudConfig = {
   token: string;
@@ -13,6 +14,7 @@ export type CloudConfig = {
   graphVersion: string;
   language: string;
   templates: Record<CloudFormat, string | null>;
+  termsTemplates: Record<CloudFormat, string | null>;
   autoSendOnConfirm: boolean;
 };
 
@@ -31,13 +33,21 @@ export function whatsappCloudConfig(env: Env = process.env): CloudConfig | null 
       pdf: env.WHATSAPP_QUOTATION_TEMPLATE_PDF?.trim() || "quotation_pdf",
       png: env.WHATSAPP_QUOTATION_TEMPLATE_PNG?.trim() || null,
     },
+    termsTemplates: {
+      pdf: env.WHATSAPP_TERMS_TEMPLATE_PDF?.trim() || "terms_pdf",
+      png: env.WHATSAPP_TERMS_TEMPLATE_PNG?.trim() || "terms_image",
+    },
     autoSendOnConfirm: env.WHATSAPP_AUTO_SEND_ON_CONFIRM?.trim().toLowerCase() === "true",
   };
 }
 
-export function cloudFormats(cfg: CloudConfig | null): CloudFormat[] {
+export function templateName(cfg: CloudConfig, format: CloudFormat, document: CloudDocument = "quotation"): string | null {
+  return (document === "terms" ? cfg.termsTemplates : cfg.templates)[format];
+}
+
+export function cloudFormats(cfg: CloudConfig | null, document: CloudDocument = "quotation"): CloudFormat[] {
   if (!cfg) return [];
-  return (["pdf", "png"] as const).filter((f) => cfg.templates[f]);
+  return (["pdf", "png"] as const).filter((f) => templateName(cfg, f, document));
 }
 
 // What the send log shows as the message: the template's name and its one variable.
@@ -45,9 +55,9 @@ export function cloudLogCaption(cfg: CloudConfig, format: CloudFormat, reference
   return `WhatsApp template "${cfg.templates[format]}" · order ${reference}`;
 }
 
-export function quotationTemplateMessage(
+export function templateMessage(
   cfg: CloudConfig,
-  m: { to: string; format: CloudFormat; mediaId: string; fileName: string; reference: string },
+  m: { to: string; format: CloudFormat; mediaId: string; fileName: string; reference: string; document?: CloudDocument },
 ) {
   const header =
     m.format === "pdf"
@@ -59,7 +69,7 @@ export function quotationTemplateMessage(
     to: m.to,
     type: "template",
     template: {
-      name: cfg.templates[m.format],
+      name: templateName(cfg, m.format, m.document),
       language: { code: cfg.language },
       components: [
         { type: "header", parameters: [header] },
@@ -78,19 +88,19 @@ function graphProblem(body: GraphError, fallback: string): string {
   const e = body.error;
   if (!e) return fallback;
   if (e.code === 190) return "The WhatsApp access token has expired or is wrong. Ask the admin to update WHATSAPP_TOKEN.";
-  if (e.code === 132001) return "WhatsApp cannot find the Order in msg template. Check its name and language, and that Meta approved it.";
+  if (e.code === 132001) return "WhatsApp cannot find the message template. Check its name and language, and that Meta approved it.";
   if (e.code === 131026) return "This customer's number cannot receive WhatsApp messages.";
   const detail = e.error_data?.details || e.message;
   return detail ? `WhatsApp refused it: ${detail}` : fallback;
 }
 
 // Uploads the file to WhatsApp (so no link to our storage leaves the server), then sends the template.
-export async function sendQuotationOnWhatsApp(
+export async function sendFileOnWhatsApp(
   cfg: CloudConfig,
-  m: { to: string; format: CloudFormat; file: Buffer; fileName: string; contentType: string; reference: string },
+  m: { to: string; format: CloudFormat; file: Buffer; fileName: string; contentType: string; reference: string; document?: CloudDocument },
   fetchImpl: typeof fetch = fetch,
 ): Promise<CloudSendResult> {
-  if (!cfg.templates[m.format]) return { ok: false, message: "Automatic sending is not set up for this format." };
+  if (!templateName(cfg, m.format, m.document)) return { ok: false, message: "Automatic sending is not set up for this format." };
   const base = `https://graph.facebook.com/${cfg.graphVersion}/${cfg.phoneNumberId}`;
   const auth = { Authorization: `Bearer ${cfg.token}` };
   try {
@@ -105,7 +115,7 @@ export async function sendQuotationOnWhatsApp(
     const res = await fetchImpl(`${base}/messages`, {
       method: "POST",
       headers: { ...auth, "Content-Type": "application/json" },
-      body: JSON.stringify(quotationTemplateMessage(cfg, { ...m, mediaId: upBody.id })),
+      body: JSON.stringify(templateMessage(cfg, { ...m, mediaId: upBody.id })),
     });
     const body = (await res.json().catch(() => ({}))) as GraphError & { messages?: { id?: string }[] };
     const messageId = body.messages?.[0]?.id;

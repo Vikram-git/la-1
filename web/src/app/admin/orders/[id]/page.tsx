@@ -20,7 +20,9 @@ import { EditItems } from "./edit-items";
 import { loadCatalogue } from "@/lib/catalogue";
 import { MESSAGE_LABEL, whatsappNumber, type MessageKind } from "@/lib/whatsapp";
 import { OrderTerms } from "@/components/order-terms";
-import { TermsSend } from "@/components/terms-send";
+import { TermsResend } from "./terms-resend";
+import { isCakeOrder } from "@/lib/cake-order";
+import { whatsappCloudConfig } from "@/lib/whatsapp-cloud";
 import { StickyNote } from "./sticky-note";
 
 export const metadata: Metadata = { title: "Order" };
@@ -63,6 +65,7 @@ const eventLabel: Record<string, string> = {
   customer_message: "WhatsApp message opened",
   sticky_note_changed: "Sticky note changed",
   quotation_sent: "Order in msg sent",
+  terms_sent: "Terms and Conditions sent on WhatsApp",
 };
 
 const QUOTATION_CHANNEL: Record<string, string> = {
@@ -137,6 +140,15 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
     ? new Map(((await supabase.storage.from("custom-cake-photos").createSignedUrls(cakePaths, 3600)).data ?? []).map((s) => [s.path, s.signedUrl]))
     : new Map<string | null, string>();
   const cakePhotos = cakePaths.map((path) => ({ path, url: signedCake.get(path) ?? null }));
+
+  // Terms and Conditions go to cake orders' customers automatically on confirming (owner, 2026-11-07).
+  const itemCategoryIds = [...new Set((items ?? []).filter((i) => i.quantity > i.cancelled_quantity).map((i) => i.category_id).filter((v): v is string => Boolean(v)))];
+  const [{ data: itemCategories }, { data: termsSends }] = await Promise.all([
+    itemCategoryIds.length ? supabase.from("categories").select("name").in("id", itemCategoryIds) : Promise.resolve({ data: [] as { name: string }[] }),
+    supabase.from("terms_sends").select("id, format, status, problem, sent_at").eq("order_id", id).order("sent_at", { ascending: false }).limit(6),
+  ]);
+  const cakeOrder = isCakeOrder({ hasCustomCake: Boolean(cake), itemCategories: (itemCategories ?? []).map((c) => c.name) });
+  const autoSending = Boolean(whatsappCloudConfig());
 
   const itemList = (
     <ul className="divide-y divide-line">
@@ -430,12 +442,40 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
 
           <Card className="lg:col-span-2">
             <h2 className="mb-1 text-lg font-semibold">Terms and Conditions</h2>
-            <p className="mb-3 text-sm text-muted">Sent to the customer as an image or PDF, not as text.</p>
-            <div className="mb-3">
-              {termsTo ? (
-                <TermsSend phone={termsTo} reference={order.reference} />
+            <p className="mb-3 text-sm text-muted">
+              {cakeOrder
+                ? "Sent automatically to the customer's WhatsApp, as a PDF and an image, when this cake order is confirmed."
+                : "Sent automatically only for cake orders."}
+            </p>
+            <div className="mb-3 flex flex-col gap-3">
+              {!autoSending ? (
+                <Alert tone="warn">
+                  Automatic WhatsApp sending is not set up yet. Once the WhatsApp Business account is connected, cake
+                  orders get the Terms as soon as they are confirmed.
+                </Alert>
+              ) : !termsTo ? (
+                <p className="text-sm text-muted">Add the customer&rsquo;s phone number so the Terms can be sent on WhatsApp.</p>
               ) : (
-                <p className="text-sm text-muted">Add the customer&rsquo;s phone number to send these on WhatsApp.</p>
+                <>
+                  {(termsSends ?? []).length > 0 ? (
+                    <ul className="flex flex-col gap-1 text-sm">
+                      {(termsSends ?? []).map((t) => (
+                        <li key={t.id} className={t.status === "sent" ? "text-ok" : "text-danger"}>
+                          {t.format === "pdf" ? "PDF" : "Image"} {t.status === "sent" ? "sent" : "not sent"} · {formatDateTime(t.sent_at, tz)}
+                          {t.problem && <span className="block text-xs text-muted">{t.problem}</span>}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-muted">
+                      {cakeOrder && ["draft", "pending_confirmation"].includes(order.status) ? "Will be sent when the order is confirmed." : "Not sent yet."}
+                    </p>
+                  )}
+                  <TermsResend
+                    orderId={order.id}
+                    label={(termsSends ?? []).some((t) => t.status === "sent") ? "Send again" : "Send now"}
+                  />
+                </>
               )}
             </div>
             <details className="group rounded-xl border border-line bg-canvas/50 px-4 py-3 text-sm">

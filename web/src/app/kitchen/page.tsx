@@ -129,7 +129,7 @@ function OrderDetails({ order }: { order: ChefOrder }) {
   }
   rows.push({ label: "Ordered by", value: SOURCE_LABEL[order.source] });
   if (order.fulfilment === "setup" && order.setupAddress) rows.push({ label: "Set up at", value: order.setupAddress });
-  if (order.setupNote) rows.push({ label: "Set-up note", value: order.setupNote });
+  if (order.fulfilment === "setup" && order.setupNote) rows.push({ label: "Landmark", value: order.setupNote });
   if (order.customerNotes) rows.push({ label: "Order note", value: order.customerNotes });
   return (
     <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 rounded-xl bg-canvas px-3 py-2.5 text-base">

@@ -88,10 +88,14 @@ export default async function CakeSheetPage({ params, searchParams }: PageProps<
         {order.fulfilment === "setup" ? (
           <p className="mt-2 font-bold">
             SET UP at: {order.setup_address}
-            {order.setup_note && <span className="block font-normal">{order.setup_note}</span>}
+            {order.setup_note && <span className="block font-normal">Landmark: {order.setup_note}</span>}
           </p>
         ) : (
-          <p className="mt-2 font-bold">PICKUP/CAB</p>
+          <p className="mt-2 font-bold">
+            PICKUP/CAB
+            {order.setup_address && <span className="block font-normal">Cab to: {order.setup_address}</span>}
+            {order.setup_note && <span className="block font-normal">Landmark: {order.setup_note}</span>}
+          </p>
         )}
 
         {cake.message && (

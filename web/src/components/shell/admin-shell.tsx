@@ -13,6 +13,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  NotebookPen,
   Package,
   Search,
   Settings,
@@ -43,6 +44,7 @@ const ICONS: Record<NavIcon, LucideIcon> = {
   kitchen: ChefHat,
   gallery: Images,
   reports: Table2,
+  todo: NotebookPen,
 };
 
 type Counts = { pending: number; reviews: number; attention: number };

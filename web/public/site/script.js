@@ -534,7 +534,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const contactForm = document.getElementById('contactForm');
     const formStatus = document.getElementById('formStatus');
     const pickupDate = document.getElementById('pickupDate');
-    const addressGroup = document.getElementById('addressGroup');
     let orderKey = newKey();
 
     function newKey() {
@@ -560,7 +559,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.querySelectorAll('input[name="fulfilment"]').forEach(radio => {
         radio.addEventListener('change', () => {
-            if (addressGroup) addressGroup.hidden = radio.value !== 'setup' || !radio.checked;
+            if (!radio.checked) return;
+            const label = document.getElementById('addressLabel');
+            if (label) label.textContent = radio.value === 'setup' ? 'Address for set-up' : 'Your address (optional, for the cab)';
         });
     });
 
@@ -599,6 +600,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         items: variantId ? [{ variantId, quantity }] : [],
                         fulfilment,
                         setupAddress: value('setupAddress'),
+                        setupNote: value('setupNote'),
                         website: value('website')
                     })
                 });
@@ -610,7 +612,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         true
                     );
                     contactForm.reset();
-                    if (addressGroup) addressGroup.hidden = true;
+                    const addressLabel = document.getElementById('addressLabel');
+                    if (addressLabel) addressLabel.textContent = 'Your address (optional, for the cab)';
                     orderKey = newKey();
                 } else {
                     showStatus(result.message || 'Sorry, we could not send your order. Please WhatsApp or call us.');

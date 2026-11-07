@@ -7,7 +7,7 @@ const hrefs = (role: "admin" | "counter") => navSections(role).flatMap((s) => s.
 test("admins see every screen, including Notifications, Reviews and Reports", () => {
   const h = hrefs("admin");
   for (const href of ["/admin", "/admin/orders", "/admin/calendar", "/admin/customers", "/admin/products",
-    "/admin/notifications", "/admin/gallery", "/admin/reviews", "/admin/reports", "/admin/sales-report", "/admin/staff", "/admin/settings"]) assert.ok(h.includes(href), href);
+    "/admin/notifications", "/admin/gallery", "/admin/reviews", "/admin/reports", "/admin/sales-report", "/admin/staff", "/admin/settings", "/admin/todo"]) assert.ok(h.includes(href), href);
   assert.ok(!h.includes("/admin/offers"));
 });
 
@@ -29,7 +29,7 @@ test("Customers takes KOT's place, right after Calendar, for counter staff too",
 test("counter staff never see admin-only screens", () => {
   const h = hrefs("counter");
   for (const href of ["/admin/reports", "/admin/sales-report", "/admin/staff", "/admin/settings", "/admin/gallery", "/admin/reviews"]) assert.ok(!h.includes(href), href);
-  for (const href of ["/admin", "/admin/orders", "/admin/calendar", "/admin/customers", "/admin/products", "/admin/notifications"]) assert.ok(h.includes(href), href);
+  for (const href of ["/admin", "/admin/orders", "/admin/calendar", "/admin/customers", "/admin/products", "/admin/notifications", "/admin/todo"]) assert.ok(h.includes(href), href);
 });
 
 test("admins and counter staff can open the chef screen", () => {

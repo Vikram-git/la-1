@@ -31,6 +31,17 @@ test("the pickup time is read in the bakery's time zone", () => {
   assert.ok("args" in result);
   assert.equal(result.args.p_due_at, "2026-10-20T11:00:00.000Z");
   assert.equal(result.args.p_setup_address, null);
+  assert.equal(result.args.p_setup_note, null);
+});
+
+test("Pickup/Cab orders keep the customer's address and landmark", () => {
+  const pickup = websiteOrderSchema.parse({ ...base, setupAddress: " 12 Lake View Road, T Nagar ", setupNote: " Opposite the temple " });
+  const result = submitArgs(pickup, "Asia/Kolkata");
+  assert.ok("args" in result);
+  assert.equal(result.args.p_fulfilment, "collect");
+  assert.equal(result.args.p_setup_address, "12 Lake View Road, T Nagar");
+  assert.equal(result.args.p_setup_note, "Opposite the temple");
+  assert.ok(!websiteOrderSchema.safeParse({ ...base, setupNote: "x".repeat(301) }).success);
 });
 
 test("an order needs a message or items; set-up needs an address", () => {
