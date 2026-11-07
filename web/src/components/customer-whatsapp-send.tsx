@@ -3,87 +3,122 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Alert, cx } from "@/components/ui";
-import { sendBillAndTermsAction } from "@/app/admin/orders/actions";
+import { whatsappLink } from "@/lib/whatsapp";
+import { recordQuotationSendAction, sendBillAndTermsAction } from "@/app/admin/orders/actions";
 
 type Format = "pdf" | "png";
-
-export type WhatsAppJob = { id: string; document: string; format: string; status: string; problem: string | null; created_at: string };
+type Prepared = { files: File[]; billPath: string };
 
 function shownNumber(phone: string): string {
   const local = phone.startsWith("91") && phone.length === 12 ? phone.slice(2) : phone;
   return `+91 ${local.slice(0, 5)} ${local.slice(5)}`;
 }
 
-const STATUS: Record<string, { text: string; tone: string }> = {
-  pending: { text: "waiting for the shop computer…", tone: "text-muted" },
-  sending: { text: "sending…", tone: "text-muted" },
-  sent: { text: "✓ sent to the customer's WhatsApp", tone: "text-ok" },
-  failed: { text: "not sent", tone: "text-danger" },
-};
+function download(file: File) {
+  const url = URL.createObjectURL(file);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = file.name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
 
-// The bill and the Terms and Conditions straight into the customer's WhatsApp chat as files (owner, 2026-11-07):
-// the number the customer gave on the order is their WhatsApp; the admin picks image or PDF and taps once.
-// Sent through WhatsApp Business when it is set up, otherwise by the shop computer's sender, linked to the
-// bakery's WhatsApp (npm start in whatsapp-sender). Nothing opens on this device and nothing is attached by hand.
-export function CustomerWhatsAppSend({ orderId, phone, testMode, cloud, jobs, senderOnline, senderPhone }: {
+// The bill and the Terms and Conditions to the customer's WhatsApp (owner, 2026-11-07), as image or PDF as the
+// admin picks. With WhatsApp Business set up, the server sends both. Otherwise one tap opens WhatsApp on this
+// phone with both files already attached (staff tap the customer, then Send): WhatsApp lets no website choose
+// the chat. Both files are made when the page opens, because the share must run straight after the tap.
+export function CustomerWhatsAppSend({ orderId, reference, phone, cloud, testMode }: {
   orderId: string;
+  reference: string;
   phone: string | null;
-  testMode: boolean;
   cloud: boolean;
-  jobs: WhatsAppJob[];
-  senderOnline: boolean;
-  senderPhone: string | null;
+  testMode: boolean;
 }) {
   const router = useRouter();
   const [format, setFormat] = useState<Format>("png");
+  const [prepared, setPrepared] = useState<Partial<Record<Format, Prepared>>>({});
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const waiting = jobs.some((j) => j.status === "pending" || j.status === "sending");
+  const ready = prepared[format] ?? null;
 
-  // While files wait for the shop computer, check every 3 seconds.
   useEffect(() => {
-    if (!waiting) return;
-    const t = setInterval(() => router.refresh(), 3000);
-    return () => clearInterval(t);
-  }, [waiting, router]);
+    if (cloud || !phone || prepared[format]) return;
+    let cancelled = false;
+    const type = format === "pdf" ? "application/pdf" : "image/png";
+    const bill = fetch(`/api/orders/${orderId}/quotation`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ format }),
+    })
+      .then((res) => res.json())
+      .then(async (d: { ok?: boolean; url?: string; path?: string; fileName?: string; message?: string }) => {
+        if (!d.ok || !d.url || !d.path || !d.fileName) throw new Error(d.message ?? "Could not make the bill.");
+        const blob = await (await fetch(d.url)).blob();
+        return { file: new File([blob], d.fileName, { type }), path: d.path };
+      });
+    const terms = fetch(`/api/terms?${new URLSearchParams({ format, ref: reference })}`)
+      .then((res) => (res.ok ? res.blob() : Promise.reject(new Error("Could not make the Terms."))))
+      .then((blob) => new File([blob], `LaPatisserieMadras-Terms-${reference}.${format}`, { type }));
+    Promise.all([bill, terms])
+      .then(([b, t]) => !cancelled && setPrepared((prev) => ({ ...prev, [format]: { files: [b.file, t], billPath: b.path } })))
+      .catch((e: Error) => !cancelled && setError(`${e.message || "Could not make the files."} Check the connection and reload the page.`));
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-made only when the format changes
+  }, [format, cloud, phone, orderId, reference]);
 
-  async function send() {
+  async function sendFromServer() {
     setSending(true);
     setDone(null);
     setError(null);
     const r = await sendBillAndTermsAction({ orderId, format }).catch(() => null);
     setSending(false);
-    const kind = format === "pdf" ? "PDFs" : "images";
+    const kind = format === "pdf" ? "PDF" : "image";
     if (r?.ok) {
-      if (r.queued) setDone(`Bill and Terms (${kind}) are on their way to the customer's WhatsApp from the shop computer.`);
-      else {
-        setDone(testMode
-          ? `Bill and Terms sent as ${kind} to the local WhatsApp test phone. Open http://localhost:4010 to see them.`
-          : `Bill and Terms sent as ${kind} to the customer's WhatsApp.`);
-        for (const ms of [2500, 6000]) setTimeout(() => router.refresh(), ms);
-      }
+      setDone(testMode
+        ? `Bill and Terms sent as ${kind}s to the local WhatsApp test phone. Open http://localhost:4010 to see them.`
+        : `Bill and Terms sent as ${kind}s to the customer's WhatsApp.`);
+      for (const ms of [2500, 6000]) setTimeout(() => router.refresh(), ms);
     } else setError(r?.message ?? "Could not send on WhatsApp. Check the connection and try again.");
+    router.refresh();
+  }
+
+  async function openWhatsApp() {
+    if (!ready || !phone) return;
+    setDone(null);
+    setError(null);
+    const { files, billPath } = ready;
+    if (navigator.canShare?.({ files })) {
+      try {
+        await navigator.share({ files });
+      } catch (e) {
+        if ((e as Error).name !== "AbortError") setError("Could not open WhatsApp. Try again.");
+        return;
+      }
+      setDone(`In WhatsApp, tap the customer (${shownNumber(phone)}), then Send. Both files are already attached.`);
+      await recordQuotationSendAction({ orderId, format, channel: "share_sheet", path: billPath, caption: "" }).catch(() => null);
+    } else {
+      files.forEach(download);
+      window.open(whatsappLink(phone, ""), "_blank", "noopener,noreferrer");
+      setDone("This computer cannot hand files to WhatsApp, so both files were downloaded and the customer's chat is open. Attach them (📎) and press Send. On a phone, this button attaches them for you.");
+      await recordQuotationSendAction({ orderId, format, channel: "download_and_chat", path: billPath, caption: "" }).catch(() => null);
+    }
     router.refresh();
   }
 
   if (!phone) return <p className="text-sm text-muted">Add the customer&rsquo;s phone number to the order to send on WhatsApp.</p>;
 
+  const label = format === "pdf" ? "PDF" : "PNG";
   return (
     <div className="flex flex-col gap-3">
       {testMode && (
         <Alert tone="warn" title="WhatsApp test mode">
           Sends go to the local WhatsApp test phone at http://localhost:4010, never to the customer.
         </Alert>
-      )}
-      {!cloud && (
-        senderOnline ? (
-          <p className="text-sm text-ok">● Shop computer is connected to WhatsApp{senderPhone ? ` (${shownNumber(senderPhone)})` : ""}.</p>
-        ) : (
-          <Alert tone="warn" title="Shop computer is not connected">
-            Start the WhatsApp sender on the shop computer. Files you send now go out as soon as it is running (within 2 hours).
-          </Alert>
-        )
       )}
       <p className="text-sm">
         To the customer&rsquo;s WhatsApp: <span className="font-semibold tabular-nums">{shownNumber(phone)}</span>
@@ -105,23 +140,19 @@ export function CustomerWhatsAppSend({ orderId, phone, testMode, cloud, jobs, se
       </fieldset>
       <button
         type="button"
-        onClick={send}
-        disabled={sending}
+        onClick={cloud ? sendFromServer : openWhatsApp}
+        disabled={cloud ? sending : !ready}
         className="inline-flex items-center justify-center gap-2 self-start rounded-xl bg-[#1f9d55] px-5 py-2.5 text-base font-semibold text-white shadow-sm shadow-[#1f9d55]/25 transition-colors hover:bg-[#14713c] disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {sending ? "Preparing…" : `Send bill and Terms on WhatsApp (${format === "pdf" ? "PDF" : "PNG"})`}
+        {cloud
+          ? sending ? "Sending…" : `Send bill and Terms on WhatsApp (${label})`
+          : ready ? `Send bill and Terms on WhatsApp (${label})` : `Preparing bill and Terms (${label})…`}
       </button>
-      <p className="text-xs text-muted">Both go straight into the customer&rsquo;s WhatsApp chat as files. Nothing opens here; nothing to attach.</p>
-      {jobs.length > 0 && (
-        <ul className="flex flex-col gap-1 text-sm">
-          {jobs.map((j) => (
-            <li key={j.id} className={STATUS[j.status]?.tone}>
-              {j.document === "bill" ? "Bill" : "Terms"} ({j.format.toUpperCase()}): {STATUS[j.status]?.text ?? j.status}
-              {j.problem && <span className="block text-xs text-muted">{j.problem}</span>}
-            </li>
-          ))}
-        </ul>
-      )}
+      <p className="text-xs text-muted">
+        {cloud
+          ? "Both go straight to the customer\u2019s WhatsApp chat as files. Nothing opens here; nothing to attach."
+          : "Opens WhatsApp with the bill and the Terms already attached. Tap the customer, then Send."}
+      </p>
       {done && <Alert tone="ok">{done}</Alert>}
       {error && <Alert tone="warn">{error}</Alert>}
     </div>

@@ -16,7 +16,6 @@ import { Card, LogoMark, cx } from "@/components/ui";
 import { CAKE_SHEET_TERMS } from "@/lib/brand";
 import { TermsPanel } from "@/components/terms-panel";
 import { CustomerWhatsAppSend } from "@/components/customer-whatsapp-send";
-import { loadWhatsAppSendState } from "@/lib/whatsapp-queue";
 import { QuotationSend } from "@/app/admin/orders/[id]/quotation-send";
 import { PrintControls } from "../../print-controls";
 
@@ -163,13 +162,13 @@ export default async function CakeSheetPage({ params, searchParams }: PageProps<
       {quotation.ok && (
         <Card className="mx-auto mt-6 max-w-3xl border-2 border-[#1f9d55]/40 print:hidden">
           <h2 className="mb-1 text-lg font-semibold">Send the bill and Terms to the customer&rsquo;s WhatsApp</h2>
-          <p className="mb-3 text-sm text-muted">Pick image or PDF, then one tap. Both arrive in the customer&rsquo;s WhatsApp chat as files.</p>
+          <p className="mb-3 text-sm text-muted">Pick image or PDF, then one tap. Both go together as files.</p>
           <CustomerWhatsAppSend
             orderId={id}
+            reference={order.reference ?? ""}
             phone={whatsappNumber(order.customer_phone)}
-            testMode={whatsappCloudConfig()?.testMode ?? false}
             cloud={Boolean(whatsappCloudConfig())}
-            {...(await loadWhatsAppSendState(supabase, id))}
+            testMode={whatsappCloudConfig()?.testMode ?? false}
           />
         </Card>
       )}
