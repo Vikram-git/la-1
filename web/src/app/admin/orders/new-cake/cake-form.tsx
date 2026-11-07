@@ -126,6 +126,9 @@ export function CakeOrderForm({
         <Card className="flex flex-col gap-4">
           <h2 className="text-lg font-semibold">The cake</h2>
           <CakeFields value={cake} onChange={(v) => { setError(null); setCake(v); }} />
+          <Field label="Internal notes (staff only)" htmlFor="cake-inotes">
+            <Textarea id="cake-inotes" value={internalNotes} onChange={(e) => setInternalNotes(e.target.value)} maxLength={1000} className="min-h-14" />
+          </Field>
           <p className="text-sm text-muted">Customised orders are made in Kitchen 1.</p>
           <Field
             label={`Reference photos (optional, up to ${MAX_CAKE_PHOTOS})`}
@@ -228,9 +231,6 @@ export function CakeOrderForm({
           />
           <Field label="Customer notes" htmlFor="cake-cnotes">
             <Textarea id="cake-cnotes" value={customerNotes} onChange={(e) => setCustomerNotes(e.target.value)} maxLength={1000} className="min-h-14" />
-          </Field>
-          <Field label="Internal notes (staff only)" htmlFor="cake-inotes">
-            <Textarea id="cake-inotes" value={internalNotes} onChange={(e) => setInternalNotes(e.target.value)} maxLength={1000} className="min-h-14" />
           </Field>
           {canConfirm ? (
             <Checkbox

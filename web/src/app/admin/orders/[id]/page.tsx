@@ -20,7 +20,7 @@ import { EditItems } from "./edit-items";
 import { loadCatalogue } from "@/lib/catalogue";
 import { MESSAGE_LABEL, whatsappNumber, type MessageKind } from "@/lib/whatsapp";
 import { OrderTerms } from "@/components/order-terms";
-import { TermsResend } from "./terms-resend";
+import { TermsPanel } from "@/components/terms-panel";
 import { isCakeOrder } from "@/lib/cake-order";
 import { whatsappCloudConfig } from "@/lib/whatsapp-cloud";
 import { StickyNote } from "./sticky-note";
@@ -448,35 +448,24 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
                 : "Sent automatically only for cake orders."}
             </p>
             <div className="mb-3 flex flex-col gap-3">
-              {!autoSending ? (
-                <Alert tone="warn">
-                  Automatic WhatsApp sending is not set up yet. Once the WhatsApp Business account is connected, cake
-                  orders get the Terms as soon as they are confirmed.
-                </Alert>
-              ) : !termsTo ? (
-                <p className="text-sm text-muted">Add the customer&rsquo;s phone number so the Terms can be sent on WhatsApp.</p>
-              ) : (
-                <>
-                  {(termsSends ?? []).length > 0 ? (
-                    <ul className="flex flex-col gap-1 text-sm">
-                      {(termsSends ?? []).map((t) => (
-                        <li key={t.id} className={t.status === "sent" ? "text-ok" : "text-danger"}>
-                          {t.format === "pdf" ? "PDF" : "Image"} {t.status === "sent" ? "sent" : "not sent"} · {formatDateTime(t.sent_at, tz)}
-                          {t.problem && <span className="block text-xs text-muted">{t.problem}</span>}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-sm text-muted">
-                      {cakeOrder && ["draft", "pending_confirmation"].includes(order.status) ? "Will be sent when the order is confirmed." : "Not sent yet."}
-                    </p>
-                  )}
-                  <TermsResend
-                    orderId={order.id}
-                    label={(termsSends ?? []).some((t) => t.status === "sent") ? "Send again" : "Send now"}
-                  />
-                </>
-              )}
+              {(termsSends ?? []).length > 0 ? (
+                <ul className="flex flex-col gap-1 text-sm">
+                  {(termsSends ?? []).map((t) => (
+                    <li key={t.id} className={t.status === "sent" ? "text-ok" : "text-danger"}>
+                      {t.format === "pdf" ? "PDF" : "Image"} {t.status === "sent" ? "sent automatically" : "not sent"} · {formatDateTime(t.sent_at, tz)}
+                      {t.problem && <span className="block text-xs text-muted">{t.problem}</span>}
+                    </li>
+                  ))}
+                </ul>
+              ) : !autoSending ? (
+                <p className="text-sm text-warn">
+                  Automatic WhatsApp sending is not set up yet; until the WhatsApp Business account is connected, send
+                  the Terms below.
+                </p>
+              ) : cakeOrder && ["draft", "pending_confirmation"].includes(order.status) ? (
+                <p className="text-sm text-muted">Will be sent automatically when the order is confirmed.</p>
+              ) : null}
+              <TermsPanel orderId={order.id} reference={order.reference ?? ""} phone={termsTo} cloud={autoSending} />
             </div>
             <details className="group rounded-xl border border-line bg-canvas/50 px-4 py-3 text-sm">
               <summary className="cursor-pointer font-medium text-brand-strong">

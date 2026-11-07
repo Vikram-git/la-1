@@ -14,6 +14,7 @@ import { whatsappNumber } from "@/lib/whatsapp";
 import { cloudFormats, whatsappCloudConfig } from "@/lib/whatsapp-cloud";
 import { Card, LogoMark, cx } from "@/components/ui";
 import { CAKE_SHEET_TERMS } from "@/lib/brand";
+import { TermsPanel } from "@/components/terms-panel";
 import { QuotationSend } from "@/app/admin/orders/[id]/quotation-send";
 import { PrintControls } from "../../print-controls";
 
@@ -171,6 +172,14 @@ export default async function CakeSheetPage({ params, searchParams }: PageProps<
           />
         </Card>
       )}
+      <Card className="mx-auto mt-6 max-w-3xl print:hidden">
+        <h2 className="mb-1 text-lg font-semibold">Terms and Conditions for the customer</h2>
+        <p className="mb-3 text-sm text-muted">
+          Download them, or send them to the customer&rsquo;s WhatsApp as a file. Cake orders also get them automatically when
+          confirmed, once WhatsApp Business is connected.
+        </p>
+        <TermsPanel orderId={id} reference={order.reference ?? ""} phone={whatsappNumber(order.customer_phone)} cloud={Boolean(whatsappCloudConfig())} />
+      </Card>
     </div>
   );
 }

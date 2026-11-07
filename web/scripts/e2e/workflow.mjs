@@ -122,9 +122,13 @@ const cake = (await admin.sb.from("order_summaries").select("*").eq("id", cakeId
 check("custom cake total = price + set-up + delivery + add-on, advance paid", cake?.total_paise === 350000 && cake.balance_paise === 250000, `total ${cake?.total_paise} balance ${cake?.balance_paise}`);
 p = await page(`/admin/orders/${cakeId}`, counter.cookie);
 check("order page shows cupcakes and add-on, without the message and Order in msg cards", p.status === 200 && /Cupcakes.{0,80}>6</.test(p.body) && p.body.includes("Gold balloons") && !p.body.includes("Message the customer") && !p.body.includes("Open Order in msg"), `status ${p.status}`);
-check("order page sends the cake's Terms automatically, with no manual share buttons",
-  p.body.includes("when this cake order is confirmed") && !p.body.includes("Send Terms on WhatsApp") && !p.body.includes("Image (PNG)") && p.body.includes("Food Colours") &&
-  (p.body.includes("Automatic WhatsApp sending is not set up yet") || p.body.includes("Send again") || p.body.includes("Send now")), `status ${p.status}`);
+check("order page: Terms sent automatically for the cake, plus PDF/PNG download and send to the customer's chat",
+  p.body.includes("when this cake order is confirmed") && p.body.includes("Send Terms on WhatsApp") && p.body.includes(`/api/terms?format=pdf&amp;ref=${cake.reference}`) &&
+  p.body.includes(`/api/terms?format=png&amp;ref=${cake.reference}`) && p.body.includes("Food Colours"), `status ${p.status}`);
+p = await page("/admin/orders/new-cake", counter.cookie);
+check("cake form: Internal notes come right after Special instructions, not in Pickup/Set-up",
+  p.status === 200 && p.body.indexOf("Internal notes (staff only)") > p.body.indexOf("Special instructions") && p.body.indexOf("Internal notes (staff only)") < p.body.indexOf("Price and advance"), `status ${p.status}`);
+p = await page(`/admin/orders/${cakeId}`, counter.cookie);
 for (const format of ["png", "pdf"]) {
   const t = await fetch(`${APP}/api/terms?format=${format}&ref=${cake.reference}`, { headers: { cookie: counter.cookie } });
   const bytes = (await t.arrayBuffer()).byteLength;
@@ -207,6 +211,7 @@ check("Order in msg text lists set-up, delivery, add-on, total, advance and bala
 p = await page(`/print/cake/${cakeId}`, counter.cookie);
 check("cake sheet shows the bill, add-on and T&C, and sends the bill file with no text, image first",
   p.status === 200 && p.body.includes("Send the bill to the customer on WhatsApp") && !p.body.includes("Message sent with the Order in msg") && p.body.includes("Balance to pay") && p.body.includes("Gold balloons") && p.body.includes("Terms") && /checked=""[^>]*value="png"|value="png"[^>]*checked/.test(p.body), `status ${p.status}`);
+check("cake sheet sends the Terms too, with PDF/PNG downloads", p.body.includes("Terms and Conditions for the customer") && p.body.includes("Send Terms on WhatsApp") && p.body.includes(`/api/terms?format=pdf&amp;ref=${cake.reference}`), `status ${p.status}`);
 
 // --- Dashboard and Reports -------------------------------------------------------------------------
 p = await page("/admin", admin.cookie);
