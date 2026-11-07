@@ -44,6 +44,11 @@ export function whatsappLink(phone: string, text: string): string {
   return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
 }
 
+// The WhatsApp message with the link to the order's Terms PDF (owner, 2026-11-07). Never the customer's name.
+export function termsMessage(reference: string, origin: string): string {
+  return `Hello! Here are the Terms and Conditions for your cake order ${reference} with La Patisserie Madras:\n${origin}/terms/${encodeURIComponent(reference)}\n\nThank you!`;
+}
+
 // Which messages fit the order now, most likely first. Cancelled and rejected orders get none: staff call.
 export function availableMessages(o: Pick<MessageOrder, "status" | "balancePaise">): MessageKind[] {
   const balance: MessageKind[] = o.balancePaise > 0 ? ["balance"] : [];

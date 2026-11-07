@@ -84,7 +84,7 @@ let call = (await admin.sb.from("order_summaries").select("*").eq("id", callId).
 const callPage = await page(`/admin/orders/${callId}`, counter.cookie);
 check("Pickup/Cab order keeps the customer's address and landmark, with a map link",
   callPage.status === 200 && callPage.body.includes("7 Lake View Road, T Nagar") && callPage.body.includes("Landmark: Opposite the temple") && callPage.body.includes("google.com/maps/search"), `status ${callPage.status}`);
-check("a menu cake (Black Forest) makes it a cake order that gets the Terms automatically", (callPage.body.includes("when this cake order is confirmed") || callPage.body.includes("Download the Terms, or send them")), `status ${callPage.status}`);
+check("a menu cake (Black Forest) makes it a cake order that gets the Terms automatically", (callPage.body.includes("when this cake order is confirmed") || callPage.body.includes("WhatsApp as a link, or download them")), `status ${callPage.status}`);
 check("call order totals", call?.total_paise > 0 && call.balance_paise === call.total_paise, `total ${call?.total_paise} balance ${call?.balance_paise}`);
 r = await act("recordPaymentAction", `/admin/orders/${callId}`, { orderId: callId, idempotencyKey: crypto.randomUUID(), kind: "payment", method: "upi", amount: "200", reference: "UPI-E2E" }, counter.cookie);
 check("counter records advance", r.ok === true, JSON.stringify(r));
@@ -114,7 +114,7 @@ check("bill prints the Terms and Conditions", ["TERMS AND CONDITIONS", "Delivery
 
 // --- Custom cake → quotation → send log → sticky note -------------------------------------------
 r = await act("createCustomCakeOrderAction", "/admin/orders/new-cake", { idempotencyKey: crypto.randomUUID(), source: "CALL", customerName: `E2E Cake ${tag}`, customerPhone: "9000099904",
-  dueLocal: `${tomorrow}T17:00`, price: "2500", advance: "1000", advanceMethod: "upi", confirm: true, fulfilment: "setup", setupAddress: "12 Anna Nagar, Chennai",
+  dueLocal: `${tomorrow}T17:00`, price: "2500", advance: "1000", advanceMethod: "upi", confirm: true, fulfilment: "setup", setupAddress: "12 Anna Nagar, Chennai", internalNotes: "Use the gold cake stand",
   cake: { flavour: "Rasmalai", weightKg: "1.5", tiers: "1", theme: "Floral", message: "Happy Birthday Anu", isEggless: true, cupcakeCount: "6", popsicleCount: "0", setupCharge: "500", deliveryCharge: "200", hasAddon: true, addonDetails: "Gold balloons", addonCharge: "300" } }, admin.cookie);
 check("admin creates confirmed custom cake order", r.ok === true, JSON.stringify(r));
 const cakeId = r.orderId;
@@ -128,6 +128,12 @@ check("order page: Terms sent automatically for the cake, plus PDF/PNG download 
 p = await page("/admin/orders/new-cake", counter.cookie);
 check("cake form: Internal notes come right after Special instructions, not in Pickup/Set-up",
   p.status === 200 && p.body.indexOf("Internal notes (staff only)") > p.body.indexOf("Special instructions") && p.body.indexOf("Internal notes (staff only)") < p.body.indexOf("Price and advance"), `status ${p.status}`);
+{
+  const pub = await fetch(`${APP}/terms/${cake.reference}`, { redirect: "manual" });
+  const bad = await fetch(`${APP}/terms/..%2Fetc`, { redirect: "manual" });
+  check("the Terms link sent on WhatsApp opens the PDF without signing in; odd references are refused",
+    pub.status === 200 && pub.headers.get("content-type") === "application/pdf" && (await pub.arrayBuffer()).byteLength > 1000 && bad.status === 404, `status ${pub.status} ${bad.status}`);
+}
 p = await page(`/admin/orders/${cakeId}`, counter.cookie);
 for (const format of ["png", "pdf"]) {
   const t = await fetch(`${APP}/api/terms?format=${format}&ref=${cake.reference}`, { headers: { cookie: counter.cookie } });
@@ -172,6 +178,7 @@ for (const [chef, code] of [[chef1, "K1"], [chef2, "K2"]]) {
   check(`${code} kitchen screen loads without prices`, t.status === 200 && l.status === 200 && !hasPrice(html), `${t.status}/${l.status}`);
   check(`${code} sees its own custom cake only`, html.includes(cake.reference) === (routes.cake === code), `cake → ${routes.cake}`);
   check(`${code} sees its own website order only`, html.includes(web.reference) === (routes.web === code), `web → ${routes.web}`);
+  check(`${code} kitchen sees the staff instructions on its own cake`, html.includes("Use the gold cake stand") === (routes.cake === code), `cake → ${routes.cake}`);
   const kq = await page(`/kitchen/quotation/${cakeId}`, chef.cookie);
   if (routes.cake === code) check(`${code} kitchen Order in msg has the add-on but no prices`, kq.status === 200 && kq.body.includes("Rasmalai") && kq.body.includes("Gold balloons") && !hasPrice(kq.body), `status ${kq.status}`);
   else check(`${code} cannot open another kitchen's quotation`, kq.status !== 200 || !kq.body.includes("Rasmalai"), `status ${kq.status}`);

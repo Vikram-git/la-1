@@ -1436,6 +1436,7 @@ export type Database = {
           setup_address: string | null
           setup_note: string | null
           source: Database["public"]["Enums"]["order_source"]
+          internal_notes: string | null
         }[]
       }
       set_item_kitchen: {

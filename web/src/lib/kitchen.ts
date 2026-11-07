@@ -104,6 +104,7 @@ export type ChefOrder = {
   customerNotes: string | null;
   setupAddress: string | null;
   setupNote: string | null;
+  internalNotes: string | null;
   lines: ChefLine[];
 };
 
@@ -128,6 +129,7 @@ export function groupChefWork(rows: ChefRow[], kitchenId: string | null = null):
         customerNotes: r.customer_notes,
         setupAddress: r.setup_address,
         setupNote: r.setup_note,
+        internalNotes: r.internal_notes,
         lines: [],
       };
       orders.set(r.order_id, o);

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { availableMessages, messageText, quotationCaption, whatsappLink, whatsappNumber, type MessageKind, type MessageOrder } from "./whatsapp.ts";
+import { availableMessages, messageText, quotationCaption, termsMessage, whatsappLink, whatsappNumber, type MessageKind, type MessageOrder } from "./whatsapp.ts";
 
 const order: MessageOrder = {
   reference: "B-1023",
@@ -75,4 +75,11 @@ test("the quotation caption carries the bill: each charge, total, advance and ba
       "Custom cake: ₹2,500\nSet-up charges: ₹500\nDelivery charges: ₹200\n*Total: ₹3,200*\nAdvance paid: ₹1,000\n*Balance to pay: ₹2,200*\n\n— La Patisserie",
   );
   assert.match(quotationCaption({ reference: "B-1", bill: { ...bill, advancePaise: 320000, balancePaise: 0 } }, "S"), /Advance paid: ₹3,200\nFully paid ✅/);
+});
+
+test("the Terms message links the order's Terms PDF and never names the customer", () => {
+  const text = termsMessage("B-1137", "https://la-1-one.vercel.app");
+  assert.match(text, /cake order B-1137/);
+  assert.match(text, /https:\/\/la-1-one\.vercel\.app\/terms\/B-1137\n/);
+  assert.match(whatsappLink("919840000001", text), /^https:\/\/wa\.me\/919840000001\?text=Hello!/);
 });

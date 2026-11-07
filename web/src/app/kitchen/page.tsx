@@ -176,6 +176,13 @@ function OrderCard({ order, tz, showDay, photos, multiKitchen }: {
 
       <OrderDetails order={order} />
 
+      {order.internalNotes && (
+        <div className="rounded-xl border border-warn/40 bg-warn-soft px-3 py-2.5 text-base">
+          <p className="text-sm font-semibold uppercase tracking-wide text-warn">📝 Staff instructions</p>
+          <p className="mt-1 break-words font-medium whitespace-pre-line">{order.internalNotes}</p>
+        </div>
+      )}
+
       {closed ? (
         <Alert tone="danger" title="This order was cancelled">Stop work on it. Ask the counter what to do with anything already made.</Alert>
       ) : (

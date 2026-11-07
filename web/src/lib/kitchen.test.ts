@@ -39,6 +39,7 @@ function row(over: Partial<ChefRow>): ChefRow {
     setup_address: null,
     setup_note: null,
     source: "CALL",
+    internal_notes: null,
     ...over,
   };
 }
