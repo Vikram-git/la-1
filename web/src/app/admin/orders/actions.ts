@@ -716,21 +716,14 @@ export async function recordQuotationSendAction(input: z.input<typeof quotationS
 const quotationCloudSchema = z.object({ orderId: z.uuid(), format: z.enum(["pdf", "png"]) });
 
 // One tap sends the bill and the Terms and Conditions, in the format the admin picked, straight to the
-// WhatsApp of the number the customer gave on the order (owner, 2026-11-07). Through WhatsApp Business when it is
-// set up; otherwise both files are queued for the shop computer's sender, linked to the bakery's WhatsApp.
-export async function sendBillAndTermsAction(input: z.input<typeof quotationCloudSchema>): Promise<Result & { sent?: string[]; queued?: boolean }> {
+// WhatsApp of the number the customer gave on the order (owner, 2026-11-07).
+export async function sendBillAndTermsAction(input: z.input<typeof quotationCloudSchema>): Promise<Result & { sent?: string[] }> {
   await assertRole(["admin", "counter"]);
   const parsed = quotationCloudSchema.safeParse(input);
   if (!parsed.success) return { message: "Invalid request." };
   const { orderId, format } = parsed.data;
+  if (!cloudFormats(whatsappCloudConfig()).includes(format)) return { message: "Automatic WhatsApp sending is not set up." };
   const supabase = await createClient();
-  if (!cloudFormats(whatsappCloudConfig()).includes(format)) {
-    const { queueBillAndTerms } = await import("@/lib/whatsapp-queue");
-    const q = await queueBillAndTerms(supabase, orderId, format);
-    revalidatePath(`/admin/orders/${orderId}`);
-    revalidatePath(`/print/cake/${orderId}`);
-    return q.ok ? { ok: true, queued: true } : { message: q.message };
-  }
   const [{ sendQuotationFromServer }, { sendTermsFromServer }] = await Promise.all([import("@/lib/quotation-send"), import("@/lib/terms-send")]);
   const bill = await sendQuotationFromServer(supabase, orderId, format);
   const terms = await sendTermsFromServer(supabase, orderId, { automatic: false, formats: [format] });
