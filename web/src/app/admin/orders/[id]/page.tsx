@@ -452,7 +452,7 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
             <h2 className="mb-1 text-lg font-semibold">Terms and Conditions</h2>
             <p className="mb-3 text-sm text-muted">
               {!autoSending
-                ? "Send the Terms to the customer's WhatsApp as a link, or download them."
+                ? "Send the Terms to the customer's WhatsApp as a file (PDF or image), or download them."
                 : cakeOrder
                   ? "Sent automatically to the customer's WhatsApp, as a PDF and an image, when this cake order is confirmed."
                   : "Sent automatically only for cake orders."}

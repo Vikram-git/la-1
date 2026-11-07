@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Alert, Textarea, cx } from "@/components/ui";
 import { whatsappLink } from "@/lib/whatsapp";
+import { canShareFile, shareFileToWhatsApp } from "@/lib/share-file";
 import { recordQuotationSendAction, sendQuotationNowAction } from "../actions";
 
 type Format = "pdf" | "png";
@@ -40,6 +41,7 @@ export function QuotationSend({
   const [prepared, setPrepared] = useState<Prepared | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
+  const [chatUrl, setChatUrl] = useState<string | null>(null);
   const cloud = Boolean(phone) && cloudFormats.includes(format);
 
   async function sendNow() {
@@ -61,6 +63,7 @@ export function QuotationSend({
     setBusy(true);
     setError(null);
     setDone(null);
+    setChatUrl(null);
     setPrepared(null);
     try {
       const res = await fetch(`/api/orders/${orderId}/quotation`, {
@@ -82,42 +85,21 @@ export function QuotationSend({
     }
   }
 
-  const canShareFile = (file: File) => typeof navigator !== "undefined" && typeof navigator.canShare === "function" && navigator.canShare({ files: [file] });
-
   async function send() {
     if (!prepared) return;
     setError(null);
     const { file, path } = prepared;
-    let channel: "share_sheet" | "download_and_chat";
-    if (canShareFile(file)) {
-      // WhatsApp sometimes drops the text when a file is shared, so the message is also copied.
-      if (caption) navigator.clipboard?.writeText(caption).catch(() => {});
-      try {
-        await navigator.share(caption ? { files: [file], text: caption } : { files: [file] });
-      } catch (e) {
-        if (e instanceof DOMException && e.name === "AbortError") return;
-        setError("Sharing did not work on this device. Use the download instead.");
-        return;
-      }
-      channel = "share_sheet";
-    } else {
-      const url = URL.createObjectURL(file);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = file.name;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 60_000);
-      window.open(whatsappLink(phone ?? "", caption), "_blank", "noopener,noreferrer");
-      channel = "download_and_chat";
-    }
+    // WhatsApp sometimes drops the text when a file is shared, so the message is also copied.
+    if (caption) navigator.clipboard?.writeText(caption).catch(() => {});
+    const channel = await shareFileToWhatsApp(file, phone, caption);
+    if (!channel) return;
+    if (channel === "download_and_chat") setChatUrl(whatsappLink(phone ?? "", caption));
     const r = await recordQuotationSendAction({ orderId, format: prepared.format, channel, path, caption }).catch(() => null);
     setPrepared(null);
     setDone(
       channel === "share_sheet"
         ? caption ? "Shared. The message was also copied — paste it in WhatsApp if it is missing." : "Shared."
-        : `${file.name} downloaded and WhatsApp opened. Attach the file in the chat, then press send.`,
+        : `${file.name} downloaded and the customer's WhatsApp chat opened. Attach the file in the chat, then press send.`,
     );
     if (!r?.ok) setError(r?.message ?? "Sent, but not recorded on the order.");
     else router.refresh();
@@ -204,6 +186,11 @@ export function QuotationSend({
         </p>
       </div>
       {done && <Alert tone="ok">{done}</Alert>}
+      {chatUrl && (
+        <a href={chatUrl} target="_blank" rel="noreferrer" className="self-start text-sm font-medium text-brand-strong underline-offset-2 hover:underline">
+          WhatsApp did not open? Open the customer&rsquo;s chat →
+        </a>
+      )}
       {error && <Alert tone="warn">{error}</Alert>}
     </div>
   );

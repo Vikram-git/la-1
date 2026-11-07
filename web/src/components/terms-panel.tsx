@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Alert, cx } from "@/components/ui";
-import { termsMessage, whatsappLink } from "@/lib/whatsapp";
+import { whatsappLink } from "@/lib/whatsapp";
+import { shareFileToWhatsApp } from "@/lib/share-file";
 import { sendTermsAction } from "@/app/admin/orders/actions";
 
 type Format = "pdf" | "png";
@@ -16,10 +17,10 @@ function WhatsAppIcon() {
   );
 }
 
-// The Terms and Conditions for a cake order (owner, 2026-11-07): download the PDF or image, or one tap
-// opens this customer's WhatsApp chat with a message and a link to their Terms PDF; staff press send.
-// With WhatsApp Business set up, the server can also send the files itself (and does so automatically for
-// cake orders on confirming).
+// The Terms and Conditions for a cake order (owner, 2026-11-07): sent to the customer's WhatsApp as a file,
+// PDF or image as staff choose, never as a link. The file is made as soon as the format is picked, so one tap
+// shares it (phones) or downloads it and opens the customer's chat to attach it (computers). With WhatsApp
+// Business set up, the server sends both files itself (and does so automatically for cake orders on confirming).
 export function TermsPanel({ orderId, reference, phone, cloud, testMode = false }: {
   orderId: string;
   reference: string;
@@ -28,23 +29,55 @@ export function TermsPanel({ orderId, reference, phone, cloud, testMode = false 
   testMode?: boolean;
 }) {
   const router = useRouter();
+  const [format, setFormat] = useState<Format>("pdf");
+  const [files, setFiles] = useState<Partial<Record<Format, File>>>({});
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState<string | null>(null);
+  const [chatUrl, setChatUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const url = (f: Format) => `/api/terms?${new URLSearchParams({ format: f, ref: reference })}`;
   const button = "inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60";
   const green = "bg-[#1f9d55] text-white shadow-sm shadow-[#1f9d55]/25 hover:bg-[#14713c]";
+  const label = format === "pdf" ? "PDF" : "image";
+  const file = files[format] ?? null;
+  const preparing = Boolean(phone) && !file && !error;
 
-  function openChat() {
-    if (!phone) return;
-    window.open(whatsappLink(phone, termsMessage(reference, window.location.origin)), "_blank", "noopener,noreferrer");
-    setDone("WhatsApp opened on the customer's chat with the Terms link. Press send there.");
+  useEffect(() => {
+    if (!phone || files[format]) return;
+    let cancelled = false;
+    fetch(url(format))
+      .then((res) => (res.ok ? res.blob() : Promise.reject(new Error(String(res.status)))))
+      .then((blob) => {
+        if (cancelled) return;
+        const made = new File([blob], `LaPatisserieMadras-Terms-${reference}.${format}`, { type: format === "pdf" ? "application/pdf" : "image/png" });
+        setFiles((prev) => ({ ...prev, [format]: made }));
+      })
+      .catch(() => !cancelled && setError("Could not make the Terms file. Check the connection and reload the page."));
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- url() depends only on format and reference
+  }, [format, reference, phone]);
+
+  async function shareNow() {
+    if (!file) return;
+    setError(null);
+    setDone(null);
+    setChatUrl(null);
+    const channel = await shareFileToWhatsApp(file, phone);
+    if (!channel) return;
+    if (channel === "share_sheet") setDone(`Terms ${label} shared. Pick the customer's chat in WhatsApp if it did not open, then press send.`);
+    else {
+      setChatUrl(whatsappLink(phone ?? "", ""));
+      setDone(`${file.name} downloaded and the customer's WhatsApp chat opened. Attach the file in the chat, then press send.`);
+    }
   }
 
   async function sendNow() {
     setSending(true);
     setError(null);
     setDone(null);
+    setChatUrl(null);
     const r = await sendTermsAction({ orderId }).catch(() => null);
     setSending(false);
     if (r?.ok) {
@@ -57,13 +90,6 @@ export function TermsPanel({ orderId, reference, phone, cloud, testMode = false 
     router.refresh();
   }
 
-  const chatButton = (primary: boolean) => (
-    <button type="button" onClick={openChat} className={cx(button, primary ? green : "border border-line bg-surface text-ink hover:bg-brand-soft")} aria-label="Open the customer's WhatsApp chat with the Terms link">
-      <WhatsAppIcon />
-      {primary ? "Send Terms on WhatsApp" : "Open chat with the Terms link"}
-    </button>
-  );
-
   return (
     <div className="flex flex-col gap-3">
       {testMode && (
@@ -72,23 +98,40 @@ export function TermsPanel({ orderId, reference, phone, cloud, testMode = false 
         </Alert>
       )}
       {phone ? (
-        <div className="flex flex-wrap items-center gap-3">
-          {cloud ? (
-            <>
-              <button type="button" onClick={sendNow} disabled={sending} className={cx(button, green)}>
+        <>
+          {cloud && (
+            <div className="flex flex-col gap-2 rounded-xl border border-line bg-brand-soft/40 p-3">
+              <button type="button" onClick={sendNow} disabled={sending} className={cx(button, green, "self-start")}>
                 <WhatsAppIcon />
                 {sending ? "Sending…" : "Send Terms on WhatsApp now"}
               </button>
-              {chatButton(false)}
-              <p className="text-xs text-muted">Sends the PDF and image straight to the customer&rsquo;s saved number; nothing to attach.</p>
-            </>
-          ) : (
-            <>
-              {chatButton(true)}
-              <p className="text-xs text-muted">Opens this customer&rsquo;s chat with the Terms link ready; just press send.</p>
-            </>
+              <p className="text-xs text-muted">Sent straight to the customer&rsquo;s saved number as a PDF and an image. No need to open WhatsApp.</p>
+            </div>
           )}
-        </div>
+          {cloud && <p className="text-sm font-medium text-muted">Or send it from this device</p>}
+          <fieldset className="flex flex-wrap items-center gap-2">
+            <legend className="mb-1 text-sm text-muted">Send as</legend>
+            {(["pdf", "png"] as const).map((f) => (
+              <label
+                key={f}
+                className={cx(
+                  "cursor-pointer rounded-full border px-3 py-1.5 text-sm font-medium has-focus-visible:ring-4 has-focus-visible:ring-brand/15",
+                  format === f ? "border-brand bg-brand-soft text-brand-strong" : "border-line bg-surface hover:bg-brand-soft",
+                )}
+              >
+                <input type="radio" name={`terms-format-${orderId}`} value={f} checked={format === f} onChange={() => setFormat(f)} className="sr-only" />
+                {f === "pdf" ? "PDF" : "Image (PNG)"}
+              </label>
+            ))}
+          </fieldset>
+          <div className="flex flex-wrap items-center gap-3">
+            <button type="button" onClick={shareNow} disabled={!file} className={cx(button, cloud ? "border border-line bg-surface text-ink hover:bg-brand-soft" : green)}>
+              <WhatsAppIcon />
+              {preparing ? `Preparing ${label}…` : `Send Terms on WhatsApp (${format === "pdf" ? "PDF" : "PNG"})`}
+            </button>
+            <p className="text-xs text-muted">Goes as a file to this customer&rsquo;s WhatsApp; no link.</p>
+          </div>
+        </>
       ) : (
         <p className="text-sm text-muted">Add the customer&rsquo;s phone number to send the Terms on WhatsApp.</p>
       )}
@@ -98,6 +141,11 @@ export function TermsPanel({ orderId, reference, phone, cloud, testMode = false 
         <a href={url("png")} download className="rounded-full border border-line px-3 py-1.5 text-sm font-medium text-brand-strong hover:bg-brand-soft">Image (PNG)</a>
       </div>
       {done && <Alert tone="ok">{done}</Alert>}
+      {chatUrl && (
+        <a href={chatUrl} target="_blank" rel="noreferrer" className="self-start text-sm font-medium text-brand-strong underline-offset-2 hover:underline">
+          WhatsApp did not open? Open the customer&rsquo;s chat →
+        </a>
+      )}
       {error && <Alert tone="warn">{error}</Alert>}
     </div>
   );

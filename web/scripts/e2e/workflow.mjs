@@ -84,7 +84,7 @@ let call = (await admin.sb.from("order_summaries").select("*").eq("id", callId).
 const callPage = await page(`/admin/orders/${callId}`, counter.cookie);
 check("Pickup/Cab order keeps the customer's address and landmark, with a map link",
   callPage.status === 200 && callPage.body.includes("7 Lake View Road, T Nagar") && callPage.body.includes("Landmark: Opposite the temple") && callPage.body.includes("google.com/maps/search"), `status ${callPage.status}`);
-check("a menu cake (Black Forest) makes it a cake order that gets the Terms automatically", (callPage.body.includes("when this cake order is confirmed") || callPage.body.includes("WhatsApp as a link, or download them")), `status ${callPage.status}`);
+check("a menu cake (Black Forest) makes it a cake order that gets the Terms automatically", (callPage.body.includes("when this cake order is confirmed") || callPage.body.includes("WhatsApp as a file (PDF or image), or download them")), `status ${callPage.status}`);
 check("call order totals", call?.total_paise > 0 && call.balance_paise === call.total_paise, `total ${call?.total_paise} balance ${call?.balance_paise}`);
 r = await act("recordPaymentAction", `/admin/orders/${callId}`, { orderId: callId, idempotencyKey: crypto.randomUUID(), kind: "payment", method: "upi", amount: "200", reference: "UPI-E2E" }, counter.cookie);
 check("counter records advance", r.ok === true, JSON.stringify(r));
