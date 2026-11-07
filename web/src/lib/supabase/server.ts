@@ -28,7 +28,8 @@ export async function createClient() {
 }
 
 // No login and no cookies: acts as the anonymous website visitor (anon role). Only for the public
-// website's functions (website_catalogue, submit_website_order).
+// website's functions (website_catalogue, submit_website_order) and the signed WhatsApp webhook
+// (record_whatsapp_status).
 export function createPublicClient() {
   return createSupabaseClient<Database>(env.supabaseUrl, env.supabasePublishableKey, {
     auth: { autoRefreshToken: false, persistSession: false },

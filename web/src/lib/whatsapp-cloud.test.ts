@@ -98,3 +98,18 @@ test("WhatsApp's refusals become plain messages for staff", async () => {
   const r4 = await sendFileOnWhatsApp(cfg, { ...message, format: "png" }, offline);
   assert.match(!r4.ok ? r4.message : "", /not set up/);
 });
+
+test("test mode: only the local stand-in, never on Vercel, never quotations, never auto-sent quotations", () => {
+  const t = whatsappCloudConfig({ WHATSAPP_TEST_MODE: "true", WHATSAPP_AUTO_SEND_ON_CONFIRM: "true" })!;
+  assert.equal(t.testMode, true);
+  assert.equal(t.graphBase, "http://localhost:4010");
+  assert.equal(t.autoSendOnConfirm, false);
+  assert.deepEqual(cloudFormats(t, "terms"), ["pdf", "png"]);
+  assert.deepEqual(cloudFormats(t, "quotation"), []);
+  assert.equal(whatsappCloudConfig({ WHATSAPP_TEST_MODE: "true", VERCEL: "1" }), null);
+  assert.equal(whatsappCloudConfig({ WHATSAPP_TEST_MODE: "true", WHATSAPP_TEST_GRAPH_URL: "https://graph.facebook.com" }), null);
+  assert.equal(whatsappCloudConfig({ WHATSAPP_TEST_MODE: "true", WHATSAPP_TEST_GRAPH_URL: "http://evil.example" }), null);
+  const real = whatsappCloudConfig({ WHATSAPP_TOKEN: "tok", WHATSAPP_PHONE_NUMBER_ID: "1" })!;
+  assert.equal(real.testMode, false);
+  assert.equal(real.graphBase, "https://graph.facebook.com");
+});

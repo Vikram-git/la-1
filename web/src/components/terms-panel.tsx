@@ -20,7 +20,13 @@ function WhatsAppIcon() {
 // opens this customer's WhatsApp chat with a message and a link to their Terms PDF; staff press send.
 // With WhatsApp Business set up, the server can also send the files itself (and does so automatically for
 // cake orders on confirming).
-export function TermsPanel({ orderId, reference, phone, cloud }: { orderId: string; reference: string; phone: string | null; cloud: boolean }) {
+export function TermsPanel({ orderId, reference, phone, cloud, testMode = false }: {
+  orderId: string;
+  reference: string;
+  phone: string | null;
+  cloud: boolean;
+  testMode?: boolean;
+}) {
   const router = useRouter();
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState<string | null>(null);
@@ -41,25 +47,47 @@ export function TermsPanel({ orderId, reference, phone, cloud }: { orderId: stri
     setDone(null);
     const r = await sendTermsAction({ orderId }).catch(() => null);
     setSending(false);
-    if (r?.ok) setDone("Sent to the customer on WhatsApp (PDF and image).");
-    else setError(r?.message ?? "Could not send on WhatsApp. Check the connection and try again.");
+    if (r?.ok) {
+      setDone(testMode
+        ? "Sent to the local WhatsApp test phone (PDF and image). Open http://localhost:4010 to see it; the ticks update here."
+        : "Sent to the customer's WhatsApp (PDF and image). The ticks update when WhatsApp reports delivered and read.");
+      // WhatsApp reports delivered and read a few seconds later, through the webhook.
+      for (const ms of [2500, 6000]) setTimeout(() => router.refresh(), ms);
+    } else setError(r?.message ?? "Could not send on WhatsApp. Check the connection and try again.");
     router.refresh();
   }
 
+  const chatButton = (primary: boolean) => (
+    <button type="button" onClick={openChat} className={cx(button, primary ? green : "border border-line bg-surface text-ink hover:bg-brand-soft")} aria-label="Open the customer's WhatsApp chat with the Terms link">
+      <WhatsAppIcon />
+      {primary ? "Send Terms on WhatsApp" : "Open chat with the Terms link"}
+    </button>
+  );
+
   return (
     <div className="flex flex-col gap-3">
+      {testMode && (
+        <Alert tone="warn" title="WhatsApp test mode">
+          Sends go to the local WhatsApp test phone at http://localhost:4010, never to the customer.
+        </Alert>
+      )}
       {phone ? (
         <div className="flex flex-wrap items-center gap-3">
-          <button type="button" onClick={openChat} className={cx(button, green)} aria-label="Send Terms on WhatsApp">
-            <WhatsAppIcon />
-            Send Terms on WhatsApp
-          </button>
-          {cloud && (
-            <button type="button" onClick={sendNow} disabled={sending} className={cx(button, "border border-line bg-surface text-ink hover:bg-brand-soft")}>
-              {sending ? "Sending…" : "Send files automatically now"}
-            </button>
+          {cloud ? (
+            <>
+              <button type="button" onClick={sendNow} disabled={sending} className={cx(button, green)}>
+                <WhatsAppIcon />
+                {sending ? "Sending…" : "Send Terms on WhatsApp now"}
+              </button>
+              {chatButton(false)}
+              <p className="text-xs text-muted">Sends the PDF and image straight to the customer&rsquo;s saved number; nothing to attach.</p>
+            </>
+          ) : (
+            <>
+              {chatButton(true)}
+              <p className="text-xs text-muted">Opens this customer&rsquo;s chat with the Terms link ready; just press send.</p>
+            </>
           )}
-          <p className="text-xs text-muted">Opens this customer&rsquo;s chat with the Terms link ready; just press send.</p>
         </div>
       ) : (
         <p className="text-sm text-muted">Add the customer&rsquo;s phone number to send the Terms on WhatsApp.</p>

@@ -16,13 +16,32 @@ export type CloudConfig = {
   templates: Record<CloudFormat, string | null>;
   termsTemplates: Record<CloudFormat, string | null>;
   autoSendOnConfirm: boolean;
+  graphBase: string;
+  testMode: boolean;
 };
 
 type Env = Record<string, string | undefined>;
 
+const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
+
+// Local test mode (WHATSAPP_TEST_MODE=true, owner 2026-11-07): the whole Terms flow runs against the local
+// stand-in for WhatsApp (npm run whatsapp:test), so nothing reaches a customer. Only a localhost address is
+// accepted and never on Vercel; quotations are not sent in test mode, and its sends are marked as tests.
+function testGraphBase(env: Env): string | null {
+  if (env.WHATSAPP_TEST_MODE?.trim().toLowerCase() !== "true" || env.VERCEL) return null;
+  const raw = env.WHATSAPP_TEST_GRAPH_URL?.trim() || "http://localhost:4010";
+  try {
+    const url = new URL(raw);
+    return url.protocol === "http:" && LOCAL_HOSTS.has(url.hostname) ? url.origin : null;
+  } catch {
+    return null;
+  }
+}
+
 export function whatsappCloudConfig(env: Env = process.env): CloudConfig | null {
-  const token = env.WHATSAPP_TOKEN?.trim();
-  const phoneNumberId = env.WHATSAPP_PHONE_NUMBER_ID?.trim();
+  const testBase = testGraphBase(env);
+  const token = env.WHATSAPP_TOKEN?.trim() || (testBase ? "local-test-token" : "");
+  const phoneNumberId = env.WHATSAPP_PHONE_NUMBER_ID?.trim() || (testBase ? "local-test-number" : "");
   if (!token || !phoneNumberId) return null;
   return {
     token,
@@ -37,7 +56,9 @@ export function whatsappCloudConfig(env: Env = process.env): CloudConfig | null 
       pdf: env.WHATSAPP_TERMS_TEMPLATE_PDF?.trim() || "terms_pdf",
       png: env.WHATSAPP_TERMS_TEMPLATE_PNG?.trim() || "terms_image",
     },
-    autoSendOnConfirm: env.WHATSAPP_AUTO_SEND_ON_CONFIRM?.trim().toLowerCase() === "true",
+    autoSendOnConfirm: !testBase && env.WHATSAPP_AUTO_SEND_ON_CONFIRM?.trim().toLowerCase() === "true",
+    graphBase: testBase ?? "https://graph.facebook.com",
+    testMode: Boolean(testBase),
   };
 }
 
@@ -46,7 +67,7 @@ export function templateName(cfg: CloudConfig, format: CloudFormat, document: Cl
 }
 
 export function cloudFormats(cfg: CloudConfig | null, document: CloudDocument = "quotation"): CloudFormat[] {
-  if (!cfg) return [];
+  if (!cfg || (cfg.testMode && document !== "terms")) return [];
   return (["pdf", "png"] as const).filter((f) => templateName(cfg, f, document));
 }
 
@@ -101,7 +122,7 @@ export async function sendFileOnWhatsApp(
   fetchImpl: typeof fetch = fetch,
 ): Promise<CloudSendResult> {
   if (!templateName(cfg, m.format, m.document)) return { ok: false, message: "Automatic sending is not set up for this format." };
-  const base = `https://graph.facebook.com/${cfg.graphVersion}/${cfg.phoneNumberId}`;
+  const base = `${cfg.graphBase}/${cfg.graphVersion}/${cfg.phoneNumberId}`;
   const auth = { Authorization: `Bearer ${cfg.token}` };
   try {
     const form = new FormData();

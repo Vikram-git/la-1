@@ -1112,6 +1112,9 @@ export type Database = {
       }
       terms_sends: {
         Row: {
+          delivery_problem: string | null
+          delivery_status: string | null
+          delivery_updated_at: string | null
           format: string
           id: string
           message_id: string | null
@@ -1120,6 +1123,7 @@ export type Database = {
           sent_at: string
           sent_by: string | null
           status: string
+          test_mode: boolean
         }
         Insert: never
         Update: never
@@ -1486,8 +1490,13 @@ export type Database = {
           p_status: string
           p_message_id?: string | null
           p_problem?: string | null
+          p_test?: boolean
         }
         Returns: string
+      }
+      record_whatsapp_status: {
+        Args: { p_message_id: string; p_status: string; p_problem?: string | null }
+        Returns: number
       }
       delete_staff: {
         Args: { p_user_id: string }

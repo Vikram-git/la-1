@@ -37,7 +37,7 @@ export async function sendTermsFromServer(supabase: Client, orderId: string, opt
 
   if (opts.automatic) {
     if (!(await cakeOrder(supabase, orderId))) return { ok: true, skipped: "Not a cake order." };
-    const { count } = await supabase.from("terms_sends").select("id", { count: "exact", head: true }).eq("order_id", orderId).eq("status", "sent");
+    const { count } = await supabase.from("terms_sends").select("id", { count: "exact", head: true }).eq("order_id", orderId).eq("status", "sent").eq("test_mode", cfg.testMode);
     if ((count ?? 0) > 0) return { ok: true, skipped: "Already sent." };
   }
 
@@ -65,6 +65,7 @@ export async function sendTermsFromServer(supabase: Client, orderId: string, opt
       p_status: sent.ok ? "sent" : "failed",
       p_message_id: sent.ok ? sent.messageId : null,
       p_problem: sent.ok ? null : sent.message.slice(0, 500),
+      p_test: cfg.testMode,
     });
     if (logError) console.error("terms send not recorded", logError.code, logError.message);
     if (!sent.ok) problems.push(sent.message);

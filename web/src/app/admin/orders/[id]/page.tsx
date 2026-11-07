@@ -74,6 +74,14 @@ const QUOTATION_CHANNEL: Record<string, string> = {
   cloud_api: "sent by WhatsApp",
 };
 
+// WhatsApp's own ticks, from Meta's delivery webhook.
+function DeliveryTicks({ status }: { status: string | null }) {
+  if (status === "read") return <span className="font-semibold text-[#34b7f1]">✓✓ Read</span>;
+  if (status === "delivered") return <span className="font-semibold">✓✓ Delivered</span>;
+  if (status === "failed") return <span className="font-semibold">Not delivered</span>;
+  return <span>✓ Sent</span>;
+}
+
 // PRD 5F: only orders the customer should have collected can count as a no-show.
 const NO_SHOW_STATUSES = ["confirmed", "preparing", "ready", "cancelled"];
 
@@ -145,7 +153,7 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
   const itemCategoryIds = [...new Set((items ?? []).filter((i) => i.quantity > i.cancelled_quantity).map((i) => i.category_id).filter((v): v is string => Boolean(v)))];
   const [{ data: itemCategories }, { data: termsSends }] = await Promise.all([
     itemCategoryIds.length ? supabase.from("categories").select("name").in("id", itemCategoryIds) : Promise.resolve({ data: [] as { name: string }[] }),
-    supabase.from("terms_sends").select("id, format, status, problem, sent_at").eq("order_id", id).order("sent_at", { ascending: false }).limit(6),
+    supabase.from("terms_sends").select("id, format, status, problem, sent_at, delivery_status, delivery_problem, test_mode").eq("order_id", id).order("sent_at", { ascending: false }).limit(6),
   ]);
   const cakeOrder = isCakeOrder({ hasCustomCake: Boolean(cake), itemCategories: (itemCategories ?? []).map((c) => c.name) });
   const autoSending = Boolean(whatsappCloudConfig());
@@ -453,16 +461,18 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
               {(termsSends ?? []).length > 0 ? (
                 <ul className="flex flex-col gap-1 text-sm">
                   {(termsSends ?? []).map((t) => (
-                    <li key={t.id} className={t.status === "sent" ? "text-ok" : "text-danger"}>
-                      {t.format === "pdf" ? "PDF" : "Image"} {t.status === "sent" ? "sent automatically" : "not sent"} · {formatDateTime(t.sent_at, tz)}
-                      {t.problem && <span className="block text-xs text-muted">{t.problem}</span>}
+                    <li key={t.id} className={t.status === "sent" && t.delivery_status !== "failed" ? "text-ok" : "text-danger"}>
+                      {t.format === "pdf" ? "PDF" : "Image"} {t.status === "sent" ? "sent on WhatsApp" : "not sent"} · {formatDateTime(t.sent_at, tz)}
+                      {t.status === "sent" && <> · <DeliveryTicks status={t.delivery_status} /></>}
+                      {t.test_mode && <span className="ml-2 rounded bg-warn-soft px-1.5 text-xs font-semibold text-warn">Test</span>}
+                      {(t.delivery_problem ?? t.problem) && <span className="block text-xs text-muted">{t.delivery_problem ?? t.problem}</span>}
                     </li>
                   ))}
                 </ul>
               ) : autoSending && cakeOrder && ["draft", "pending_confirmation"].includes(order.status) ? (
                 <p className="text-sm text-muted">Will be sent automatically when the order is confirmed.</p>
               ) : null}
-              <TermsPanel orderId={order.id} reference={order.reference ?? ""} phone={termsTo} cloud={autoSending} />
+              <TermsPanel orderId={order.id} reference={order.reference ?? ""} phone={termsTo} cloud={autoSending} testMode={whatsappCloudConfig()?.testMode ?? false} />
             </div>
             <details className="group rounded-xl border border-line bg-canvas/50 px-4 py-3 text-sm">
               <summary className="cursor-pointer font-medium text-brand-strong">

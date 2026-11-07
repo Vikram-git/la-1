@@ -119,6 +119,20 @@ r = await act("createCustomCakeOrderAction", "/admin/orders/new-cake", { idempot
 check("admin creates confirmed custom cake order", r.ok === true, JSON.stringify(r));
 const cakeId = r.orderId;
 const cake = (await admin.sb.from("order_summaries").select("*").eq("id", cakeId).single()).data;
+if (process.env.WHATSAPP_TEST_MODE === "true") {
+  // Needs the WhatsApp stand-in (npm run whatsapp:test) and the dev server it reports delivery to.
+  let sends = [];
+  for (let i = 0; i < 20 && !(sends.length === 2 && sends.every((s) => s.delivery_status === "read")); i++) {
+    await new Promise((ok) => setTimeout(ok, 1000));
+    sends = (await admin.sb.from("terms_sends").select("format, status, test_mode, delivery_status").eq("order_id", cakeId)).data ?? [];
+  }
+  check("confirming a cake order sends the Terms PDF and image through the Cloud API (test mode), marked as tests",
+    sends.length === 2 && sends.every((s) => s.status === "sent" && s.test_mode) && new Set(sends.map((s) => s.format)).size === 2, JSON.stringify(sends));
+  check("WhatsApp's delivered and read reach the order through the signed webhook", sends.every((s) => s.delivery_status === "read"), JSON.stringify(sends));
+  const unsigned = await fetch(`${APP}/api/whatsapp/webhook`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ entry: [] }) });
+  const forged = await fetch(`${APP}/api/whatsapp/webhook`, { method: "POST", headers: { "Content-Type": "application/json", "X-Hub-Signature-256": "sha256=" + "0".repeat(64) }, body: "{}" });
+  check("webhook refuses unsigned and wrongly signed calls", unsigned.status === 403 && forged.status === 403, `${unsigned.status}/${forged.status}`);
+}
 check("custom cake total = price + set-up + delivery + add-on, advance paid", cake?.total_paise === 350000 && cake.balance_paise === 250000, `total ${cake?.total_paise} balance ${cake?.balance_paise}`);
 p = await page(`/admin/orders/${cakeId}`, counter.cookie);
 check("order page shows cupcakes and add-on, without the message and Order in msg cards", p.status === 200 && /Cupcakes.{0,80}>6</.test(p.body) && p.body.includes("Gold balloons") && !p.body.includes("Message the customer") && !p.body.includes("Open Order in msg"), `status ${p.status}`);

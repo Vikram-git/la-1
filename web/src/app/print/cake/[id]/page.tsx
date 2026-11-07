@@ -177,7 +177,7 @@ export default async function CakeSheetPage({ params, searchParams }: PageProps<
         <p className="mb-3 text-sm text-muted">
           Send them to the customer&rsquo;s WhatsApp as a link, or download them.
         </p>
-        <TermsPanel orderId={id} reference={order.reference ?? ""} phone={whatsappNumber(order.customer_phone)} cloud={Boolean(whatsappCloudConfig())} />
+        <TermsPanel orderId={id} reference={order.reference ?? ""} phone={whatsappNumber(order.customer_phone)} cloud={Boolean(whatsappCloudConfig())} testMode={whatsappCloudConfig()?.testMode ?? false} />
       </Card>
     </div>
   );
