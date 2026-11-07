@@ -175,8 +175,7 @@ export default async function CakeSheetPage({ params, searchParams }: PageProps<
       <Card className="mx-auto mt-6 max-w-3xl print:hidden">
         <h2 className="mb-1 text-lg font-semibold">Terms and Conditions for the customer</h2>
         <p className="mb-3 text-sm text-muted">
-          Download them, or send them to the customer&rsquo;s WhatsApp as a file. Cake orders also get them automatically when
-          confirmed, once WhatsApp Business is connected.
+          Download them, or send them to the customer&rsquo;s WhatsApp as a file.
         </p>
         <TermsPanel orderId={id} reference={order.reference ?? ""} phone={whatsappNumber(order.customer_phone)} cloud={Boolean(whatsappCloudConfig())} />
       </Card>

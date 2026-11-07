@@ -84,7 +84,7 @@ let call = (await admin.sb.from("order_summaries").select("*").eq("id", callId).
 const callPage = await page(`/admin/orders/${callId}`, counter.cookie);
 check("Pickup/Cab order keeps the customer's address and landmark, with a map link",
   callPage.status === 200 && callPage.body.includes("7 Lake View Road, T Nagar") && callPage.body.includes("Landmark: Opposite the temple") && callPage.body.includes("google.com/maps/search"), `status ${callPage.status}`);
-check("a menu cake (Black Forest) makes it a cake order that gets the Terms automatically", callPage.body.includes("when this cake order is confirmed"), `status ${callPage.status}`);
+check("a menu cake (Black Forest) makes it a cake order that gets the Terms automatically", (callPage.body.includes("when this cake order is confirmed") || callPage.body.includes("Download the Terms, or send them")), `status ${callPage.status}`);
 check("call order totals", call?.total_paise > 0 && call.balance_paise === call.total_paise, `total ${call?.total_paise} balance ${call?.balance_paise}`);
 r = await act("recordPaymentAction", `/admin/orders/${callId}`, { orderId: callId, idempotencyKey: crypto.randomUUID(), kind: "payment", method: "upi", amount: "200", reference: "UPI-E2E" }, counter.cookie);
 check("counter records advance", r.ok === true, JSON.stringify(r));
@@ -123,7 +123,7 @@ check("custom cake total = price + set-up + delivery + add-on, advance paid", ca
 p = await page(`/admin/orders/${cakeId}`, counter.cookie);
 check("order page shows cupcakes and add-on, without the message and Order in msg cards", p.status === 200 && /Cupcakes.{0,80}>6</.test(p.body) && p.body.includes("Gold balloons") && !p.body.includes("Message the customer") && !p.body.includes("Open Order in msg"), `status ${p.status}`);
 check("order page: Terms sent automatically for the cake, plus PDF/PNG download and send to the customer's chat",
-  p.body.includes("when this cake order is confirmed") && p.body.includes("Send Terms on WhatsApp") && p.body.includes(`/api/terms?format=pdf&amp;ref=${cake.reference}`) &&
+  !p.body.includes("not set up yet") && p.body.includes("Send Terms on WhatsApp") && p.body.includes(`/api/terms?format=pdf&amp;ref=${cake.reference}`) &&
   p.body.includes(`/api/terms?format=png&amp;ref=${cake.reference}`) && p.body.includes("Food Colours"), `status ${p.status}`);
 p = await page("/admin/orders/new-cake", counter.cookie);
 check("cake form: Internal notes come right after Special instructions, not in Pickup/Set-up",

@@ -443,9 +443,11 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
           <Card className="lg:col-span-2">
             <h2 className="mb-1 text-lg font-semibold">Terms and Conditions</h2>
             <p className="mb-3 text-sm text-muted">
-              {cakeOrder
-                ? "Sent automatically to the customer's WhatsApp, as a PDF and an image, when this cake order is confirmed."
-                : "Sent automatically only for cake orders."}
+              {!autoSending
+                ? "Download the Terms, or send them to the customer's WhatsApp as a file."
+                : cakeOrder
+                  ? "Sent automatically to the customer's WhatsApp, as a PDF and an image, when this cake order is confirmed."
+                  : "Sent automatically only for cake orders."}
             </p>
             <div className="mb-3 flex flex-col gap-3">
               {(termsSends ?? []).length > 0 ? (
@@ -457,12 +459,7 @@ export default async function OrderPage({ params, searchParams }: PageProps<"/ad
                     </li>
                   ))}
                 </ul>
-              ) : !autoSending ? (
-                <p className="text-sm text-warn">
-                  Automatic WhatsApp sending is not set up yet; until the WhatsApp Business account is connected, send
-                  the Terms below.
-                </p>
-              ) : cakeOrder && ["draft", "pending_confirmation"].includes(order.status) ? (
+              ) : autoSending && cakeOrder && ["draft", "pending_confirmation"].includes(order.status) ? (
                 <p className="text-sm text-muted">Will be sent automatically when the order is confirmed.</p>
               ) : null}
               <TermsPanel orderId={order.id} reference={order.reference ?? ""} phone={termsTo} cloud={autoSending} />
