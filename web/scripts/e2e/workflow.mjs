@@ -160,7 +160,7 @@ check("sticky note saved", r.ok === true, JSON.stringify(r));
 p = await page(`/admin/orders/${cakeId}`, admin.cookie);
 check("order page shows sticky note", p.body.includes("Gold leaf on top"), `status ${p.status}`);
 p = await page(`/print/quotation/${cakeId}`, admin.cookie);
-check("quotation print page shows price and note", p.status === 200 && hasPrice(p.body) && p.body.includes("Gold leaf on top"), `status ${p.status}`);
+check("customer quotation shows price and note, never the staff instructions", p.status === 200 && hasPrice(p.body) && p.body.includes("Gold leaf on top") && !p.body.includes("Use the gold cake stand"), `status ${p.status}`);
 p = await page(`/admin/calendar?kind=custom&from=${tomorrow}`, admin.cookie);
 check("custom calendar lists the cake, not the call order", p.body.includes(cake.reference) && !p.body.includes(call.reference), `status ${p.status}`);
 p = await page(`/admin/calendar?from=${tomorrow}`, admin.cookie);
@@ -180,7 +180,7 @@ for (const [chef, code] of [[chef1, "K1"], [chef2, "K2"]]) {
   check(`${code} sees its own website order only`, html.includes(web.reference) === (routes.web === code), `web → ${routes.web}`);
   check(`${code} kitchen sees the staff instructions on its own cake`, html.includes("Use the gold cake stand") === (routes.cake === code), `cake → ${routes.cake}`);
   const kq = await page(`/kitchen/quotation/${cakeId}`, chef.cookie);
-  if (routes.cake === code) check(`${code} kitchen Order in msg has the add-on but no prices`, kq.status === 200 && kq.body.includes("Rasmalai") && kq.body.includes("Gold balloons") && !hasPrice(kq.body), `status ${kq.status}`);
+  if (routes.cake === code) check(`${code} kitchen Order in msg has the add-on and staff instructions but no prices`, kq.status === 200 && kq.body.includes("Rasmalai") && kq.body.includes("Gold balloons") && kq.body.includes("Use the gold cake stand") && !hasPrice(kq.body), `status ${kq.status}`);
   else check(`${code} cannot open another kitchen's quotation`, kq.status !== 200 || !kq.body.includes("Rasmalai"), `status ${kq.status}`);
   const api = await quotationFile(cakeId, "pdf", chef.cookie);
   check(`${code} chef gets 403 from quotation file`, api.status === 403, `status ${api.status}`);
